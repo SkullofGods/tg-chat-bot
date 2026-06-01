@@ -379,7 +379,7 @@ async def cmd_families(message: Message):
     lines = ["\U0001f491 *\u0421\u0435\u043c\u044c\u0438 \u0432 \u0431\u0435\u0441\u0435\u0434\u0435:*\n"]
     for i, (root, members) in enumerate(families.items(), 1):
         names = [mention_by_db(uid) for uid in members]
-        names_str = RING.join(names)  # <-- fix: no backslash inside f-string
+        names_str = RING.join(names)
         oldest = min(family_dates[root]) if family_dates[root] else None
         duration = format_duration_since(oldest) if oldest else "\u043d\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043d\u043e \u0441\u043a\u043e\u043b\u044c\u043a\u043e"
         lines.append(f"{i}. {names_str} \u2014 \u0432 \u0431\u0440\u0430\u043a\u0435 \u0443\u0436\u0435 {duration}")
