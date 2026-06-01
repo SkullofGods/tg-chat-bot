@@ -37,8 +37,8 @@ class Database:
                 PRIMARY KEY (user_id, chat_id)
             );
             CREATE TABLE IF NOT EXISTS marriages (
-                user1_id INTEGER,
-                user2_id INTEGER,
+                user1_id   INTEGER,
+                user2_id   INTEGER,
                 created_at TEXT NOT NULL,
                 PRIMARY KEY (user1_id, user2_id),
                 CHECK (user1_id < user2_id)
@@ -49,6 +49,9 @@ class Database:
                 chat_id     INTEGER,
                 created_at  TEXT NOT NULL,
                 PRIMARY KEY (proposer_id, target_id, chat_id)
+            );
+            CREATE TABLE IF NOT EXISTS known_chats (
+                chat_id INTEGER PRIMARY KEY
             );
         """)
 
@@ -177,3 +180,14 @@ class Database:
             (proposer_id, target_id, chat_id),
         )
         c.commit()
+
+    # ── Known chats ────────────────────────────────────────────────────────
+
+    def remember_chat(self, chat_id: int):
+        c = self._conn()
+        c.execute("INSERT OR IGNORE INTO known_chats (chat_id) VALUES (?)", (chat_id,))
+        c.commit()
+
+    def get_known_chats(self) -> list[int]:
+        rows = self._conn().execute("SELECT chat_id FROM known_chats").fetchall()
+        return [r["chat_id"] for r in rows]

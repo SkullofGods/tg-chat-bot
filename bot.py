@@ -1,19 +1,19 @@
 import asyncio
 import logging
-import signal
 from contextlib import suppress
 from datetime import datetime, timedelta
 
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command, CommandObject
 from aiogram.types import (
-    Message,
-    ChatMemberUpdated,
-    PollAnswer,
     BotCommand,
-    InlineKeyboardMarkup,
-    InlineKeyboardButton,
+    BotCommandScopeAllGroupChats,
     CallbackQuery,
+    ChatMemberUpdated,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    Message,
+    PollAnswer,
 )
 from aiogram.enums import ChatMemberStatus
 from aiogram.fsm.storage.memory import MemoryStorage
@@ -45,7 +45,6 @@ RULES_TEXT = (
 
 _LEFT_STATUSES = {ChatMemberStatus.LEFT, ChatMemberStatus.KICKED}
 orgy_state: dict[int, dict] = {}
-known_chats: set[int] = set()
 shutdown_sent = False
 
 
@@ -78,10 +77,6 @@ def format_duration_since(iso_dt: str) -> str:
     return f"{minutes} мин."
 
 
-def remember_chat(chat_id: int):
-    known_chats.add(chat_id)
-
-
 def resolve_target_from_command_or_reply(message: Message, command: CommandObject):
     if message.reply_to_message:
         target = message.reply_to_message.from_user
@@ -105,7 +100,7 @@ def brak_keyboard(proposer_id: int, target_id: int, chat_id: int) -> InlineKeybo
 
 
 async def announce_startup():
-    for chat_id in list(known_chats):
+    for chat_id in db.get_known_chats():
         with suppress(Exception):
             await bot.send_message(chat_id, "бля, я ожил и обновился")
 
@@ -115,14 +110,14 @@ async def announce_shutdown():
     if shutdown_sent:
         return
     shutdown_sent = True
-    for chat_id in list(known_chats):
+    for chat_id in db.get_known_chats():
         with suppress(Exception):
             await bot.send_message(chat_id, "бля, умираю")
 
 
 @dp.chat_member()
 async def on_new_member(event: ChatMemberUpdated):
-    remember_chat(event.chat.id)
+    db.remember_chat(event.chat.id)
     old_status = event.old_chat_member.status
     new_status = event.new_chat_member.status
     joined = old_status in _LEFT_STATUSES and new_status in (ChatMemberStatus.MEMBER, ChatMemberStatus.ADMINISTRATOR)
@@ -143,7 +138,7 @@ async def on_new_member(event: ChatMemberUpdated):
 
 @dp.message(Command("info"))
 async def cmd_info(message: Message, command: CommandObject):
-    remember_chat(message.chat.id)
+    db.remember_chat(message.chat.id)
     target_id, target_name, _ = resolve_target_from_command_or_reply(message, command)
     if not target_id:
         await message.reply("Ответь на сообщение пользователя или укажи @username.")
@@ -157,7 +152,7 @@ async def cmd_info(message: Message, command: CommandObject):
 
 @dp.message(Command("анкета", "anketa"))
 async def cmd_anketa(message: Message):
-    remember_chat(message.chat.id)
+    db.remember_chat(message.chat.id)
     db.ensure_user(message.from_user.id, message.from_user.username or "", message.from_user.full_name)
     db.set_awaiting_anketa(message.from_user.id, message.chat.id)
     await message.reply(f"{ANKETA_TEXT}\n\n_Напиши ответ в чат, я обновлю анкету._", parse_mode="Markdown")
@@ -165,7 +160,7 @@ async def cmd_anketa(message: Message):
 
 @dp.message(Command("brak"))
 async def cmd_brak(message: Message, command: CommandObject):
-    remember_chat(message.chat.id)
+    db.remember_chat(message.chat.id)
     proposer = message.from_user
     db.ensure_user(proposer.id, proposer.username or "", proposer.full_name)
     target_id, target_name, _ = resolve_target_from_command_or_reply(message, command)
@@ -188,12 +183,9 @@ async def cmd_brak(message: Message, command: CommandObject):
 
 @dp.callback_query(F.data.startswith("brak_yes:"))
 async def callback_brak_yes(callback: CallbackQuery):
-    remember_chat(callback.message.chat.id)
+    db.remember_chat(callback.message.chat.id)
     _, proposer_id, target_id, chat_id = callback.data.split(":")
-    proposer_id = int(proposer_id)
-    target_id = int(target_id)
-    chat_id = int(chat_id)
-
+    proposer_id, target_id, chat_id = int(proposer_id), int(target_id), int(chat_id)
     if callback.from_user.id != target_id:
         await callback.answer("Это предложение не тебе 😾", show_alert=True)
         return
@@ -203,7 +195,6 @@ async def callback_brak_yes(callback: CallbackQuery):
     if db.are_married(proposer_id, target_id):
         await callback.answer("Вы уже в браке.", show_alert=True)
         return
-
     db.add_marriage(proposer_id, target_id)
     db.delete_marriage_proposal(proposer_id, target_id, chat_id)
     await callback.message.edit_text(
@@ -215,19 +206,15 @@ async def callback_brak_yes(callback: CallbackQuery):
 
 @dp.callback_query(F.data.startswith("brak_no:"))
 async def callback_brak_no(callback: CallbackQuery):
-    remember_chat(callback.message.chat.id)
+    db.remember_chat(callback.message.chat.id)
     _, proposer_id, target_id, chat_id = callback.data.split(":")
-    proposer_id = int(proposer_id)
-    target_id = int(target_id)
-    chat_id = int(chat_id)
-
+    proposer_id, target_id, chat_id = int(proposer_id), int(target_id), int(chat_id)
     if callback.from_user.id != target_id:
         await callback.answer("Это предложение не тебе 😾", show_alert=True)
         return
     if not db.get_marriage_proposal(proposer_id, target_id, chat_id):
         await callback.answer("Предложение уже неактуально.", show_alert=True)
         return
-
     db.delete_marriage_proposal(proposer_id, target_id, chat_id)
     await callback.message.edit_text(
         f"💔 {mention_by_db(target_id)} отклонил(а) предложение от {mention_by_db(proposer_id)}.",
@@ -238,7 +225,7 @@ async def callback_brak_no(callback: CallbackQuery):
 
 @dp.message(Command("razvod", "развод"))
 async def cmd_razvod(message: Message, command: CommandObject):
-    remember_chat(message.chat.id)
+    db.remember_chat(message.chat.id)
     target_id, _, _ = resolve_target_from_command_or_reply(message, command)
     if not target_id:
         await message.reply("Ответь на сообщение того, с кем разводишься, или укажи @username.")
@@ -252,7 +239,7 @@ async def cmd_razvod(message: Message, command: CommandObject):
 
 @dp.message(Command("families"))
 async def cmd_families(message: Message):
-    remember_chat(message.chat.id)
+    db.remember_chat(message.chat.id)
     marriages = db.get_all_marriages()
     if not marriages:
         await message.reply("В беседе пока нет браков. 😢")
@@ -296,7 +283,7 @@ async def cmd_families(message: Message):
 
 @dp.message(Command("оргия", "orgy"))
 async def cmd_orgy(message: Message):
-    remember_chat(message.chat.id)
+    db.remember_chat(message.chat.id)
     chat_id = message.chat.id
     now = datetime.utcnow()
     state = orgy_state.get(chat_id)
@@ -373,7 +360,7 @@ async def handle_poll_answer(poll_answer: PollAnswer):
 
 @dp.message(F.chat.type.in_({"group", "supergroup"}))
 async def handle_group_message(message: Message):
-    remember_chat(message.chat.id)
+    db.remember_chat(message.chat.id)
     user = message.from_user
     db.ensure_user(user.id, user.username or "", user.full_name)
     if db.is_awaiting_anketa(user.id, message.chat.id):
@@ -389,14 +376,17 @@ async def handle_group_message(message: Message):
 
 async def main():
     db.init()
-    await bot.set_my_commands([
-        BotCommand(command="info", description="Анкета (reply или @username)"),
-        BotCommand(command="anketa", description="Заполнить / обновить анкету (или /анкета)"),
-        BotCommand(command="brak", description="Сделать предложение"),
-        BotCommand(command="razvod", description="Развод (reply или @username)"),
+    # BotCommandScopeAllGroupChats — команды видны только в группах,
+    # поэтому Telegram не добавляет @botname суффикс в подсказках
+    group_commands = [
+        BotCommand(command="info",     description="Анкета (reply или @username)"),
+        BotCommand(command="anketa",   description="Заполнить / обновить анкету (или /анкета)"),
+        BotCommand(command="brak",     description="Сделать предложение брака"),
+        BotCommand(command="razvod",   description="Развод (reply или @username)"),
         BotCommand(command="families", description="Все браки в беседе"),
-        BotCommand(command="orgy", description="Оргия-опрос (или /оргия, 1 раз в сутки)"),
-    ])
+        BotCommand(command="orgy",     description="Оргия-опрос (или /оргия, 1 раз в сутки)"),
+    ]
+    await bot.set_my_commands(group_commands, scope=BotCommandScopeAllGroupChats())
     await announce_startup()
     try:
         await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
