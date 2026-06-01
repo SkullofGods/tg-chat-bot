@@ -1,5 +1,6 @@
 import sqlite3
 import threading
+from datetime import datetime
 from typing import Optional
 
 DB_PATH = "bot.db"
@@ -38,14 +39,29 @@ class Database:
             CREATE TABLE IF NOT EXISTS marriages (
                 user1_id INTEGER,
                 user2_id INTEGER,
+                created_at TEXT NOT NULL,
                 PRIMARY KEY (user1_id, user2_id),
                 CHECK (user1_id < user2_id)
             );
+            CREATE TABLE IF NOT EXISTS marriage_proposals (
+                proposer_id INTEGER,
+                target_id   INTEGER,
+                chat_id     INTEGER,
+                created_at  TEXT NOT NULL,
+                PRIMARY KEY (proposer_id, target_id, chat_id)
+            );
         """)
+
+        columns = [row[1] for row in conn.execute("PRAGMA table_info(marriages)").fetchall()]
+        if "created_at" not in columns:
+            conn.execute("ALTER TABLE marriages ADD COLUMN created_at TEXT")
+            conn.execute(
+                "UPDATE marriages SET created_at = ? WHERE created_at IS NULL",
+                (datetime.utcnow().isoformat(),),
+            )
+
         conn.commit()
         conn.close()
-
-    # ── Users ──────────────────────────────────────────────────────────────
 
     def ensure_user(self, user_id: int, username: str, full_name: str):
         c = self._conn()
@@ -68,8 +84,6 @@ class Database:
         ).fetchone()
         return dict(row) if row else None
 
-    # ── Anketas ────────────────────────────────────────────────────────────
-
     def save_anketa(self, user_id: int, text: str):
         c = self._conn()
         c.execute(
@@ -84,8 +98,6 @@ class Database:
             "SELECT text FROM anketas WHERE user_id = ?", (user_id,)
         ).fetchone()
         return row["text"] if row else None
-
-    # ── Awaiting anketa ────────────────────────────────────────────────────
 
     def set_awaiting_anketa(self, user_id: int, chat_id: int):
         c = self._conn()
@@ -110,8 +122,6 @@ class Database:
         )
         c.commit()
 
-    # ── Marriages ──────────────────────────────────────────────────────────
-
     def _ordered(self, a: int, b: int):
         return (min(a, b), max(a, b))
 
@@ -126,8 +136,8 @@ class Database:
         u1, u2 = self._ordered(a, b)
         c = self._conn()
         c.execute(
-            "INSERT OR IGNORE INTO marriages (user1_id, user2_id) VALUES (?, ?)",
-            (u1, u2),
+            "INSERT OR IGNORE INTO marriages (user1_id, user2_id, created_at) VALUES (?, ?, ?)",
+            (u1, u2, datetime.utcnow().isoformat()),
         )
         c.commit()
 
@@ -139,6 +149,31 @@ class Database:
         )
         c.commit()
 
-    def get_all_marriages(self) -> list[tuple[int, int]]:
-        rows = self._conn().execute("SELECT user1_id, user2_id FROM marriages").fetchall()
-        return [(r["user1_id"], r["user2_id"]) for r in rows]
+    def get_all_marriages(self) -> list[dict]:
+        rows = self._conn().execute(
+            "SELECT user1_id, user2_id, created_at FROM marriages ORDER BY created_at ASC"
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def add_marriage_proposal(self, proposer_id: int, target_id: int, chat_id: int):
+        c = self._conn()
+        c.execute(
+            "INSERT OR REPLACE INTO marriage_proposals (proposer_id, target_id, chat_id, created_at) VALUES (?, ?, ?, ?)",
+            (proposer_id, target_id, chat_id, datetime.utcnow().isoformat()),
+        )
+        c.commit()
+
+    def get_marriage_proposal(self, proposer_id: int, target_id: int, chat_id: int) -> Optional[dict]:
+        row = self._conn().execute(
+            "SELECT * FROM marriage_proposals WHERE proposer_id = ? AND target_id = ? AND chat_id = ?",
+            (proposer_id, target_id, chat_id),
+        ).fetchone()
+        return dict(row) if row else None
+
+    def delete_marriage_proposal(self, proposer_id: int, target_id: int, chat_id: int):
+        c = self._conn()
+        c.execute(
+            "DELETE FROM marriage_proposals WHERE proposer_id = ? AND target_id = ? AND chat_id = ?",
+            (proposer_id, target_id, chat_id),
+        )
+        c.commit()
