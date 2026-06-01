@@ -49,21 +49,17 @@ orgy_state: dict[int, dict] = {}
 async def on_new_member(event: ChatMemberUpdated):
     old_status = event.old_chat_member.status
     new_status = event.new_chat_member.status
-
     joined = (
         old_status in _LEFT_STATUSES
         and new_status in (ChatMemberStatus.MEMBER, ChatMemberStatus.ADMINISTRATOR)
     )
     if not joined:
         return
-
     user = event.new_chat_member.user
     if user.is_bot:
         return
-
     db.ensure_user(user.id, user.username or "", user.full_name)
     mention = f"@{user.username}" if user.username else user.full_name
-
     await bot.send_message(
         event.chat.id,
         f"👋 Привет, {mention}! Добро пожаловать!\n\n{ANKETA_TEXT}\n\n"
@@ -71,25 +67,6 @@ async def on_new_member(event: ChatMemberUpdated):
         parse_mode="Markdown",
     )
     db.set_awaiting_anketa(user.id, event.chat.id)
-
-
-# ─── Общий хэндлер сообщений ───────────────────────────────
-
-@dp.message(F.chat.type.in_({"group", "supergroup"}))
-async def handle_group_message(message: Message):
-    user = message.from_user
-    db.ensure_user(user.id, user.username or "", user.full_name)
-
-    if db.is_awaiting_anketa(user.id, message.chat.id):
-        text = message.text or message.caption or ""
-        if text and not text.startswith("/"):
-            db.save_anketa(user.id, text)
-            db.clear_awaiting_anketa(user.id, message.chat.id)
-            mention = f"@{user.username}" if user.username else user.full_name
-            await message.reply(
-                f"✅ Анкета сохранена, {mention}!\n\n{RULES_TEXT}",
-                parse_mode="Markdown",
-            )
 
 
 # ─── /info ─────────────────────────────────────────────
@@ -110,16 +87,14 @@ async def cmd_info(message: Message, command: CommandObject):
     else:
         await message.reply("Ответь на чьё-нибудь сообщение или укажи @username.")
         return
-
     anketa = db.get_anketa(target_id)
     if not anketa:
         await message.reply(f"У {target_name} анкеты пока нет. 🤷")
         return
-
     await message.reply(f"📋 *Анкета* {target_name}\n\n{anketa}", parse_mode="Markdown")
 
 
-# ─── /anketa (алиас для /анкета) ─────────────────────────────
+# ─── /anketa ──────────────────────────────────────────
 
 @dp.message(Command("анкета", "anketa"))
 async def cmd_anketa(message: Message):
@@ -188,7 +163,6 @@ async def cmd_families(message: Message):
     if not marriages:
         await message.reply("В беседе пока нет браков. 😢")
         return
-
     parent = {}
     def find(x):
         parent.setdefault(x, x)
@@ -197,14 +171,11 @@ async def cmd_families(message: Message):
         return parent[x]
     def union(a, b):
         parent[find(a)] = find(b)
-
     for uid1, uid2 in marriages:
         union(uid1, uid2)
-
     families: dict[int, list[int]] = {}
     for uid in parent:
         families.setdefault(find(uid), []).append(uid)
-
     lines = ["💑 *Семьи в беседе:*\n"]
     for i, members in enumerate(families.values(), 1):
         names = []
@@ -212,17 +183,15 @@ async def cmd_families(message: Message):
             u = db.get_user(uid)
             names.append(f"@{u['username']}" if u and u['username'] else (u['full_name'] if u else str(uid)))
         lines.append(f"{i}. " + " 💍 ".join(names))
-
     await message.reply("\n".join(lines), parse_mode="Markdown")
 
 
-# ─── /orgy (/оргия) ─────────────────────────────────────────
+# ─── /orgy ─────────────────────────────────────────────
 
 @dp.message(Command("оргия", "orgy"))
 async def cmd_orgy(message: Message):
     chat_id = message.chat.id
     now = datetime.utcnow()
-
     state = orgy_state.get(chat_id)
     if state:
         cooldown_end = state["last_time"] + timedelta(hours=ORGY_COOLDOWN_HOURS)
@@ -232,7 +201,6 @@ async def cmd_orgy(message: Message):
             m = rem // 60
             await message.reply(f"⏳ Следующая оргия возможна через {h}ч {m}мин.")
             return
-
     poll_msg = await bot.send_poll(
         chat_id=chat_id,
         question="🔥 ОРГИЯ — ты участвуешь?",
@@ -240,7 +208,6 @@ async def cmd_orgy(message: Message):
         is_anonymous=False,
         allows_multiple_answers=False,
     )
-
     orgy_state[chat_id] = {
         "last_time": now,
         "poll_message_id": poll_msg.message_id,
@@ -249,7 +216,6 @@ async def cmd_orgy(message: Message):
         "no_voters": [],
         "all_voter_ids": set(),
     }
-
     asyncio.create_task(finish_orgy_after(chat_id, poll_msg.message_id))
 
 
@@ -267,11 +233,9 @@ async def finish_orgy(chat_id: int, poll_message_id: int):
         await bot.delete_message(chat_id, poll_message_id)
     except Exception:
         pass
-
     state = orgy_state.get(chat_id, {})
     yes_ids = state.get("yes_voters", [])
     no_ids = state.get("no_voters", [])
-
     def mentions(ids):
         parts = []
         for uid in ids:
@@ -283,7 +247,6 @@ async def finish_orgy(chat_id: int, poll_message_id: int):
             else:
                 parts.append(f"[user](tg://user?id={uid})")
         return " ".join(parts) if parts else "никто"
-
     await bot.send_message(
         chat_id,
         f"🔥 {mentions(yes_ids)} поимели жёсткий секс, а {mentions(no_ids)} с завистью смотрели.",
@@ -308,20 +271,36 @@ async def handle_poll_answer(poll_answer: PollAnswer):
             break
 
 
+# ─── Общий хэндлер (регистрируем ПОСЛЕДНИМ, чтобы не блокировать команды) ───
+
+@dp.message(F.chat.type.in_({"group", "supergroup"}))
+async def handle_group_message(message: Message):
+    user = message.from_user
+    db.ensure_user(user.id, user.username or "", user.full_name)
+    if db.is_awaiting_anketa(user.id, message.chat.id):
+        text = message.text or message.caption or ""
+        if text and not text.startswith("/"):
+            db.save_anketa(user.id, text)
+            db.clear_awaiting_anketa(user.id, message.chat.id)
+            mention = f"@{user.username}" if user.username else user.full_name
+            await message.reply(
+                f"✅ Анкета сохранена, {mention}!\n\n{RULES_TEXT}",
+                parse_mode="Markdown",
+            )
+
+
 # ─── Main ─────────────────────────────────────────────
 
 async def main():
     db.init()
-    # Telegram принимает в BotCommand только [a-z0-9_], кириллица не поддерживается
-    # Кириллические команды всё равно работают, просто не отображаются в меню
     await bot.set_my_commands([
-        BotCommand(command="info",    description="Анкета (reply или @username)"),
-        BotCommand(command="anketa",  description="Заполнить / обновить анкету (или /анкета)"),
-        BotCommand(command="zhenit",  description="Жениться (reply) (или /жениться)"),
-        BotCommand(command="zamuzh",  description="Выйти замуж (reply) (или /выйтизамуж)"),
-        BotCommand(command="razvod",  description="Развод (reply) (или /развод)"),
-        BotCommand(command="families",description="Все браки в беседе"),
-        BotCommand(command="orgy",    description="Оргия-опрос (или /оргия, 1 раз в сутки)"),
+        BotCommand(command="info",     description="Анкета (reply или @username)"),
+        BotCommand(command="anketa",   description="Заполнить / обновить анкету (или /анкета)"),
+        BotCommand(command="zhenit",   description="Жениться (reply) (или /жениться)"),
+        BotCommand(command="zamuzh",   description="Выйти замуж (reply) (или /выйтизамуж)"),
+        BotCommand(command="razvod",   description="Развод (reply) (или /развод)"),
+        BotCommand(command="families", description="Все браки в беседе"),
+        BotCommand(command="orgy",     description="Оргия-опрос (или /оргия, 1 раз в сутки)"),
     ])
     await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
 
