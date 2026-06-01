@@ -9,6 +9,7 @@ DB_PATH = "bot.db"
 class Database:
     def __init__(self):
         self._local = threading.local()
+        self._init_db()
 
     def _conn(self) -> sqlite3.Connection:
         if not hasattr(self._local, "conn"):
@@ -18,7 +19,7 @@ class Database:
             self._local.conn = conn
         return self._local.conn
 
-    def init(self):
+    def _init_db(self):
         conn = sqlite3.connect(DB_PATH)
         conn.row_factory = sqlite3.Row
         conn.executescript("""
@@ -65,6 +66,10 @@ class Database:
 
         conn.commit()
         conn.close()
+
+    # kept for backward compat
+    def init(self):
+        self._init_db()
 
     def ensure_user(self, user_id: int, username: str, full_name: str):
         c = self._conn()
@@ -181,7 +186,7 @@ class Database:
         )
         c.commit()
 
-    # ── Known chats ────────────────────────────────────────────────────────
+    # ── Known chats ────────────────────────────────────────────────────────────────────────
 
     def remember_chat(self, chat_id: int):
         c = self._conn()
