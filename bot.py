@@ -39,53 +39,80 @@ RULES_TEXT = (
 )
 
 _LEFT_STATUSES = {ChatMemberStatus.LEFT, ChatMemberStatus.KICKED}
-
 orgy_state: dict[int, dict] = {}
 
 
-# ─── Новый участник ──────────────────────────────────────
+def mention_by_user(user) -> str:
+    return f"@{user.username}" if user.username else user.full_name
+
+
+def mention_by_db(user_id: int) -> str:
+    u = db.get_user(user_id)
+    if u and u["username"]:
+        return f"@{u['username']}"
+    if u:
+        return f"[{u['full_name']}](tg://user?id={user_id})"
+    return f"[user](tg://user?id={user_id})"
+
+
+def format_duration_since(iso_dt: str) -> str:
+    try:
+        dt = datetime.fromisoformat(iso_dt)
+    except Exception:
+        return "неизвестно сколько"
+
+    delta = datetime.utcnow() - dt
+    days = delta.days
+    hours = delta.seconds // 3600
+    minutes = (delta.seconds % 3600) // 60
+
+    if days > 0:
+        return f"{days} дн. {hours} ч."
+    if hours > 0:
+        return f"{hours} ч. {minutes} мин."
+    return f"{minutes} мин."
+
+
+def resolve_target_from_command_or_reply(message: Message, command: CommandObject):
+    if message.reply_to_message:
+        target = message.reply_to_message.from_user
+        db.ensure_user(target.id, target.username or "", target.full_name)
+        return target.id, target.full_name, target.username or ""
+
+    if command.args:
+        raw = command.args.strip().lstrip("@")
+        found = db.get_user_by_username(raw)
+        if found:
+            return found["user_id"], found["full_name"], found["username"]
+
+    return None, None, None
+
 
 @dp.chat_member()
 async def on_new_member(event: ChatMemberUpdated):
     old_status = event.old_chat_member.status
     new_status = event.new_chat_member.status
-    joined = (
-        old_status in _LEFT_STATUSES
-        and new_status in (ChatMemberStatus.MEMBER, ChatMemberStatus.ADMINISTRATOR)
-    )
+    joined = old_status in _LEFT_STATUSES and new_status in (ChatMemberStatus.MEMBER, ChatMemberStatus.ADMINISTRATOR)
     if not joined:
         return
     user = event.new_chat_member.user
     if user.is_bot:
         return
     db.ensure_user(user.id, user.username or "", user.full_name)
-    mention = f"@{user.username}" if user.username else user.full_name
     await bot.send_message(
         event.chat.id,
-        f"👋 Привет, {mention}! Добро пожаловать!\n\n{ANKETA_TEXT}\n\n"
+        f"👋 Привет, {mention_by_user(user)}! Добро пожаловать!\n\n{ANKETA_TEXT}\n\n"
         "_Напиши анкету прямо в этот чат, и я её сохраню._",
         parse_mode="Markdown",
     )
     db.set_awaiting_anketa(user.id, event.chat.id)
 
 
-# ─── /info ─────────────────────────────────────────────
-
 @dp.message(Command("info"))
 async def cmd_info(message: Message, command: CommandObject):
-    if message.reply_to_message:
-        target_id = message.reply_to_message.from_user.id
-        target_name = message.reply_to_message.from_user.full_name
-        db.ensure_user(target_id, message.reply_to_message.from_user.username or "", target_name)
-    elif command.args:
-        raw = command.args.strip().lstrip("@")
-        found = db.get_user_by_username(raw)
-        if not found:
-            await message.reply(f"Пользователь @{raw} не найден. Он должен хоть раз написать в чат.")
-            return
-        target_id, target_name = found["user_id"], found["full_name"]
-    else:
-        await message.reply("Ответь на чьё-нибудь сообщение или укажи @username.")
+    target_id, target_name, _ = resolve_target_from_command_or_reply(message, command)
+    if not target_id:
+        await message.reply("Ответь на сообщение пользователя или укажи @username.")
         return
     anketa = db.get_anketa(target_id)
     if not anketa:
@@ -94,68 +121,56 @@ async def cmd_info(message: Message, command: CommandObject):
     await message.reply(f"📋 *Анкета* {target_name}\n\n{anketa}", parse_mode="Markdown")
 
 
-# ─── /anketa ──────────────────────────────────────────
-
 @dp.message(Command("анкета", "anketa"))
 async def cmd_anketa(message: Message):
     db.ensure_user(message.from_user.id, message.from_user.username or "", message.from_user.full_name)
     db.set_awaiting_anketa(message.from_user.id, message.chat.id)
+    await message.reply(f"{ANKETA_TEXT}\n\n_Напиши ответ в чат, я обновлю анкету._", parse_mode="Markdown")
+
+
+@dp.message(Command("brak"))
+async def cmd_brak(message: Message, command: CommandObject):
+    proposer = message.from_user
+    db.ensure_user(proposer.id, proposer.username or "", proposer.full_name)
+
+    target_id, target_name, target_username = resolve_target_from_command_or_reply(message, command)
+    if not target_id:
+        await message.reply("Используй `/brak` в ответ на сообщение или `/brak @username`.", parse_mode="Markdown")
+        return
+
+    if proposer.id == target_id:
+        await message.reply("На себе жениться нельзя! 😅")
+        return
+
+    if db.are_married(proposer.id, target_id):
+        await message.reply("Вы уже состоите в браке! 💑")
+        return
+
+    db.add_marriage_proposal(proposer.id, target_id, message.chat.id)
+
+    target_mention = f"@{target_username}" if target_username else target_name
     await message.reply(
-        f"{ANKETA_TEXT}\n\n_Напиши ответ в чат, я обновлю анкету._",
+        f"💍 {mention_by_user(proposer)} делает предложение {target_mention}!\n"
+        f"Чтобы согласиться, напиши `/brak @{proposer.username}` или ответь на сообщение {mention_by_user(proposer)} командой `/brak`."
+        if proposer.username else
+        f"💍 {mention_by_user(proposer)} делает предложение {target_mention}!\n"
+        f"Чтобы согласиться, ответь на сообщение {mention_by_user(proposer)} командой `/brak`.",
         parse_mode="Markdown",
     )
 
 
-# ─── Браки ─────────────────────────────────────────────
-
-async def marry_handler(message: Message):
-    if not message.reply_to_message:
-        await message.reply("Ответь на сообщение того, на ком хочешь жениться. 💍")
+@dp.message(Command("razvod", "развод"))
+async def cmd_razvod(message: Message, command: CommandObject):
+    target_id, _, _ = resolve_target_from_command_or_reply(message, command)
+    if not target_id:
+        await message.reply("Ответь на сообщение того, с кем разводишься, или укажи @username.")
         return
-    proposer = message.from_user
-    target = message.reply_to_message.from_user
-    if proposer.id == target.id:
-        await message.reply("На себе жениться нельзя! 😅")
-        return
-    if target.is_bot:
-        await message.reply("Боты — плохие партнёры. 🤖")
-        return
-    db.ensure_user(target.id, target.username or "", target.full_name)
-    if db.are_married(proposer.id, target.id):
-        await message.reply("Вы уже в браке! 💑")
-        return
-    db.add_marriage(proposer.id, target.id)
-    p = f"@{proposer.username}" if proposer.username else proposer.full_name
-    t = f"@{target.username}" if target.username else target.full_name
-    await message.reply(f"💒 {p} и {t} теперь в браке! 🎉")
-
-
-@dp.message(Command("жениться", "zhenit"))
-async def cmd_zhenit(message: Message):
-    await marry_handler(message)
-
-
-@dp.message(Command("выйтизамуж", "zamuzh"))
-async def cmd_zamuzh(message: Message):
-    await marry_handler(message)
-
-
-@dp.message(Command("развод", "razvod"))
-async def cmd_razvod(message: Message):
-    if not message.reply_to_message:
-        await message.reply("Ответь на сообщение того, с кем разводишься.")
-        return
-    u1, u2 = message.from_user.id, message.reply_to_message.from_user.id
-    if not db.are_married(u1, u2):
+    if not db.are_married(message.from_user.id, target_id):
         await message.reply("Вы не состоите в браке. 🤷")
         return
-    db.remove_marriage(u1, u2)
-    p = f"@{message.from_user.username}" if message.from_user.username else message.from_user.full_name
-    t = f"@{message.reply_to_message.from_user.username}" if message.reply_to_message.from_user.username else message.reply_to_message.from_user.full_name
-    await message.reply(f"💔 {p} и {t} развелись.")
+    db.remove_marriage(message.from_user.id, target_id)
+    await message.reply(f"💔 {mention_by_user(message.from_user)} и {mention_by_db(target_id)} развелись.", parse_mode="Markdown")
 
-
-# ─── /families ───────────────────────────────────────────
 
 @dp.message(Command("families"))
 async def cmd_families(message: Message):
@@ -163,30 +178,43 @@ async def cmd_families(message: Message):
     if not marriages:
         await message.reply("В беседе пока нет браков. 😢")
         return
+
     parent = {}
+    family_dates = {}
+
     def find(x):
         parent.setdefault(x, x)
         if parent[x] != x:
             parent[x] = find(parent[x])
         return parent[x]
+
     def union(a, b):
         parent[find(a)] = find(b)
-    for uid1, uid2 in marriages:
+
+    for item in marriages:
+        uid1, uid2 = item["user1_id"], item["user2_id"]
         union(uid1, uid2)
+
     families: dict[int, list[int]] = {}
-    for uid in parent:
-        families.setdefault(find(uid), []).append(uid)
+    for item in marriages:
+        uid1, uid2 = item["user1_id"], item["user2_id"]
+        root = find(uid1)
+        families.setdefault(root, [])
+        if uid1 not in families[root]:
+            families[root].append(uid1)
+        if uid2 not in families[root]:
+            families[root].append(uid2)
+        family_dates.setdefault(root, []).append(item["created_at"])
+
     lines = ["💑 *Семьи в беседе:*\n"]
-    for i, members in enumerate(families.values(), 1):
-        names = []
-        for uid in members:
-            u = db.get_user(uid)
-            names.append(f"@{u['username']}" if u and u['username'] else (u['full_name'] if u else str(uid)))
-        lines.append(f"{i}. " + " 💍 ".join(names))
+    for i, (root, members) in enumerate(families.items(), 1):
+        names = [mention_by_db(uid) for uid in members]
+        oldest = min(family_dates[root]) if family_dates[root] else None
+        duration = format_duration_since(oldest) if oldest else "неизвестно сколько"
+        lines.append(f"{i}. {' 💍 '.join(names)} — в браке уже {duration}")
+
     await message.reply("\n".join(lines), parse_mode="Markdown")
 
-
-# ─── /orgy ─────────────────────────────────────────────
 
 @dp.message(Command("оргия", "orgy"))
 async def cmd_orgy(message: Message):
@@ -236,17 +264,10 @@ async def finish_orgy(chat_id: int, poll_message_id: int):
     state = orgy_state.get(chat_id, {})
     yes_ids = state.get("yes_voters", [])
     no_ids = state.get("no_voters", [])
+
     def mentions(ids):
-        parts = []
-        for uid in ids:
-            u = db.get_user(uid)
-            if u and u["username"]:
-                parts.append(f"@{u['username']}")
-            elif u:
-                parts.append(f"[{u['full_name']}](tg://user?id={uid})")
-            else:
-                parts.append(f"[user](tg://user?id={uid})")
-        return " ".join(parts) if parts else "никто"
+        return " ".join(mention_by_db(uid) for uid in ids) if ids else "никто"
+
     await bot.send_message(
         chat_id,
         f"🔥 {mentions(yes_ids)} поимели жёсткий секс, а {mentions(no_ids)} с завистью смотрели.",
@@ -271,36 +292,46 @@ async def handle_poll_answer(poll_answer: PollAnswer):
             break
 
 
-# ─── Общий хэндлер (регистрируем ПОСЛЕДНИМ, чтобы не блокировать команды) ───
-
 @dp.message(F.chat.type.in_({"group", "supergroup"}))
-async def handle_group_message(message: Message):
+async def handle_group_message(message: Message, command: CommandObject = None):
     user = message.from_user
     db.ensure_user(user.id, user.username or "", user.full_name)
+
     if db.is_awaiting_anketa(user.id, message.chat.id):
         text = message.text or message.caption or ""
         if text and not text.startswith("/"):
             db.save_anketa(user.id, text)
             db.clear_awaiting_anketa(user.id, message.chat.id)
-            mention = f"@{user.username}" if user.username else user.full_name
             await message.reply(
-                f"✅ Анкета сохранена, {mention}!\n\n{RULES_TEXT}",
+                f"✅ Анкета сохранена, {mention_by_user(user)}!\n\n{RULES_TEXT}",
+                parse_mode="Markdown",
+            )
+            return
+
+    text = message.text or ""
+    if text.startswith("/brak"):
+        target_id, _, _ = resolve_target_from_command_or_reply(message, CommandObject(prefix='/', command='brak', mention=None, args=text[5:].strip() or None))
+        if target_id and db.get_marriage_proposal(target_id, user.id, message.chat.id):
+            if db.are_married(user.id, target_id):
+                await message.reply("Вы уже состоите в браке! 💑")
+                return
+            db.add_marriage(user.id, target_id)
+            db.delete_marriage_proposal(target_id, user.id, message.chat.id)
+            await message.reply(
+                f"💒 {mention_by_user(user)} и {mention_by_db(target_id)} теперь состоят в браке! Поздравляем! 🎉",
                 parse_mode="Markdown",
             )
 
 
-# ─── Main ─────────────────────────────────────────────
-
 async def main():
     db.init()
     await bot.set_my_commands([
-        BotCommand(command="info",     description="Анкета (reply или @username)"),
-        BotCommand(command="anketa",   description="Заполнить / обновить анкету (или /анкета)"),
-        BotCommand(command="zhenit",   description="Жениться (reply) (или /жениться)"),
-        BotCommand(command="zamuzh",   description="Выйти замуж (reply) (или /выйтизамуж)"),
-        BotCommand(command="razvod",   description="Развод (reply) (или /развод)"),
+        BotCommand(command="info", description="Анкета (reply или @username)"),
+        BotCommand(command="anketa", description="Заполнить / обновить анкету (или /анкета)"),
+        BotCommand(command="brak", description="Сделать предложение / принять его"),
+        BotCommand(command="razvod", description="Развод (reply или @username)"),
         BotCommand(command="families", description="Все браки в беседе"),
-        BotCommand(command="orgy",     description="Оргия-опрос (или /оргия, 1 раз в сутки)"),
+        BotCommand(command="orgy", description="Оргия-опрос (или /оргия, 1 раз в сутки)"),
     ])
     await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
 
