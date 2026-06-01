@@ -8,6 +8,7 @@ from aiogram.filters import Command, CommandObject
 from aiogram.types import (
     BotCommand,
     BotCommandScopeAllGroupChats,
+    BotCommandScopeDefault,
     CallbackQuery,
     ChatMemberUpdated,
     InlineKeyboardButton,
@@ -29,8 +30,9 @@ dp = Dispatcher(storage=MemoryStorage())
 db = Database()
 
 ANKETA_TEXT = (
-    "📋 *Анкета участника*\n\n"
-    "Ответь на вопросы ниже одним сообщением (или несколькими — я сохраню всё как есть):\n\n"
+    "f4cb *Анкета участника*\n\n"
+    "Ответь на вопросы ниже одним сообщением "
+    "(или несколькими — я сохраню всё как есть):\n\n"
     "1. Имя / как можно обращаться\n"
     "2. Возраст\n"
     "3. Город\n"
@@ -39,8 +41,19 @@ ANKETA_TEXT = (
 )
 
 RULES_TEXT = (
-    "📜 *Правила беседы*\n\n"
-    "ПРАВИЛА -- ТУТ БУДУТ ПРАВИЛА"
+    "f4dc *Правила беседы*\n\n"
+    "1️⃣ *Без негатива*\n"
+    "Мы здесь, чтобы отдыхать и общаться, а не грызться. "
+    "Никакого токсика, оскорблений и наездов. f90d\n\n"
+    "2️⃣ *Спорные темы — без срачей*\n"
+    "Обсуждать можно что угодно, но уважайте чужую точку зрения. "
+    "Если дискуссия переходит в срач — адмы остановят.\n\n"
+    "3️⃣ *TW / Спойлер*\n"
+    "Если поднимаешь потенциально триггерную или очень спорную тему — "
+    "прячь под спойлер и пиши *TW* перед. f6e1️\n\n"
+    "4️⃣ *Адмы — наши зайки*\n"
+    "Их просьбы слушаем. Они не кусаются без повода, но если говорят — значит надо. f431\n\n"
+    "Всем добра и хорошего настроения! f973"
 )
 
 _LEFT_STATUSES = {ChatMemberStatus.LEFT, ChatMemberStatus.KICKED}
@@ -120,7 +133,10 @@ async def on_new_member(event: ChatMemberUpdated):
     db.remember_chat(event.chat.id)
     old_status = event.old_chat_member.status
     new_status = event.new_chat_member.status
-    joined = old_status in _LEFT_STATUSES and new_status in (ChatMemberStatus.MEMBER, ChatMemberStatus.ADMINISTRATOR)
+    joined = (
+        old_status in _LEFT_STATUSES
+        and new_status in (ChatMemberStatus.MEMBER, ChatMemberStatus.ADMINISTRATOR)
+    )
     if not joined:
         return
     user = event.new_chat_member.user
@@ -129,7 +145,7 @@ async def on_new_member(event: ChatMemberUpdated):
     db.ensure_user(user.id, user.username or "", user.full_name)
     await bot.send_message(
         event.chat.id,
-        f"👋 Привет, {mention_by_user(user)}! Добро пожаловать!\n\n{ANKETA_TEXT}\n\n"
+        f"f44b Привет, {mention_by_user(user)}! Добро пожаловать!\n\n{ANKETA_TEXT}\n\n"
         "_Напиши анкету прямо в этот чат, и я её сохраню._",
         parse_mode="Markdown",
     )
@@ -145,9 +161,9 @@ async def cmd_info(message: Message, command: CommandObject):
         return
     anketa = db.get_anketa(target_id)
     if not anketa:
-        await message.reply(f"У {target_name} анкеты пока нет. 🤷")
+        await message.reply(f"У {target_name} анкеты пока нет. f937")
         return
-    await message.reply(f"📋 *Анкета* {target_name}\n\n{anketa}", parse_mode="Markdown")
+    await message.reply(f"f4cb *Анкета* {target_name}\n\n{anketa}", parse_mode="Markdown")
 
 
 @dp.message(Command("анкета", "anketa"))
@@ -155,7 +171,16 @@ async def cmd_anketa(message: Message):
     db.remember_chat(message.chat.id)
     db.ensure_user(message.from_user.id, message.from_user.username or "", message.from_user.full_name)
     db.set_awaiting_anketa(message.from_user.id, message.chat.id)
-    await message.reply(f"{ANKETA_TEXT}\n\n_Напиши ответ в чат, я обновлю анкету._", parse_mode="Markdown")
+    await message.reply(
+        f"{ANKETA_TEXT}\n\n_Напиши ответ в чат, я обновлю анкету._",
+        parse_mode="Markdown",
+    )
+
+
+@dp.message(Command("rules", "правила"))
+async def cmd_rules(message: Message):
+    db.remember_chat(message.chat.id)
+    await message.reply(RULES_TEXT, parse_mode="Markdown")
 
 
 @dp.message(Command("brak"))
@@ -165,17 +190,20 @@ async def cmd_brak(message: Message, command: CommandObject):
     db.ensure_user(proposer.id, proposer.username or "", proposer.full_name)
     target_id, target_name, _ = resolve_target_from_command_or_reply(message, command)
     if not target_id:
-        await message.reply("Используй `/brak` в ответ на сообщение или `/brak @username`.", parse_mode="Markdown")
+        await message.reply(
+            "Используй `/brak` в ответ на сообщение или `/brak @username`.",
+            parse_mode="Markdown",
+        )
         return
     if proposer.id == target_id:
-        await message.reply("На себе жениться нельзя! 😅")
+        await message.reply("На себе жениться нельзя! f605")
         return
     if db.are_married(proposer.id, target_id):
-        await message.reply("Вы уже состоите в браке! 💑")
+        await message.reply("Вы уже состоите в браке! f491")
         return
     db.add_marriage_proposal(proposer.id, target_id, message.chat.id)
     await message.reply(
-        f"💍 {mention_by_user(proposer)} делает предложение {mention_by_db(target_id)}!",
+        f"f48d {mention_by_user(proposer)} делает предложение {mention_by_db(target_id)}!",
         parse_mode="Markdown",
         reply_markup=brak_keyboard(proposer.id, target_id, message.chat.id),
     )
@@ -187,7 +215,7 @@ async def callback_brak_yes(callback: CallbackQuery):
     _, proposer_id, target_id, chat_id = callback.data.split(":")
     proposer_id, target_id, chat_id = int(proposer_id), int(target_id), int(chat_id)
     if callback.from_user.id != target_id:
-        await callback.answer("Это предложение не тебе 😾", show_alert=True)
+        await callback.answer("Это предложение не тебе f63e", show_alert=True)
         return
     if not db.get_marriage_proposal(proposer_id, target_id, chat_id):
         await callback.answer("Предложение уже неактуально.", show_alert=True)
@@ -198,10 +226,10 @@ async def callback_brak_yes(callback: CallbackQuery):
     db.add_marriage(proposer_id, target_id)
     db.delete_marriage_proposal(proposer_id, target_id, chat_id)
     await callback.message.edit_text(
-        f"💒 {mention_by_db(proposer_id)} и {mention_by_db(target_id)} теперь состоят в браке! Поздравляем! 🎉",
+        f"f492 {mention_by_db(proposer_id)} и {mention_by_db(target_id)} теперь состоят в браке! Поздравляем! f389",
         parse_mode="Markdown",
     )
-    await callback.answer("Согласие принято 💞")
+    await callback.answer("Согласие принято f49e")
 
 
 @dp.callback_query(F.data.startswith("brak_no:"))
@@ -210,14 +238,14 @@ async def callback_brak_no(callback: CallbackQuery):
     _, proposer_id, target_id, chat_id = callback.data.split(":")
     proposer_id, target_id, chat_id = int(proposer_id), int(target_id), int(chat_id)
     if callback.from_user.id != target_id:
-        await callback.answer("Это предложение не тебе 😾", show_alert=True)
+        await callback.answer("Это предложение не тебе f63e", show_alert=True)
         return
     if not db.get_marriage_proposal(proposer_id, target_id, chat_id):
         await callback.answer("Предложение уже неактуально.", show_alert=True)
         return
     db.delete_marriage_proposal(proposer_id, target_id, chat_id)
     await callback.message.edit_text(
-        f"💔 {mention_by_db(target_id)} отклонил(а) предложение от {mention_by_db(proposer_id)}.",
+        f"f494 {mention_by_db(target_id)} отклонил(а) предложение от {mention_by_db(proposer_id)}.",
         parse_mode="Markdown",
     )
     await callback.answer("Ну и ладно")
@@ -228,13 +256,18 @@ async def cmd_razvod(message: Message, command: CommandObject):
     db.remember_chat(message.chat.id)
     target_id, _, _ = resolve_target_from_command_or_reply(message, command)
     if not target_id:
-        await message.reply("Ответь на сообщение того, с кем разводишься, или укажи @username.")
+        await message.reply(
+            "Ответь на сообщение того, с кем разводишься, или укажи @username."
+        )
         return
     if not db.are_married(message.from_user.id, target_id):
-        await message.reply("Вы не состоите в браке. 🤷")
+        await message.reply("Вы не состоите в браке. f937")
         return
     db.remove_marriage(message.from_user.id, target_id)
-    await message.reply(f"💔 {mention_by_user(message.from_user)} и {mention_by_db(target_id)} развелись.", parse_mode="Markdown")
+    await message.reply(
+        f"f494 {mention_by_user(message.from_user)} и {mention_by_db(target_id)} развелись.",
+        parse_mode="Markdown",
+    )
 
 
 @dp.message(Command("families"))
@@ -242,7 +275,7 @@ async def cmd_families(message: Message):
     db.remember_chat(message.chat.id)
     marriages = db.get_all_marriages()
     if not marriages:
-        await message.reply("В беседе пока нет браков. 😢")
+        await message.reply("В беседе пока нет браков. f622")
         return
     parent = {}
     family_dates = {}
@@ -271,12 +304,12 @@ async def cmd_families(message: Message):
             families[root].append(uid2)
         family_dates.setdefault(root, []).append(item["created_at"])
 
-    lines = ["💑 *Семьи в беседе:*\n"]
+    lines = ["f491 *Семьи в беседе:*\n"]
     for i, (root, members) in enumerate(families.items(), 1):
         names = [mention_by_db(uid) for uid in members]
         oldest = min(family_dates[root]) if family_dates[root] else None
         duration = format_duration_since(oldest) if oldest else "неизвестно сколько"
-        lines.append(f"{i}. {' 💍 '.join(names)} — в браке уже {duration}")
+        lines.append(f"{i}. {' f48d '.join(names)} — в браке уже {duration}")
 
     await message.reply("\n".join(lines), parse_mode="Markdown")
 
@@ -297,8 +330,8 @@ async def cmd_orgy(message: Message):
             return
     poll_msg = await bot.send_poll(
         chat_id=chat_id,
-        question="🔥 ОРГИЯ — ты участвуешь?",
-        options=["Да, я в деле! 🍑", "Нет, не интересует 😇"],
+        question="f525 ОРГИЯ — ты участвуешь?",
+        options=["Да, я в деле! f351", "Нет, не интересует f607"],
         is_anonymous=False,
         allows_multiple_answers=False,
     )
@@ -336,7 +369,7 @@ async def finish_orgy(chat_id: int, poll_message_id: int):
 
     await bot.send_message(
         chat_id,
-        f"🔥 {mentions(yes_ids)} поимели жёсткий секс, а {mentions(no_ids)} с завистью смотрели.",
+        f"f525 {mentions(yes_ids)} поимели жёсткий секс, а {mentions(no_ids)} с завистью смотрели.",
         parse_mode="Markdown",
     )
 
@@ -374,19 +407,25 @@ async def handle_group_message(message: Message):
             )
 
 
-async def main():
-    db.init()
-    # BotCommandScopeAllGroupChats — команды видны только в группах,
-    # поэтому Telegram не добавляет @botname суффикс в подсказках
+async def setup_commands():
+    # Стираем дефолтный скоуп — именно он добавляет @botname в подсказках
+    await bot.delete_my_commands(scope=BotCommandScopeDefault())
+    # Регистрируем команды только для групп — там @botname в подсказках не нужен
     group_commands = [
-        BotCommand(command="info",     description="Анкета (reply или @username)"),
-        BotCommand(command="anketa",   description="Заполнить / обновить анкету (или /анкета)"),
-        BotCommand(command="brak",     description="Сделать предложение брака"),
-        BotCommand(command="razvod",   description="Развод (reply или @username)"),
-        BotCommand(command="families", description="Все браки в беседе"),
-        BotCommand(command="orgy",     description="Оргия-опрос (или /оргия, 1 раз в сутки)"),
+        BotCommand(command="info",      description="Анкета (reply или @username)"),
+        BotCommand(command="anketa",    description="Заполнить / обновить анкету (или /анкета)"),
+        BotCommand(command="rules",     description="Правила беседы (или /правила)"),
+        BotCommand(command="brak",      description="Сделать предложение брака"),
+        BotCommand(command="razvod",    description="Развод (reply или @username)"),
+        BotCommand(command="families",  description="Все браки в беседе"),
+        BotCommand(command="orgy",      description="Оргия-опрос (или /оргия, 1 раз в сутки)"),
     ]
     await bot.set_my_commands(group_commands, scope=BotCommandScopeAllGroupChats())
+
+
+async def main():
+    db.init()
+    await setup_commands()
     await announce_startup()
     try:
         await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
