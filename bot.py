@@ -49,6 +49,9 @@ RULES_TEXT = (
     "ПРАВИЛА -- ТУТ БУДУТ ПРАВИЛА"
 )
 
+# Статусы, из которых считаем "вошёл в группу"
+_LEFT_STATUSES = {ChatMemberStatus.LEFT, ChatMemberStatus.KICKED}
+
 
 # ─── Новый участник ───────────────────────────────────────────────────────────
 
@@ -58,7 +61,7 @@ async def on_new_member(event: ChatMemberUpdated):
     new_status = event.new_chat_member.status
 
     joined = (
-        old_status in (ChatMemberStatus.LEFT, ChatMemberStatus.KICKED, ChatMemberStatus.BANNED)
+        old_status in _LEFT_STATUSES
         and new_status in (ChatMemberStatus.MEMBER, ChatMemberStatus.ADMINISTRATOR)
     )
     if not joined:
