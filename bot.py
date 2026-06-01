@@ -73,17 +73,15 @@ async def on_new_member(event: ChatMemberUpdated):
     db.set_awaiting_anketa(user.id, event.chat.id)
 
 
-# ─── Общий хэндлер сообщений (анкета + регистрация юзера) ───
+# ─── Общий хэндлер сообщений ───────────────────────────────
 
 @dp.message(F.chat.type.in_({"group", "supergroup"}))
 async def handle_group_message(message: Message):
     user = message.from_user
-    # Регистрируем каждого, кто пишет
     db.ensure_user(user.id, user.username or "", user.full_name)
 
     if db.is_awaiting_anketa(user.id, message.chat.id):
         text = message.text or message.caption or ""
-        # Игнорируем сообщения с команды (/ ...)
         if text and not text.startswith("/"):
             db.save_anketa(user.id, text)
             db.clear_awaiting_anketa(user.id, message.chat.id)
@@ -101,12 +99,7 @@ async def cmd_info(message: Message, command: CommandObject):
     if message.reply_to_message:
         target_id = message.reply_to_message.from_user.id
         target_name = message.reply_to_message.from_user.full_name
-        # Заодно сохраняем адресата
-        db.ensure_user(
-            target_id,
-            message.reply_to_message.from_user.username or "",
-            target_name,
-        )
+        db.ensure_user(target_id, message.reply_to_message.from_user.username or "", target_name)
     elif command.args:
         raw = command.args.strip().lstrip("@")
         found = db.get_user_by_username(raw)
@@ -123,21 +116,14 @@ async def cmd_info(message: Message, command: CommandObject):
         await message.reply(f"У {target_name} анкеты пока нет. 🤷")
         return
 
-    await message.reply(
-        f"📋 *Анкета* {target_name}\n\n{anketa}",
-        parse_mode="Markdown",
-    )
+    await message.reply(f"📋 *Анкета* {target_name}\n\n{anketa}", parse_mode="Markdown")
 
 
-# ─── /анкета ──────────────────────────────────────────
+# ─── /anketa (алиас для /анкета) ─────────────────────────────
 
-@dp.message(Command("анкета"))
+@dp.message(Command("анкета", "anketa"))
 async def cmd_anketa(message: Message):
-    db.ensure_user(
-        message.from_user.id,
-        message.from_user.username or "",
-        message.from_user.full_name,
-    )
+    db.ensure_user(message.from_user.id, message.from_user.username or "", message.from_user.full_name)
     db.set_awaiting_anketa(message.from_user.id, message.chat.id)
     await message.reply(
         f"{ANKETA_TEXT}\n\n_Напиши ответ в чат, я обновлю анкету._",
@@ -169,17 +155,17 @@ async def marry_handler(message: Message):
     await message.reply(f"💒 {p} и {t} теперь в браке! 🎉")
 
 
-@dp.message(Command("жениться"))
+@dp.message(Command("жениться", "zhenit"))
 async def cmd_zhenit(message: Message):
     await marry_handler(message)
 
 
-@dp.message(Command("выйтизамуж"))
+@dp.message(Command("выйтизамуж", "zamuzh"))
 async def cmd_zamuzh(message: Message):
     await marry_handler(message)
 
 
-@dp.message(Command("развод"))
+@dp.message(Command("развод", "razvod"))
 async def cmd_razvod(message: Message):
     if not message.reply_to_message:
         await message.reply("Ответь на сообщение того, с кем разводишься.")
@@ -230,9 +216,9 @@ async def cmd_families(message: Message):
     await message.reply("\n".join(lines), parse_mode="Markdown")
 
 
-# ─── /оргия ─────────────────────────────────────────────
+# ─── /orgy (/оргия) ─────────────────────────────────────────
 
-@dp.message(Command("оргия"))
+@dp.message(Command("оргия", "orgy"))
 async def cmd_orgy(message: Message):
     chat_id = message.chat.id
     now = datetime.utcnow()
@@ -264,7 +250,6 @@ async def cmd_orgy(message: Message):
         "all_voter_ids": set(),
     }
 
-    # Запускаем таймер окончания опроса в фоне, не блокируя хэндлер
     asyncio.create_task(finish_orgy_after(chat_id, poll_msg.message_id))
 
 
@@ -327,15 +312,16 @@ async def handle_poll_answer(poll_answer: PollAnswer):
 
 async def main():
     db.init()
-    # Регистрируем команды в меню бота
+    # Telegram принимает в BotCommand только [a-z0-9_], кириллица не поддерживается
+    # Кириллические команды всё равно работают, просто не отображаются в меню
     await bot.set_my_commands([
-        BotCommand(command="info", description="Анкета (ответь на сообщение или @username)"),
-        BotCommand(command="анкета", description="Заполнить/обновить свою анкету"),
-        BotCommand(command="жениться", description="Заключить брак (reply)"),
-        BotCommand(command="выйтизамуж", description="Заключить брак (reply)"),
-        BotCommand(command="развод", description="Расторгнуть брак (reply)"),
-        BotCommand(command="families", description="Все браки в беседе"),
-        BotCommand(command="оргия", description="Запустить опрос (раз в сутки)"),
+        BotCommand(command="info",    description="Анкета (reply или @username)"),
+        BotCommand(command="anketa",  description="Заполнить / обновить анкету (или /анкета)"),
+        BotCommand(command="zhenit",  description="Жениться (reply) (или /жениться)"),
+        BotCommand(command="zamuzh",  description="Выйти замуж (reply) (или /выйтизамуж)"),
+        BotCommand(command="razvod",  description="Развод (reply) (или /развод)"),
+        BotCommand(command="families",description="Все браки в беседе"),
+        BotCommand(command="orgy",    description="Оргия-опрос (или /оргия, 1 раз в сутки)"),
     ])
     await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
 
