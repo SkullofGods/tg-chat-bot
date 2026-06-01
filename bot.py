@@ -1,22 +1,16 @@
 import asyncio
 import logging
-import os
 from datetime import datetime, timedelta
-from typing import Optional
 
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command, CommandObject
 from aiogram.types import (
     Message,
     ChatMemberUpdated,
-    Poll,
     PollAnswer,
-    InlineKeyboardMarkup,
-    InlineKeyboardButton,
+    BotCommand,
 )
 from aiogram.enums import ChatMemberStatus
-from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.storage.memory import MemoryStorage
 
 from db import Database
@@ -28,11 +22,6 @@ logger = logging.getLogger(__name__)
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
 db = Database()
-
-
-class AnketaStates(StatesGroup):
-    waiting_for_anketa = State()
-
 
 ANKETA_TEXT = (
     "📋 *Анкета участника*\n\n"
@@ -49,11 +38,12 @@ RULES_TEXT = (
     "ПРАВИЛА -- ТУТ БУДУТ ПРАВИЛА"
 )
 
-# Статусы, из которых считаем "вошёл в группу"
 _LEFT_STATUSES = {ChatMemberStatus.LEFT, ChatMemberStatus.KICKED}
 
+orgy_state: dict[int, dict] = {}
 
-# ─── Новый участник ───────────────────────────────────────────────────────────
+
+# ─── Новый участник ──────────────────────────────────────
 
 @dp.chat_member()
 async def on_new_member(event: ChatMemberUpdated):
@@ -71,71 +61,64 @@ async def on_new_member(event: ChatMemberUpdated):
     if user.is_bot:
         return
 
-    chat_id = event.chat.id
-    user_id = user.id
-    username = user.username or ""
-    full_name = user.full_name
+    db.ensure_user(user.id, user.username or "", user.full_name)
+    mention = f"@{user.username}" if user.username else user.full_name
 
-    db.ensure_user(user_id, username, full_name)
-
-    mention = f"@{username}" if username else full_name
     await bot.send_message(
-        chat_id,
-        f"👋 Привет, {mention}! Добро пожаловать в беседу!\n\n"
-        f"{ANKETA_TEXT}\n\n"
+        event.chat.id,
+        f"👋 Привет, {mention}! Добро пожаловать!\n\n{ANKETA_TEXT}\n\n"
         "_Напиши анкету прямо в этот чат, и я её сохраню._",
         parse_mode="Markdown",
     )
-    db.set_awaiting_anketa(user_id, chat_id)
+    db.set_awaiting_anketa(user.id, event.chat.id)
 
 
-# ─── Приём анкеты ─────────────────────────────────────────────────────────────
+# ─── Общий хэндлер сообщений (анкета + регистрация юзера) ───
 
 @dp.message(F.chat.type.in_({"group", "supergroup"}))
 async def handle_group_message(message: Message):
-    user_id = message.from_user.id
-    chat_id = message.chat.id
+    user = message.from_user
+    # Регистрируем каждого, кто пишет
+    db.ensure_user(user.id, user.username or "", user.full_name)
 
-    # Проверяем ждёт ли пользователь заполнить анкету
-    if db.is_awaiting_anketa(user_id, chat_id):
+    if db.is_awaiting_anketa(user.id, message.chat.id):
         text = message.text or message.caption or ""
-        if text:
-            db.save_anketa(user_id, text)
-            db.clear_awaiting_anketa(user_id, chat_id)
-            username = message.from_user.username or ""
-            mention = f"@{username}" if username else message.from_user.full_name
+        # Игнорируем сообщения с команды (/ ...)
+        if text and not text.startswith("/"):
+            db.save_anketa(user.id, text)
+            db.clear_awaiting_anketa(user.id, message.chat.id)
+            mention = f"@{user.username}" if user.username else user.full_name
             await message.reply(
                 f"✅ Анкета сохранена, {mention}!\n\n{RULES_TEXT}",
                 parse_mode="Markdown",
             )
 
 
-# ─── /info ────────────────────────────────────────────────────────────────────
+# ─── /info ─────────────────────────────────────────────
 
 @dp.message(Command("info"))
 async def cmd_info(message: Message, command: CommandObject):
-    target_user_id = None
-    target_name = None
-
-    # Случай 1: /info в ответ на сообщение
     if message.reply_to_message:
-        target_user_id = message.reply_to_message.from_user.id
+        target_id = message.reply_to_message.from_user.id
         target_name = message.reply_to_message.from_user.full_name
-
-    # Случай 2: /info @username
+        # Заодно сохраняем адресата
+        db.ensure_user(
+            target_id,
+            message.reply_to_message.from_user.username or "",
+            target_name,
+        )
     elif command.args:
         raw = command.args.strip().lstrip("@")
         found = db.get_user_by_username(raw)
-        if found:
-            target_user_id, target_name = found["user_id"], found["full_name"]
-        else:
-            await message.reply(f"Пользователь @{raw} не найден в базе.")
+        if not found:
+            await message.reply(f"Пользователь @{raw} не найден. Он должен хоть раз написать в чат.")
             return
+        target_id, target_name = found["user_id"], found["full_name"]
     else:
         await message.reply("Ответь на чьё-нибудь сообщение или укажи @username.")
         return
 
-    anketa = db.get_anketa(target_user_id)
+    anketa = db.get_anketa(target_id)
     if not anketa:
         await message.reply(f"У {target_name} анкеты пока нет. 🤷")
         return
@@ -146,49 +129,44 @@ async def cmd_info(message: Message, command: CommandObject):
     )
 
 
-# ─── /анкета (переоформить анкету) ────────────────────────────────────────────
+# ─── /анкета ──────────────────────────────────────────
 
 @dp.message(Command("анкета"))
 async def cmd_anketa(message: Message):
-    user_id = message.from_user.id
-    chat_id = message.chat.id
-    db.set_awaiting_anketa(user_id, chat_id)
+    db.ensure_user(
+        message.from_user.id,
+        message.from_user.username or "",
+        message.from_user.full_name,
+    )
+    db.set_awaiting_anketa(message.from_user.id, message.chat.id)
     await message.reply(
         f"{ANKETA_TEXT}\n\n_Напиши ответ в чат, я обновлю анкету._",
         parse_mode="Markdown",
     )
 
 
-# ─── /жениться / /выйтизамуж ──────────────────────────────────────────────────
+# ─── Браки ─────────────────────────────────────────────
 
 async def marry_handler(message: Message):
     if not message.reply_to_message:
-        await message.reply("Ответь на сообщение того, на ком хочешь жениться/выйти замуж. 💍")
+        await message.reply("Ответь на сообщение того, на ком хочешь жениться. 💍")
         return
-
     proposer = message.from_user
     target = message.reply_to_message.from_user
-
     if proposer.id == target.id:
         await message.reply("На себе жениться нельзя! 😅")
         return
     if target.is_bot:
-        await message.reply("Боты — плохие партнёры для брака. 🤖")
+        await message.reply("Боты — плохие партнёры. 🤖")
         return
-
     db.ensure_user(target.id, target.username or "", target.full_name)
-
     if db.are_married(proposer.id, target.id):
-        await message.reply("Вы уже состоите в браке! 💑")
+        await message.reply("Вы уже в браке! 💑")
         return
-
     db.add_marriage(proposer.id, target.id)
-
-    p_mention = f"@{proposer.username}" if proposer.username else proposer.full_name
-    t_mention = f"@{target.username}" if target.username else target.full_name
-    await message.reply(
-        f"💒 {p_mention} и {t_mention} теперь состоят в браке! Поздравляем! 🎉"
-    )
+    p = f"@{proposer.username}" if proposer.username else proposer.full_name
+    t = f"@{target.username}" if target.username else target.full_name
+    await message.reply(f"💒 {p} и {t} теперь в браке! 🎉")
 
 
 @dp.message(Command("жениться"))
@@ -204,23 +182,19 @@ async def cmd_zamuzh(message: Message):
 @dp.message(Command("развод"))
 async def cmd_razvod(message: Message):
     if not message.reply_to_message:
-        await message.reply("Ответь на сообщение того, с кем хочешь развестись.")
+        await message.reply("Ответь на сообщение того, с кем разводишься.")
         return
-
-    user1 = message.from_user.id
-    user2 = message.reply_to_message.from_user.id
-
-    if not db.are_married(user1, user2):
+    u1, u2 = message.from_user.id, message.reply_to_message.from_user.id
+    if not db.are_married(u1, u2):
         await message.reply("Вы не состоите в браке. 🤷")
         return
+    db.remove_marriage(u1, u2)
+    p = f"@{message.from_user.username}" if message.from_user.username else message.from_user.full_name
+    t = f"@{message.reply_to_message.from_user.username}" if message.reply_to_message.from_user.username else message.reply_to_message.from_user.full_name
+    await message.reply(f"💔 {p} и {t} развелись.")
 
-    db.remove_marriage(user1, user2)
-    p_mention = f"@{message.from_user.username}" if message.from_user.username else message.from_user.full_name
-    t_mention = f"@{message.reply_to_message.from_user.username}" if message.reply_to_message.from_user.username else message.reply_to_message.from_user.full_name
-    await message.reply(f"💔 {p_mention} и {t_mention} развелись.")
 
-
-# ─── /families ────────────────────────────────────────────────────────────────
+# ─── /families ───────────────────────────────────────────
 
 @dp.message(Command("families"))
 async def cmd_families(message: Message):
@@ -229,7 +203,6 @@ async def cmd_families(message: Message):
         await message.reply("В беседе пока нет браков. 😢")
         return
 
-    # Группируем в семьи через union-find
     parent = {}
     def find(x):
         parent.setdefault(x, x)
@@ -244,27 +217,20 @@ async def cmd_families(message: Message):
 
     families: dict[int, list[int]] = {}
     for uid in parent:
-        root = find(uid)
-        families.setdefault(root, []).append(uid)
+        families.setdefault(find(uid), []).append(uid)
 
     lines = ["💑 *Семьи в беседе:*\n"]
-    for i, (_, members) in enumerate(families.items(), 1):
+    for i, members in enumerate(families.values(), 1):
         names = []
         for uid in members:
             u = db.get_user(uid)
-            if u:
-                names.append(f"@{u['username']}" if u['username'] else u['full_name'])
-            else:
-                names.append(str(uid))
+            names.append(f"@{u['username']}" if u and u['username'] else (u['full_name'] if u else str(uid)))
         lines.append(f"{i}. " + " 💍 ".join(names))
 
     await message.reply("\n".join(lines), parse_mode="Markdown")
 
 
-# ─── /оргия ───────────────────────────────────────────────────────────────────
-
-orgy_state: dict[int, dict] = {}  # chat_id -> {last_time, poll_message_id, poll_id}
-
+# ─── /оргия ─────────────────────────────────────────────
 
 @dp.message(Command("оргия"))
 async def cmd_orgy(message: Message):
@@ -276,11 +242,9 @@ async def cmd_orgy(message: Message):
         cooldown_end = state["last_time"] + timedelta(hours=ORGY_COOLDOWN_HOURS)
         if now < cooldown_end:
             remaining = cooldown_end - now
-            hours, rem = divmod(int(remaining.total_seconds()), 3600)
-            minutes = rem // 60
-            await message.reply(
-                f"⏳ Следующая оргия возможна через {hours}ч {minutes}мин."
-            )
+            h, rem = divmod(int(remaining.total_seconds()), 3600)
+            m = rem // 60
+            await message.reply(f"⏳ Следующая оргия возможна через {h}ч {m}мин.")
             return
 
     poll_msg = await bot.send_poll(
@@ -300,8 +264,13 @@ async def cmd_orgy(message: Message):
         "all_voter_ids": set(),
     }
 
+    # Запускаем таймер окончания опроса в фоне, не блокируя хэндлер
+    asyncio.create_task(finish_orgy_after(chat_id, poll_msg.message_id))
+
+
+async def finish_orgy_after(chat_id: int, poll_message_id: int):
     await asyncio.sleep(ORGY_POLL_DURATION_SECONDS)
-    await finish_orgy(chat_id, poll_msg.message_id)
+    await finish_orgy(chat_id, poll_message_id)
 
 
 async def finish_orgy(chat_id: int, poll_message_id: int):
@@ -330,12 +299,9 @@ async def finish_orgy(chat_id: int, poll_message_id: int):
                 parts.append(f"[user](tg://user?id={uid})")
         return " ".join(parts) if parts else "никто"
 
-    yes_text = mentions(yes_ids)
-    no_text = mentions(no_ids)
-
     await bot.send_message(
         chat_id,
-        f"🔥 {yes_text} поимели жёсткий секс, а {no_text} с завистью смотрели.",
+        f"🔥 {mentions(yes_ids)} поимели жёсткий секс, а {mentions(no_ids)} с завистью смотрели.",
         parse_mode="Markdown",
     )
 
@@ -346,26 +312,31 @@ async def handle_poll_answer(poll_answer: PollAnswer):
     for chat_id, state in orgy_state.items():
         if poll_answer.poll_id == state.get("poll_id"):
             if user_id in state["all_voter_ids"]:
-                # убираем старый голос
                 state["yes_voters"] = [x for x in state["yes_voters"] if x != user_id]
                 state["no_voters"] = [x for x in state["no_voters"] if x != user_id]
             state["all_voter_ids"].add(user_id)
-            if 0 in poll_answer.option_ids:  # "Да"
+            if 0 in poll_answer.option_ids:
                 state["yes_voters"].append(user_id)
             else:
                 state["no_voters"].append(user_id)
-            db.ensure_user(
-                user_id,
-                poll_answer.user.username or "",
-                poll_answer.user.full_name,
-            )
+            db.ensure_user(user_id, poll_answer.user.username or "", poll_answer.user.full_name)
             break
 
 
-# ─── Main ─────────────────────────────────────────────────────────────────────
+# ─── Main ─────────────────────────────────────────────
 
 async def main():
     db.init()
+    # Регистрируем команды в меню бота
+    await bot.set_my_commands([
+        BotCommand(command="info", description="Анкета (ответь на сообщение или @username)"),
+        BotCommand(command="анкета", description="Заполнить/обновить свою анкету"),
+        BotCommand(command="жениться", description="Заключить брак (reply)"),
+        BotCommand(command="выйтизамуж", description="Заключить брак (reply)"),
+        BotCommand(command="развод", description="Расторгнуть брак (reply)"),
+        BotCommand(command="families", description="Все браки в беседе"),
+        BotCommand(command="оргия", description="Запустить опрос (раз в сутки)"),
+    ])
     await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
 
 
