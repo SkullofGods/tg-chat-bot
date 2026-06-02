@@ -78,6 +78,37 @@ _D20_CRIT_SUCCESS = [
     "НАТУРАЛЬНАЯ 20! \U0001f31f Это войдёт в историю беседы.",
 ]
 
+# Bonus event templates.
+# {member} — replaced with a random chat member mention (or empty string for impersonal events).
+# value: (min, max) inclusive
+_BONUS_EVENTS = [
+    # positive — with member
+    {"tpl": "{member} поцеловал(а) на удачу",           "val": (2, 5),  "need_member": True},
+    {"tpl": "{member} тихонько молился(ась) за тебя",   "val": (1, 3),  "need_member": True},
+    {"tpl": "{member} дунул(а) на кубик",               "val": (1, 3),  "need_member": True},
+    {"tpl": "{member} подарил(а) амулет удачи",         "val": (2, 4),  "need_member": True},
+    {"tpl": "{member} шепнул(а) нужное заклинание",     "val": (1, 4),  "need_member": True},
+    {"tpl": "{member} стоял(а) рядом и верил(а)",       "val": (1, 2),  "need_member": True},
+    # negative — with member
+    {"tpl": "{member} подкинул(а) проклятие",           "val": (-3, -1), "need_member": True},
+    {"tpl": "{member} сглазил(а)",                      "val": (-3, -2), "need_member": True},
+    {"tpl": "{member} держал(а) кулачки против",        "val": (-2, -1), "need_member": True},
+    {"tpl": "{member} отвлёк(ла) в самый важный момент","val": (-2, -1), "need_member": True},
+    # impersonal positive
+    {"tpl": "выпал день рождения у кого-то в чате",     "val": (2, 5),  "need_member": False},
+    {"tpl": "сегодня пятница",                          "val": (1, 3),  "need_member": False},
+    {"tpl": "кто-то варит борщ неподалёку",             "val": (1, 2),  "need_member": False},
+    {"tpl": "твой гороскоп сегодня благоприятный",      "val": (1, 3),  "need_member": False},
+    {"tpl": "кубик упал со стола и закатился под диван, пришлось достать", "val": (1, 5), "need_member": False},
+    # impersonal negative
+    {"tpl": "ретроградный Меркурий",                    "val": (-3, -1), "need_member": False},
+    {"tpl": "Венера в Козероге",                        "val": (-2, -1), "need_member": False},
+    {"tpl": "кто-то в чате чихнул",                     "val": (-1, -1), "need_member": False},
+    {"tpl": "пролитый кофе на клавиатуру",              "val": (-2, -1), "need_member": False},
+    {"tpl": "в комнате чёрная кошка",                   "val": (-3, -1), "need_member": False},
+    {"tpl": "полнолуние",                               "val": (-1, 2),  "need_member": False},
+]
+
 _LEFT_STATUSES = {ChatMemberStatus.LEFT, ChatMemberStatus.KICKED}
 orgy_state: dict[int, dict] = {}
 shutdown_sent = False
@@ -86,7 +117,6 @@ shutdown_sent = False
 # ── Mention helpers ────────────────────────────────────────────────────────────
 
 def mention_by_user(user) -> str:
-    """Mention for a live aiogram User object. Prefers nickname, then @username, then full_name."""
     nick = db.get_nickname(user.id)
     if nick:
         return f"[{nick}](tg://user?id={user.id})"
@@ -96,7 +126,6 @@ def mention_by_user(user) -> str:
 
 
 def mention_by_db(user_id: int) -> str:
-    """Mention for a user known only by ID. Prefers nickname, then @username, then linked full_name."""
     nick = db.get_nickname(user_id)
     if nick:
         return f"[{nick}](tg://user?id={user_id})"
@@ -145,6 +174,31 @@ def brak_keyboard(proposer_id: int, target_id: int, chat_id: int) -> InlineKeybo
             InlineKeyboardButton(text="Нет", callback_data=f"brak_no:{proposer_id}:{target_id}:{chat_id}"),
         ]]
     )
+
+
+def roll_bonus(roller_id: int) -> tuple[int, str]:
+    """Roll a bonus event. Returns (bonus_value, description_string) or (0, '')."""
+    if random.random() >= 0.10:
+        return 0, ""
+
+    event = random.choice(_BONUS_EVENTS)
+    val = random.randint(event["val"][0], event["val"][1])
+    sign = "+" if val >= 0 else ""
+
+    if event["need_member"]:
+        # pick a random known user that is NOT the roller
+        all_users = db.get_all_users()
+        others = [u for u in all_users if u["user_id"] != roller_id]
+        if others:
+            picked = random.choice(others)
+            member_str = mention_by_db(picked["user_id"])
+        else:
+            member_str = "кто-то из чата"
+        description = event["tpl"].format(member=member_str)
+    else:
+        description = event["tpl"]
+
+    return val, f"_{description}_ — {sign}{val}"
 
 
 async def announce_startup():
@@ -268,7 +322,6 @@ async def cmd_d20(message: Message, command: CommandObject):
     user = message.from_user
     db.ensure_user(user.id, user.username or "", user.full_name)
 
-    # threshold: random 7-22 by default, or manual arg
     if command.args:
         try:
             threshold = int(command.args.strip())
@@ -279,16 +332,12 @@ async def cmd_d20(message: Message, command: CommandObject):
         threshold = random.randint(7, 22)
 
     roll = random.randint(1, 20)
-
-    # 10% chance of a bonus modifier (-1..+5)
-    bonus = 0
-    bonus_str = ""
-    if random.random() < 0.10:
-        bonus = random.randint(-1, 5)
-        sign = "+" if bonus >= 0 else ""
-        bonus_str = f" (бонус {sign}{bonus} \U0001f3b0 итого *{roll + bonus}*)"
-
+    bonus, bonus_desc = roll_bonus(user.id)
     effective = roll + bonus
+
+    bonus_str = ""
+    if bonus != 0:
+        bonus_str = f"\n\U0001f3b0 {bonus_desc} \u2192 итого *{effective}*"
 
     if roll == 1:
         flavor = random.choice(_D20_CRIT_FAIL)
@@ -307,9 +356,7 @@ async def cmd_d20(message: Message, command: CommandObject):
             preview += "…"
         context = f"_«{preview}»_\n\n"
 
-    result_line = (
-        f"\U0001f3b2 {roller} бросает d20 — порог *{threshold}*, выпало *{roll}*{bonus_str}."
-    )
+    result_line = f"\U0001f3b2 {roller} бросает d20 — порог *{threshold}*, выпало *{roll}*{bonus_str}."
     await message.reply(
         f"{context}{result_line}\n\n{flavor}",
         parse_mode="Markdown",
@@ -398,9 +445,7 @@ async def cmd_razvod(message: Message, command: CommandObject):
     db.remember_chat(message.chat.id)
     target_id, _, _ = resolve_target_from_command_or_reply(message, command)
     if target_id is None:
-        await message.reply(
-            "Ответь на сообщение того, с кем разводишься, или укажи @username."
-        )
+        await message.reply("Ответь на сообщение того, с кем разводишься, или укажи @username.")
         return
     if target_id == -1:
         await message.reply("Пользователь не найден в базе. \U0001f937")

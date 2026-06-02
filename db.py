@@ -95,7 +95,11 @@ class Database:
         ).fetchone()
         return dict(row) if row else None
 
-    # ── Nicknames ──────────────────────────────────────────────────────────
+    def get_all_users(self) -> list[dict]:
+        rows = self._conn().execute("SELECT * FROM users").fetchall()
+        return [dict(r) for r in rows]
+
+    # ── Nicknames ──────────────────────────────────────────────────────────────
 
     def set_nickname(self, user_id: int, nickname: str):
         c = self._conn()
@@ -117,7 +121,7 @@ class Database:
         ).fetchone()
         return row["nickname"] if row else None
 
-    # ── Anketas ────────────────────────────────────────────────────────────
+    # ── Anketas ────────────────────────────────────────────────────────────────
 
     def save_anketa(self, user_id: int, text: str):
         c = self._conn()
@@ -157,7 +161,7 @@ class Database:
         )
         c.commit()
 
-    # ── Marriages ──────────────────────────────────────────────────────────
+    # ── Marriages ──────────────────────────────────────────────────────────────
 
     def _ordered(self, a: int, b: int):
         return (min(a, b), max(a, b))
@@ -215,7 +219,7 @@ class Database:
         )
         c.commit()
 
-    # ── Known chats ────────────────────────────────────────────────────────
+    # ── Known chats ────────────────────────────────────────────────────────────
 
     def remember_chat(self, chat_id: int):
         c = self._conn()
