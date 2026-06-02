@@ -28,6 +28,10 @@ class Database:
                 username  TEXT DEFAULT '',
                 full_name TEXT DEFAULT ''
             );
+            CREATE TABLE IF NOT EXISTS nicknames (
+                user_id  INTEGER PRIMARY KEY,
+                nickname TEXT NOT NULL
+            );
             CREATE TABLE IF NOT EXISTS anketas (
                 user_id INTEGER PRIMARY KEY,
                 text    TEXT NOT NULL
@@ -67,7 +71,6 @@ class Database:
         conn.commit()
         conn.close()
 
-    # kept for backward compat
     def init(self):
         self._init_db()
 
@@ -91,6 +94,30 @@ class Database:
             "SELECT * FROM users WHERE LOWER(username) = LOWER(?)", (username,)
         ).fetchone()
         return dict(row) if row else None
+
+    # ── Nicknames ──────────────────────────────────────────────────────────
+
+    def set_nickname(self, user_id: int, nickname: str):
+        c = self._conn()
+        c.execute(
+            "INSERT INTO nicknames (user_id, nickname) VALUES (?, ?) "
+            "ON CONFLICT(user_id) DO UPDATE SET nickname=excluded.nickname",
+            (user_id, nickname),
+        )
+        c.commit()
+
+    def delete_nickname(self, user_id: int):
+        c = self._conn()
+        c.execute("DELETE FROM nicknames WHERE user_id = ?", (user_id,))
+        c.commit()
+
+    def get_nickname(self, user_id: int) -> Optional[str]:
+        row = self._conn().execute(
+            "SELECT nickname FROM nicknames WHERE user_id = ?", (user_id,)
+        ).fetchone()
+        return row["nickname"] if row else None
+
+    # ── Anketas ────────────────────────────────────────────────────────────
 
     def save_anketa(self, user_id: int, text: str):
         c = self._conn()
@@ -129,6 +156,8 @@ class Database:
             (user_id, chat_id),
         )
         c.commit()
+
+    # ── Marriages ──────────────────────────────────────────────────────────
 
     def _ordered(self, a: int, b: int):
         return (min(a, b), max(a, b))
@@ -186,7 +215,7 @@ class Database:
         )
         c.commit()
 
-    # ── Known chats ────────────────────────────────────────────────────────────────────────
+    # ── Known chats ────────────────────────────────────────────────────────
 
     def remember_chat(self, chat_id: int):
         c = self._conn()

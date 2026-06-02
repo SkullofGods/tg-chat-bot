@@ -34,7 +34,7 @@ RING = " \U0001f48d "  # separator for families list
 
 ANKETA_TEXT = (
     "\U0001f4cb *Анкета участника*\n\n"
-    "Ответь на вопросы следующим сообщением, не обязательно отвечать на всё :D\n\n"
+    "Ответь на вопросы следующим сообщением, не обязательно отвечать на всё и честно :D\n\n"
     "1. Имя / как можно обращаться\n"
     "2. Возраст\n"
     "3. Город\n"
@@ -83,11 +83,23 @@ orgy_state: dict[int, dict] = {}
 shutdown_sent = False
 
 
+# ── Mention helpers ────────────────────────────────────────────────────────────
+
 def mention_by_user(user) -> str:
-    return f"@{user.username}" if user.username else user.full_name
+    """Mention for a live aiogram User object. Prefers nickname, then @username, then full_name."""
+    nick = db.get_nickname(user.id)
+    if nick:
+        return f"[{nick}](tg://user?id={user.id})"
+    if user.username:
+        return f"@{user.username}"
+    return user.full_name
 
 
 def mention_by_db(user_id: int) -> str:
+    """Mention for a user known only by ID. Prefers nickname, then @username, then linked full_name."""
+    nick = db.get_nickname(user_id)
+    if nick:
+        return f"[{nick}](tg://user?id={user_id})"
     u = db.get_user(user_id)
     if u and u["username"]:
         return f"@{u['username']}"
@@ -122,7 +134,6 @@ def resolve_target_from_command_or_reply(message: Message, command: CommandObjec
         found = db.get_user_by_username(raw)
         if found:
             return found["user_id"], found["full_name"], found["username"]
-        # username not found in DB
         return -1, raw, raw
     return None, None, None
 
@@ -151,6 +162,8 @@ async def announce_shutdown():
         with suppress(Exception):
             await bot.send_message(chat_id, "бля, умираю")
 
+
+# ── Handlers ───────────────────────────────────────────────────────────────────
 
 @dp.chat_member()
 async def on_new_member(event: ChatMemberUpdated):
@@ -187,11 +200,11 @@ async def cmd_info(message: Message, command: CommandObject):
         await message.reply(f"Пользователь @{target_name} не найден в базе — возможно, ещё не писал в чат. \U0001f937")
         return
     anketa = db.get_anketa(target_id)
+    display = mention_by_db(target_id)
     if not anketa:
-        display = f"@{_}" if _ else target_name
-        await message.reply(f"У {target_name} анкеты пока нет. \U0001f937")
+        await message.reply(f"У {display} анкеты пока нет. \U0001f937", parse_mode="Markdown")
         return
-    await message.reply(f"\U0001f4cb *Анкета* {target_name}\n\n{anketa}", parse_mode="Markdown")
+    await message.reply(f"\U0001f4cb *Анкета* {display}\n\n{anketa}", parse_mode="Markdown")
 
 
 @dp.message(Command("анкета", "anketa"))
@@ -199,10 +212,7 @@ async def cmd_anketa(message: Message):
     db.remember_chat(message.chat.id)
     db.ensure_user(message.from_user.id, message.from_user.username or "", message.from_user.full_name)
     db.set_awaiting_anketa(message.from_user.id, message.chat.id)
-    await message.reply(
-        ANKETA_TEXT,
-        parse_mode="Markdown",
-    )
+    await message.reply(ANKETA_TEXT, parse_mode="Markdown")
 
 
 @dp.message(Command("rules", "правила"))
@@ -211,29 +221,85 @@ async def cmd_rules(message: Message):
     await message.reply(RULES_TEXT, parse_mode="Markdown")
 
 
+@dp.message(Command("ник", "nick"))
+async def cmd_nick(message: Message, command: CommandObject):
+    db.remember_chat(message.chat.id)
+    user = message.from_user
+    db.ensure_user(user.id, user.username or "", user.full_name)
+
+    if not command.args or not command.args.strip():
+        current = db.get_nickname(user.id)
+        if current:
+            await message.reply(
+                f"Твой текущий никнейм: *{current}*\n"
+                "Чтобы убрать его, напиши `/ник -`",
+                parse_mode="Markdown",
+            )
+        else:
+            await message.reply(
+                "У тебя пока нет никнейма.\n"
+                "Установи: `/ник ИмяКоторое Хочешь`",
+                parse_mode="Markdown",
+            )
+        return
+
+    new_nick = command.args.strip()
+
+    if new_nick == "-":
+        db.delete_nickname(user.id)
+        await message.reply("Никнейм удалён. Бот будет обращаться по тэгу/имени. \u2705")
+        return
+
+    if len(new_nick) > 32:
+        await message.reply("Никнейм слишком длинный (макс. 32 символа). \U0001f615")
+        return
+
+    db.set_nickname(user.id, new_nick)
+    await message.reply(
+        f"Никнейм установлен: [{new_nick}](tg://user?id={user.id}) \u2705\n"
+        "Теперь бот будет обращаться к тебе именно так.",
+        parse_mode="Markdown",
+    )
+
+
 @dp.message(Command("d20"))
 async def cmd_d20(message: Message, command: CommandObject):
     db.remember_chat(message.chat.id)
+    user = message.from_user
+    db.ensure_user(user.id, user.username or "", user.full_name)
 
-    threshold = 7
+    # threshold: random 7-22 by default, or manual arg
     if command.args:
         try:
             threshold = int(command.args.strip())
-            threshold = max(1, min(20, threshold))
+            threshold = max(1, min(22, threshold))
         except ValueError:
-            pass
+            threshold = random.randint(7, 22)
+    else:
+        threshold = random.randint(7, 22)
 
     roll = random.randint(1, 20)
+
+    # 10% chance of a bonus modifier (-1..+5)
+    bonus = 0
+    bonus_str = ""
+    if random.random() < 0.10:
+        bonus = random.randint(-1, 5)
+        sign = "+" if bonus >= 0 else ""
+        bonus_str = f" (бонус {sign}{bonus} \U0001f3b0 итого *{roll + bonus}*)"
+
+    effective = roll + bonus
 
     if roll == 1:
         flavor = random.choice(_D20_CRIT_FAIL)
     elif roll == 20:
         flavor = random.choice(_D20_CRIT_SUCCESS)
-    elif roll < threshold:
+    elif effective < threshold:
         flavor = random.choice(_D20_FAIL)
     else:
         flavor = random.choice(_D20_SUCCESS)
 
+    roller = mention_by_user(user)
     context = ""
     if message.reply_to_message and message.reply_to_message.text:
         preview = message.reply_to_message.text[:60]
@@ -241,7 +307,9 @@ async def cmd_d20(message: Message, command: CommandObject):
             preview += "…"
         context = f"_«{preview}»_\n\n"
 
-    result_line = f"\U0001f3b2 Проверка на успех — порог *{threshold}*, выпало *{roll}*."
+    result_line = (
+        f"\U0001f3b2 {roller} бросает d20 — порог *{threshold}*, выпало *{roll}*{bonus_str}."
+    )
     await message.reply(
         f"{context}{result_line}\n\n{flavor}",
         parse_mode="Markdown",
@@ -485,7 +553,7 @@ async def handle_group_message(message: Message):
             db.clear_awaiting_anketa(user.id, message.chat.id)
             name = mention_by_user(user)
             await message.reply(
-                f"✅ Анкета сохранена, {name}!\n\n{RULES_TEXT}",
+                f"\u2705 Анкета сохранена, {name}!\n\n{RULES_TEXT}",
                 parse_mode="Markdown",
             )
 
@@ -496,6 +564,7 @@ async def setup_commands():
         BotCommand(command="info",      description="Анкета (reply или @username)"),
         BotCommand(command="anketa",    description="Заполнить / обновить анкету (или /анкета)"),
         BotCommand(command="rules",     description="Правила беседы (или /правила)"),
+        BotCommand(command="nick",      description="Установить никнейм (или /ник)"),
         BotCommand(command="d20",       description="Бросок d20 — проверка на успех"),
         BotCommand(command="brak",      description="Сделать предложение брака"),
         BotCommand(command="razvod",    description="Развод (reply или @username)"),
