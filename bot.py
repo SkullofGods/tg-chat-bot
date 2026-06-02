@@ -79,7 +79,7 @@ _D20_CRIT_SUCCESS = [
 ]
 
 # Bonus event templates.
-# {member} — replaced with a random chat member mention (or empty string for impersonal events).
+# {member} — replaced with plain display name (no tag) of a random chat member.
 # value: (min, max) inclusive
 _BONUS_EVENTS = [
     # positive — with member
@@ -114,7 +114,30 @@ orgy_state: dict[int, dict] = {}
 shutdown_sent = False
 
 
-# ── Mention helpers ────────────────────────────────────────────────────────────
+# ── Name helpers ───────────────────────────────────────────────────────────────
+
+def display_name_by_user(user) -> str:
+    """Plain name (no tg link/tag) for use in bonus event text."""
+    nick = db.get_nickname(user.id)
+    if nick:
+        return nick
+    if user.first_name:
+        return user.first_name
+    return user.full_name
+
+
+def display_name_by_db(user_id: int) -> str:
+    """Plain name (no tg link/tag) looked up from DB."""
+    nick = db.get_nickname(user_id)
+    if nick:
+        return nick
+    u = db.get_user(user_id)
+    if u:
+        return u["full_name"] or u["username"] or f"user{user_id}"
+    return f"user{user_id}"
+
+
+# ── Mention helpers (tg links — used everywhere except bonus events) ───────────
 
 def mention_by_user(user) -> str:
     nick = db.get_nickname(user.id)
@@ -186,12 +209,12 @@ def roll_bonus(roller_id: int) -> tuple[int, str]:
     sign = "+" if val >= 0 else ""
 
     if event["need_member"]:
-        # pick a random known user that is NOT the roller
+        # pick a random known user that is NOT the roller — plain name, no tag
         all_users = db.get_all_users()
         others = [u for u in all_users if u["user_id"] != roller_id]
         if others:
             picked = random.choice(others)
-            member_str = mention_by_db(picked["user_id"])
+            member_str = display_name_by_db(picked["user_id"])
         else:
             member_str = "кто-то из чата"
         description = event["tpl"].format(member=member_str)
