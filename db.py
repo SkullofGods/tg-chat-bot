@@ -1,5 +1,6 @@
 import sqlite3
 import threading
+from collections import Counter
 from datetime import datetime
 from typing import Optional
 
@@ -57,6 +58,22 @@ class Database:
             );
             CREATE TABLE IF NOT EXISTS known_chats (
                 chat_id INTEGER PRIMARY KEY
+            );
+            CREATE TABLE IF NOT EXISTS message_stats (
+                chat_id        INTEGER NOT NULL,
+                user_id        INTEGER NOT NULL,
+                message_count  INTEGER NOT NULL DEFAULT 0,
+                word_count     INTEGER NOT NULL DEFAULT 0,
+                created_at     TEXT NOT NULL,
+                updated_at     TEXT NOT NULL,
+                PRIMARY KEY (chat_id, user_id)
+            );
+            CREATE TABLE IF NOT EXISTS word_stats (
+                chat_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                word    TEXT NOT NULL,
+                count   INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (chat_id, user_id, word)
             );
         """)
 
@@ -229,3 +246,81 @@ class Database:
     def get_known_chats(self) -> list[int]:
         rows = self._conn().execute("SELECT chat_id FROM known_chats").fetchall()
         return [r["chat_id"] for r in rows]
+
+    # ── Message stats ──────────────────────────────────────────────────────────
+
+    def record_message(self, chat_id: int, user_id: int, words: list[str]):
+        now = datetime.utcnow().isoformat()
+        word_count = len(words)
+        c = self._conn()
+        c.execute(
+            """
+            INSERT INTO message_stats (chat_id, user_id, message_count, word_count, created_at, updated_at)
+            VALUES (?, ?, 1, ?, ?, ?)
+            ON CONFLICT(chat_id, user_id) DO UPDATE SET
+                message_count = message_count + 1,
+                word_count = word_count + excluded.word_count,
+                updated_at = excluded.updated_at
+            """,
+            (chat_id, user_id, word_count, now, now),
+        )
+        if words:
+            counts = Counter(words)
+            c.executemany(
+                """
+                INSERT INTO word_stats (chat_id, user_id, word, count)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(chat_id, user_id, word) DO UPDATE SET
+                    count = count + excluded.count
+                """,
+                [(chat_id, user_id, word, cnt) for word, cnt in counts.items()],
+            )
+        c.commit()
+
+    def get_user_stats(self, chat_id: int, user_id: int) -> Optional[dict]:
+        row = self._conn().execute(
+            "SELECT * FROM message_stats WHERE chat_id = ? AND user_id = ?",
+            (chat_id, user_id),
+        ).fetchone()
+        return dict(row) if row else None
+
+    def get_user_top_words(self, chat_id: int, user_id: int, limit: int = 5) -> list[dict]:
+        rows = self._conn().execute(
+            """
+            SELECT word, count
+            FROM word_stats
+            WHERE chat_id = ? AND user_id = ?
+            ORDER BY count DESC, LENGTH(word) DESC, word ASC
+            LIMIT ?
+            """,
+            (chat_id, user_id, limit),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def get_chat_top_users(self, chat_id: int, limit: int = 10) -> list[dict]:
+        rows = self._conn().execute(
+            """
+            SELECT ms.user_id, ms.message_count, ms.word_count, u.username, u.full_name
+            FROM message_stats ms
+            LEFT JOIN users u ON u.user_id = ms.user_id
+            WHERE ms.chat_id = ?
+            ORDER BY ms.message_count DESC, ms.word_count DESC
+            LIMIT ?
+            """,
+            (chat_id, limit),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def get_chat_top_words(self, chat_id: int, limit: int = 10) -> list[dict]:
+        rows = self._conn().execute(
+            """
+            SELECT word, SUM(count) AS count
+            FROM word_stats
+            WHERE chat_id = ?
+            GROUP BY word
+            ORDER BY count DESC, LENGTH(word) DESC, word ASC
+            LIMIT ?
+            """,
+            (chat_id, limit),
+        ).fetchall()
+        return [dict(r) for r in rows]
