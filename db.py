@@ -116,7 +116,7 @@ class Database:
         rows = self._conn().execute("SELECT * FROM users").fetchall()
         return [dict(r) for r in rows]
 
-    # ── Nicknames ──────────────────────────────────────────────────────────────
+    # ── Nicknames ──────────────────────────────────────────────────────────────────────────────
 
     def set_nickname(self, user_id: int, nickname: str):
         c = self._conn()
@@ -138,7 +138,7 @@ class Database:
         ).fetchone()
         return row["nickname"] if row else None
 
-    # ── Anketas ────────────────────────────────────────────────────────────────
+    # ── Anketas ─────────────────────────────────────────────────────────────────────────────────
 
     def save_anketa(self, user_id: int, text: str):
         c = self._conn()
@@ -178,7 +178,7 @@ class Database:
         )
         c.commit()
 
-    # ── Marriages ──────────────────────────────────────────────────────────────
+    # ── Marriages ─────────────────────────────────────────────────────────────────────────────
 
     def _ordered(self, a: int, b: int):
         return (min(a, b), max(a, b))
@@ -236,7 +236,7 @@ class Database:
         )
         c.commit()
 
-    # ── Known chats ────────────────────────────────────────────────────────────
+    # ── Known chats ─────────────────────────────────────────────────────────────────────────────
 
     def remember_chat(self, chat_id: int):
         c = self._conn()
@@ -247,7 +247,7 @@ class Database:
         rows = self._conn().execute("SELECT chat_id FROM known_chats").fetchall()
         return [r["chat_id"] for r in rows]
 
-    # ── Message stats ──────────────────────────────────────────────────────────
+    # ── Message stats ────────────────────────────────────────────────────────────────────────────
 
     def record_message(self, chat_id: int, user_id: int, words: list[str]):
         now = datetime.utcnow().isoformat()
@@ -285,10 +285,7 @@ class Database:
         word_count: int,
         words: dict[str, int],
     ):
-        """Добавляет статистику из исторического экспорта.
-        Если запись уже есть — суммирует (не перезаписывает),
-        чтобы повторный импорт не ломал живую статистику.
-        """
+        """Adds stats from a historical export, summing on conflict."""
         now = datetime.utcnow().isoformat()
         c = self._conn()
         c.execute(
@@ -315,49 +312,67 @@ class Database:
         c.commit()
 
     def get_user_stats(self, chat_id: int, user_id: int) -> Optional[dict]:
+        """Returns aggregated stats for a user across ALL chats (chat_id ignored)."""
         row = self._conn().execute(
-            "SELECT * FROM message_stats WHERE chat_id = ? AND user_id = ?",
-            (chat_id, user_id),
+            """
+            SELECT
+                user_id,
+                SUM(message_count) AS message_count,
+                SUM(word_count)    AS word_count,
+                MIN(created_at)    AS created_at,
+                MAX(updated_at)    AS updated_at
+            FROM message_stats
+            WHERE user_id = ?
+            GROUP BY user_id
+            """,
+            (user_id,),
         ).fetchone()
         return dict(row) if row else None
 
     def get_user_top_words(self, chat_id: int, user_id: int, limit: int = 5) -> list[dict]:
-        rows = self._conn().execute(
-            """
-            SELECT word, count
-            FROM word_stats
-            WHERE chat_id = ? AND user_id = ?
-            ORDER BY count DESC, LENGTH(word) DESC, word ASC
-            LIMIT ?
-            """,
-            (chat_id, user_id, limit),
-        ).fetchall()
-        return [dict(r) for r in rows]
-
-    def get_chat_top_users(self, chat_id: int, limit: int = 10) -> list[dict]:
-        rows = self._conn().execute(
-            """
-            SELECT ms.user_id, ms.message_count, ms.word_count, u.username, u.full_name
-            FROM message_stats ms
-            LEFT JOIN users u ON u.user_id = ms.user_id
-            WHERE ms.chat_id = ?
-            ORDER BY ms.message_count DESC, ms.word_count DESC
-            LIMIT ?
-            """,
-            (chat_id, limit),
-        ).fetchall()
-        return [dict(r) for r in rows]
-
-    def get_chat_top_words(self, chat_id: int, limit: int = 10) -> list[dict]:
+        """Top words for a user across ALL chats (chat_id ignored)."""
         rows = self._conn().execute(
             """
             SELECT word, SUM(count) AS count
             FROM word_stats
-            WHERE chat_id = ?
+            WHERE user_id = ?
             GROUP BY word
             ORDER BY count DESC, LENGTH(word) DESC, word ASC
             LIMIT ?
             """,
-            (chat_id, limit),
+            (user_id, limit),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def get_chat_top_users(self, chat_id: int, limit: int = 10) -> list[dict]:
+        """Top users by message count across ALL chats (chat_id ignored)."""
+        rows = self._conn().execute(
+            """
+            SELECT ms.user_id,
+                   SUM(ms.message_count) AS message_count,
+                   SUM(ms.word_count)    AS word_count,
+                   u.username,
+                   u.full_name
+            FROM message_stats ms
+            LEFT JOIN users u ON u.user_id = ms.user_id
+            GROUP BY ms.user_id
+            ORDER BY message_count DESC, word_count DESC
+            LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def get_chat_top_words(self, chat_id: int, limit: int = 10) -> list[dict]:
+        """Top words across ALL chats (chat_id ignored)."""
+        rows = self._conn().execute(
+            """
+            SELECT word, SUM(count) AS count
+            FROM word_stats
+            GROUP BY word
+            ORDER BY count DESC, LENGTH(word) DESC, word ASC
+            LIMIT ?
+            """,
+            (limit,),
         ).fetchall()
         return [dict(r) for r in rows]
