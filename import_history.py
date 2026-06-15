@@ -68,18 +68,16 @@ def import_history(path: str, db: Database, chat_id: int | None = None) -> dict[
     with open(path, encoding="utf-8") as f:
         data = json.load(f)
 
-    # Telegram Desktop кладёт сообщения прямо в data или в data["messages"]
     messages: list[dict] = data if isinstance(data, list) else data.get("messages", [])
 
-    # chat_id: берём из файла или из параметра
     if chat_id is None:
         chat_id = data.get("id") if isinstance(data, dict) else None
     if chat_id is None:
-        chat_id = 0  # fallback — статистика всё равно накопится
+        chat_id = 0
 
     db.remember_chat(chat_id)
 
-    # user_id → {username, full_name, message_count, word_count, words: Counter}
+    # user_id → {message_count, word_count, words: Counter}
     users: dict[int, dict] = {}
 
     skipped = 0
@@ -87,7 +85,6 @@ def import_history(path: str, db: Database, chat_id: int | None = None) -> dict[
         if msg.get("type") != "message":
             continue
         from_id_raw = msg.get("from_id", "")
-        # Telegram Desktop пишет id как "user123456789"
         if isinstance(from_id_raw, str) and from_id_raw.startswith("user"):
             try:
                 user_id = int(from_id_raw[4:])
@@ -100,10 +97,6 @@ def import_history(path: str, db: Database, chat_id: int | None = None) -> dict[
             skipped += 1
             continue
 
-        username = msg.get("from", "") or ""
-        # В экспорте нет отдельного username — используем display name
-        full_name = msg.get("from", "") or f"user{user_id}"
-
         text = _message_text(msg)
         if not text or text.startswith("/"):
             continue
@@ -112,20 +105,20 @@ def import_history(path: str, db: Database, chat_id: int | None = None) -> dict[
 
         if user_id not in users:
             users[user_id] = {
-                "username": username,
-                "full_name": full_name,
                 "message_count": 0,
                 "word_count": 0,
                 "words": Counter(),
-        }
+            }
         u = users[user_id]
         u["message_count"] += 1
         u["word_count"] += len(words)
         u["words"].update(words)
 
-    # Записываем в БД батчами
+    # Записываем только статистику — имена не трогаем.
+    # ensure_user не вызываем: имена из JSON-экспорта берутся из контактов
+    # владельца экспорта и могут не совпадать с реальными именами в Telegram.
+    # Бот запомнит настоящие имена когда юзеры напишут в чат сами.
     for user_id, u in users.items():
-        db.ensure_user(user_id, u["username"], u["full_name"])
         db.bulk_import_stats(
             chat_id=chat_id,
             user_id=user_id,
@@ -154,7 +147,6 @@ def load_history_if_exists(db: Database) -> bool:
         return False
     try:
         stats = import_history(HISTORY_FILE, db)
-        # Ставим stamp, чтобы при следующем старте не дублировать
         with open(IMPORT_STAMP, "w") as f:
             f.write(datetime.utcnow().isoformat())
         logger.info("History imported: %s messages, %s users", stats["messages"], stats["users"])
