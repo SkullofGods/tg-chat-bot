@@ -23,6 +23,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 
 from db import Database
 from config import BOT_TOKEN, ORGY_COOLDOWN_HOURS, ORGY_POLL_DURATION_SECONDS
+from import_history import load_history_if_exists
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -59,7 +60,7 @@ RULES_TEXT = (
     "*=ПРАВИЛА=*\n\n"
     "1️⃣ Запрещены оскорбления, срачи, доебки и прочий подобный негатив\n\n"
     "2️⃣ Запрещено агрессивное обсуждение каких-либо тем (т.е. обсуждение, перетекающее в конфликт или в переходы на личности)\n\n"
-    "3️⃣ Поднимайте спорные темы (в т.ч. политику) осторожно в связи с пунктом правил № 2\n\n"
+    "3️⃣ Поднимайте спорные темы (в т.ч. политику) осторожно в связи с пунктом правил № 2\n\n"
     "4️⃣ *НЕЛЬЗЯ* добавлять новых участников без согласования с Азартом или Ариной. Мы не против новых людей, просто хотим знать, кто и откуда появляется\n\n"
     "5️⃣ По возможности прячьте под спойлеры острые темы, которые могут стать чьим-то триггером, и ставьте *TW*\n\n"
     "―――\n"
@@ -665,6 +666,11 @@ async def setup_commands():
 
 
 async def main():
+    # Загружаем историю из result.json при первом старте (если файл есть и ещё не импортировался)
+    imported = load_history_if_exists(db)
+    if imported:
+        logger.info("History import completed on startup.")
+
     await setup_commands()
     await announce_startup()
     try:
