@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import random
+import re
 from contextlib import suppress
 from datetime import datetime, timedelta
 
@@ -30,10 +31,22 @@ bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
 db = Database()
 
-RING = " \U0001f48d "  # separator for families list
+RING = " 💍 "
+WORD_RE = re.compile(r"[A-Za-zА-Яа-яЁё0-9]{3,}")
+COMMON_STOP_WORDS = {
+    "это", "как", "что", "чтобы", "или", "его", "ее", "её", "она", "они", "оно", "при", "про", "для",
+    "без", "под", "над", "тут", "там", "пока", "если", "где", "когда", "потом", "тогда", "типа",
+    "блин", "бля", "ага", "нет", "да", "тоже", "ещё", "еще", "только", "очень", "просто", "мне",
+    "тебе", "тебя", "меня", "нас", "вам", "тут", "вот", "короче", "чето", "что-то", "какой", "какая",
+    "который", "которая", "чел", "люди", "будет", "было", "были", "есть", "нету", "уже", "щас",
+}
+TAJIK_FLOORS = [
+    "ламинат", "паркет", "линолеум", "керамогранит", "наливной пол", "ковролин", "пробковый пол",
+    "плитка", "бетонная стяжка", "досчатый пол",
+]
 
 ANKETA_TEXT = (
-    "\U0001f4cb *Анкета участника*\n\n"
+    "📋 *Анкета участника*\n\n"
     "Ответь на вопросы следующим сообщением, не обязательно отвечать на всё и честно :D\n\n"
     "1. Имя / как можно обращаться\n"
     "2. Возраст\n"
@@ -44,80 +57,76 @@ ANKETA_TEXT = (
 
 RULES_TEXT = (
     "*=ПРАВИЛА=*\n\n"
-    "1\ufe0f\u20e3 Запрещены оскорбления, срачи, доебки и прочий подобный негатив\n\n"
-    "2\ufe0f\u20e3 Запрещено агрессивное обсуждение каких-либо тем (т.е. обсуждение, перетекающее в конфликт или в переходы на личности)\n\n"
-    "3\ufe0f\u20e3 Поднимайте спорные темы (в т.ч. политику) осторожно в связи с пунктом правил №\u00a02\n\n"
-    "4\ufe0f\u20e3 *НЕЛЬЗЯ* добавлять новых участников без согласования с Азартом или Ариной. Мы не против новых людей, просто хотим знать, кто и откуда появляется\n\n"
-    "5\ufe0f\u20e3 По возможности прячьте под спойлеры острые темы, которые могут стать чьим-то триггером, и ставьте *TW*\n\n"
-    "\u2015\u2015\u2015\n"
+    "1️⃣ Запрещены оскорбления, срачи, доебки и прочий подобный негатив\n\n"
+    "2️⃣ Запрещено агрессивное обсуждение каких-либо тем (т.е. обсуждение, перетекающее в конфликт или в переходы на личности)\n\n"
+    "3️⃣ Поднимайте спорные темы (в т.ч. политику) осторожно в связи с пунктом правил № 2\n\n"
+    "4️⃣ *НЕЛЬЗЯ* добавлять новых участников без согласования с Азартом или Ариной. Мы не против новых людей, просто хотим знать, кто и откуда появляется\n\n"
+    "5️⃣ По возможности прячьте под спойлеры острые темы, которые могут стать чьим-то триггером, и ставьте *TW*\n\n"
+    "―――\n"
     "В беседе не действует система варнов/мутов, нет какого-то чёткого количества предупреждений для кика\n"
-    "Если чьи-то слова вас задели/обидели или что-то вас не устраивает — обращайтесь в лс к админам, не молчите, пожалуйста. Все разрулим \u2764\ufe0f\n\n"
+    "Если чьи-то слова вас задели/обидели или что-то вас не устраивает — обращайтесь в лс к админам, не молчите, пожалуйста. Все разрулим ❤️\n\n"
     "Будьте солнышками и всё будет хорошо <з"
 )
 
 _D20_CRIT_FAIL = [
-    "КРИТИЧЕСКИЙ ПРОВАЛ! \U0001f480 Вселенная лично против тебя.",
-    "ЭПИК ФЕЙЛ! \U0001f480 Даже боги отвернулись.",
-    "КРИТ-ПРОВАЛ! \U0001f480 Это... это было невозможно провалить. Но ты смог(ла).",
+    "КРИТИЧЕСКИЙ ПРОВАЛ! 💀 Вселенная лично против тебя.",
+    "ЭПИК ФЕЙЛ! 💀 Даже боги отвернулись.",
+    "КРИТ-ПРОВАЛ! 💀 Это... это было невозможно провалить. Но ты смог(ла).",
 ]
 _D20_FAIL = [
-    "Провал. \U0001f61e Не сегодня.",
-    "Не прошло. \U0001f61e Судьба сказала нет.",
-    "Мимо. \U0001f61e Бывает.",
-    "Неудача. \U0001f61e Попробуй ещё раз... или нет.",
+    "Провал. 😞 Не сегодня.",
+    "Не прошло. 😞 Судьба сказала нет.",
+    "Мимо. 😞 Бывает.",
+    "Неудача. 😞 Попробуй ещё раз... или нет.",
 ]
 _D20_SUCCESS = [
-    "Успех! \u2705 Получилось.",
-    "Прошло! \u2705 Удача улыбнулась.",
-    "Успех. \u2705 В этот раз повезло.",
-    "Сработало! \u2705 Так держать.",
+    "Успех! ✅ Получилось.",
+    "Прошло! ✅ Удача улыбнулась.",
+    "Успех. ✅ В этот раз повезло.",
+    "Сработало! ✅ Так держать.",
 ]
 _D20_CRIT_SUCCESS = [
-    "КРИТИЧЕСКИЙ УСПЕХ! \U0001f31f Легенда. Абсолютная легенда.",
-    "КРИТ! \U0001f31f Боги аплодируют.",
-    "НАТУРАЛЬНАЯ 20! \U0001f31f Это войдёт в историю беседы.",
+    "КРИТИЧЕСКИЙ УСПЕХ! 🌟 Легенда. Абсолютная легенда.",
+    "КРИТ! 🌟 Боги аплодируют.",
+    "НАТУРАЛЬНАЯ 20! 🌟 Это войдёт в историю беседы.",
 ]
 
-# Bonus event templates.
-# {member} — replaced with plain display name (no tag) of a random chat member.
-# value: (min, max) inclusive
 _BONUS_EVENTS = [
-    # positive — with member
-    {"tpl": "{member} поцеловал(а) на удачу",           "val": (2, 5),  "need_member": True},
-    {"tpl": "{member} тихонько молился(ась) за тебя",   "val": (1, 3),  "need_member": True},
-    {"tpl": "{member} дунул(а) на кубик",               "val": (1, 3),  "need_member": True},
-    {"tpl": "{member} подарил(а) амулет удачи",         "val": (2, 4),  "need_member": True},
-    {"tpl": "{member} шепнул(а) нужное заклинание",     "val": (1, 4),  "need_member": True},
-    {"tpl": "{member} стоял(а) рядом и верил(а)",       "val": (1, 2),  "need_member": True},
-    # negative — with member
-    {"tpl": "{member} подкинул(а) проклятие",           "val": (-3, -1), "need_member": True},
-    {"tpl": "{member} сглазил(а)",                      "val": (-3, -2), "need_member": True},
-    {"tpl": "{member} держал(а) кулачки против",        "val": (-2, -1), "need_member": True},
-    {"tpl": "{member} отвлёк(ла) в самый важный момент","val": (-2, -1), "need_member": True},
-    # impersonal positive
-    {"tpl": "выпал день рождения у кого-то в чате",     "val": (2, 5),  "need_member": False},
-    {"tpl": "сегодня пятница",                          "val": (1, 3),  "need_member": False},
-    {"tpl": "кто-то варит борщ неподалёку",             "val": (1, 2),  "need_member": False},
-    {"tpl": "твой гороскоп сегодня благоприятный",      "val": (1, 3),  "need_member": False},
+    {"tpl": "{member} поцеловал(а) на удачу", "val": (2, 5), "need_member": True},
+    {"tpl": "{member} тихонько молился(ась) за тебя", "val": (1, 3), "need_member": True},
+    {"tpl": "{member} дунул(а) на кубик", "val": (1, 3), "need_member": True},
+    {"tpl": "{member} подарил(а) амулет удачи", "val": (2, 4), "need_member": True},
+    {"tpl": "{member} шепнул(а) нужное заклинание", "val": (1, 4), "need_member": True},
+    {"tpl": "{member} стоял(а) рядом и верил(а)", "val": (1, 2), "need_member": True},
+    {"tpl": "{member} подкинул(а) проклятие", "val": (-3, -1), "need_member": True},
+    {"tpl": "{member} сглазил(а)", "val": (-3, -2), "need_member": True},
+    {"tpl": "{member} держал(а) кулачки против", "val": (-2, -1), "need_member": True},
+    {"tpl": "{member} отвлёк(ла) в самый важный момент", "val": (-2, -1), "need_member": True},
+    {"tpl": "выпал день рождения у кого-то в чате", "val": (2, 5), "need_member": False},
+    {"tpl": "сегодня пятница", "val": (1, 3), "need_member": False},
+    {"tpl": "кто-то варит борщ неподалёку", "val": (1, 2), "need_member": False},
+    {"tpl": "твой гороскоп сегодня благоприятный", "val": (1, 3), "need_member": False},
     {"tpl": "кубик упал со стола и закатился под диван, пришлось достать", "val": (1, 5), "need_member": False},
-    # impersonal negative
-    {"tpl": "ретроградный Меркурий",                    "val": (-3, -1), "need_member": False},
-    {"tpl": "Венера в Козероге",                        "val": (-2, -1), "need_member": False},
-    {"tpl": "кто-то в чате чихнул",                     "val": (-1, -1), "need_member": False},
-    {"tpl": "пролитый кофе на клавиатуру",              "val": (-2, -1), "need_member": False},
-    {"tpl": "в комнате чёрная кошка",                   "val": (-3, -1), "need_member": False},
-    {"tpl": "полнолуние",                               "val": (-1, 2),  "need_member": False},
+    {"tpl": "ретроградный Меркурий", "val": (-3, -1), "need_member": False},
+    {"tpl": "Венера в Козероге", "val": (-2, -1), "need_member": False},
+    {"tpl": "кто-то в чате чихнул", "val": (-1, -1), "need_member": False},
+    {"tpl": "пролитый кофе на клавиатуру", "val": (-2, -1), "need_member": False},
+    {"tpl": "в комнате чёрная кошка", "val": (-3, -1), "need_member": False},
+    {"tpl": "полнолуние", "val": (-1, 2), "need_member": False},
 ]
 
 _LEFT_STATUSES = {ChatMemberStatus.LEFT, ChatMemberStatus.KICKED}
 orgy_state: dict[int, dict] = {}
+tajikistan_state: dict[int, datetime] = {}
 shutdown_sent = False
 
 
-# ── Name helpers ───────────────────────────────────────────────────────────────
+def extract_words(text: str) -> list[str]:
+    words = [w.lower() for w in WORD_RE.findall(text or "")]
+    return [w for w in words if w not in COMMON_STOP_WORDS]
+
 
 def display_name_by_user(user) -> str:
-    """Plain name (no tg link/tag) for use in bonus event text."""
     nick = db.get_nickname(user.id)
     if nick:
         return nick
@@ -127,7 +136,6 @@ def display_name_by_user(user) -> str:
 
 
 def display_name_by_db(user_id: int) -> str:
-    """Plain name (no tg link/tag) looked up from DB."""
     nick = db.get_nickname(user_id)
     if nick:
         return nick
@@ -136,8 +144,6 @@ def display_name_by_db(user_id: int) -> str:
         return u["full_name"] or u["username"] or f"user{user_id}"
     return f"user{user_id}"
 
-
-# ── Mention helpers (tg links — used everywhere except bonus events) ───────────
 
 def mention_by_user(user) -> str:
     nick = db.get_nickname(user.id)
@@ -200,28 +206,27 @@ def brak_keyboard(proposer_id: int, target_id: int, chat_id: int) -> InlineKeybo
 
 
 def roll_bonus(roller_id: int) -> tuple[int, str]:
-    """Roll a bonus event. Returns (bonus_value, description_string) or (0, '')."""
     if random.random() >= 0.10:
         return 0, ""
-
     event = random.choice(_BONUS_EVENTS)
     val = random.randint(event["val"][0], event["val"][1])
     sign = "+" if val >= 0 else ""
-
     if event["need_member"]:
-        # pick a random known user that is NOT the roller — plain name, no tag
         all_users = db.get_all_users()
         others = [u for u in all_users if u["user_id"] != roller_id]
-        if others:
-            picked = random.choice(others)
-            member_str = display_name_by_db(picked["user_id"])
-        else:
-            member_str = "кто-то из чата"
+        member_str = display_name_by_db(random.choice(others)["user_id"]) if others else "кто-то из чата"
         description = event["tpl"].format(member=member_str)
     else:
         description = event["tpl"]
-
     return val, f"_{description}_ — {sign}{val}"
+
+
+def random_known_user(exclude_user_id: int | None = None) -> int | None:
+    users = db.get_all_users()
+    pool = [u for u in users if exclude_user_id is None or u["user_id"] != exclude_user_id]
+    if not pool:
+        return None
+    return random.choice(pool)["user_id"]
 
 
 async def announce_startup():
@@ -240,17 +245,25 @@ async def announce_shutdown():
             await bot.send_message(chat_id, "бля, умираю")
 
 
-# ── Handlers ───────────────────────────────────────────────────────────────────
+async def tajikistan_followup(chat_id: int, reply_to_message_id: int, event_type: str):
+    await asyncio.sleep(300)
+    target_id = random_known_user()
+    target = mention_by_db(target_id) if target_id else "Кто-то"
+    if event_type == "plankton":
+        floor = random.choice(TAJIK_FLOORS)
+        text = f"{target} гомосексуализирован! Теперь вы любите {floor}."
+    else:
+        text = f"{target} накормили пловом бля("
+    with suppress(Exception):
+        await bot.send_message(chat_id, text, parse_mode="Markdown", reply_to_message_id=reply_to_message_id)
+
 
 @dp.chat_member()
 async def on_new_member(event: ChatMemberUpdated):
     db.remember_chat(event.chat.id)
     old_status = event.old_chat_member.status
     new_status = event.new_chat_member.status
-    joined = (
-        old_status in _LEFT_STATUSES
-        and new_status in (ChatMemberStatus.MEMBER, ChatMemberStatus.ADMINISTRATOR)
-    )
+    joined = old_status in _LEFT_STATUSES and new_status in (ChatMemberStatus.MEMBER, ChatMemberStatus.ADMINISTRATOR)
     if not joined:
         return
     user = event.new_chat_member.user
@@ -258,11 +271,7 @@ async def on_new_member(event: ChatMemberUpdated):
         return
     db.ensure_user(user.id, user.username or "", user.full_name)
     name = mention_by_user(user)
-    await bot.send_message(
-        event.chat.id,
-        f"\U0001f44b Привет, {name}! Добро пожаловать!\n\n{ANKETA_TEXT}",
-        parse_mode="Markdown",
-    )
+    await bot.send_message(event.chat.id, f"👋 Привет, {name}! Добро пожаловать!\n\n{ANKETA_TEXT}", parse_mode="Markdown")
     db.set_awaiting_anketa(user.id, event.chat.id)
 
 
@@ -274,14 +283,14 @@ async def cmd_info(message: Message, command: CommandObject):
         await message.reply("Ответь на сообщение пользователя или укажи @username.")
         return
     if target_id == -1:
-        await message.reply(f"Пользователь @{target_name} не найден в базе — возможно, ещё не писал в чат. \U0001f937")
+        await message.reply(f"Пользователь @{target_name} не найден в базе — возможно, ещё не писал в чат. 🤷")
         return
     anketa = db.get_anketa(target_id)
     display = mention_by_db(target_id)
     if not anketa:
-        await message.reply(f"У {display} анкеты пока нет. \U0001f937", parse_mode="Markdown")
+        await message.reply(f"У {display} анкеты пока нет. 🤷", parse_mode="Markdown")
         return
-    await message.reply(f"\U0001f4cb *Анкета* {display}\n\n{anketa}", parse_mode="Markdown")
+    await message.reply(f"📋 *Анкета* {display}\n\n{anketa}", parse_mode="Markdown")
 
 
 @dp.message(Command("анкета", "anketa"))
@@ -303,40 +312,23 @@ async def cmd_nick(message: Message, command: CommandObject):
     db.remember_chat(message.chat.id)
     user = message.from_user
     db.ensure_user(user.id, user.username or "", user.full_name)
-
     if not command.args or not command.args.strip():
         current = db.get_nickname(user.id)
         if current:
-            await message.reply(
-                f"Твой текущий никнейм: *{current}*\n"
-                "Чтобы убрать его, напиши `/ник -`",
-                parse_mode="Markdown",
-            )
+            await message.reply(f"Твой текущий никнейм: *{current}*\nЧтобы убрать его, напиши `/ник -`", parse_mode="Markdown")
         else:
-            await message.reply(
-                "У тебя пока нет никнейма.\n"
-                "Установи: `/ник ИмяКоторое Хочешь`",
-                parse_mode="Markdown",
-            )
+            await message.reply("У тебя пока нет никнейма.\nУстанови: `/ник ИмяКоторое Хочешь`", parse_mode="Markdown")
         return
-
     new_nick = command.args.strip()
-
     if new_nick == "-":
         db.delete_nickname(user.id)
-        await message.reply("Никнейм удалён. Бот будет обращаться по тэгу/имени. \u2705")
+        await message.reply("Никнейм удалён. Бот будет обращаться по тэгу/имени. ✅")
         return
-
     if len(new_nick) > 32:
-        await message.reply("Никнейм слишком длинный (макс. 32 символа). \U0001f615")
+        await message.reply("Никнейм слишком длинный (макс. 32 символа). 😕")
         return
-
     db.set_nickname(user.id, new_nick)
-    await message.reply(
-        f"Никнейм установлен: [{new_nick}](tg://user?id={user.id}) \u2705\n"
-        "Теперь бот будет обращаться к тебе именно так.",
-        parse_mode="Markdown",
-    )
+    await message.reply(f"Никнейм установлен: [{new_nick}](tg://user?id={user.id}) ✅\nТеперь бот будет обращаться к тебе именно так.", parse_mode="Markdown")
 
 
 @dp.message(Command("d20"))
@@ -344,7 +336,6 @@ async def cmd_d20(message: Message, command: CommandObject):
     db.remember_chat(message.chat.id)
     user = message.from_user
     db.ensure_user(user.id, user.username or "", user.full_name)
-
     if command.args:
         try:
             threshold = int(command.args.strip())
@@ -353,15 +344,10 @@ async def cmd_d20(message: Message, command: CommandObject):
             threshold = random.randint(7, 22)
     else:
         threshold = random.randint(7, 22)
-
     roll = random.randint(1, 20)
     bonus, bonus_desc = roll_bonus(user.id)
     effective = roll + bonus
-
-    bonus_str = ""
-    if bonus != 0:
-        bonus_str = f"\n\U0001f3b0 {bonus_desc} \u2192 итого *{effective}*"
-
+    bonus_str = f"\n🎰 {bonus_desc} → итого *{effective}*" if bonus != 0 else ""
     if roll == 1:
         flavor = random.choice(_D20_CRIT_FAIL)
     elif roll == 20:
@@ -370,7 +356,6 @@ async def cmd_d20(message: Message, command: CommandObject):
         flavor = random.choice(_D20_FAIL)
     else:
         flavor = random.choice(_D20_SUCCESS)
-
     roller = mention_by_user(user)
     context = ""
     if message.reply_to_message and message.reply_to_message.text:
@@ -378,12 +363,98 @@ async def cmd_d20(message: Message, command: CommandObject):
         if len(message.reply_to_message.text) > 60:
             preview += "…"
         context = f"_«{preview}»_\n\n"
+    result_line = f"🎲 {roller} бросает d20 — порог *{threshold}*, выпало *{roll}*{bonus_str}."
+    await message.reply(f"{context}{result_line}\n\n{flavor}", parse_mode="Markdown")
 
-    result_line = f"\U0001f3b2 {roller} бросает d20 — порог *{threshold}*, выпало *{roll}*{bonus_str}."
-    await message.reply(
-        f"{context}{result_line}\n\n{flavor}",
-        parse_mode="Markdown",
-    )
+
+@dp.message(Command("stats", "stat"))
+async def cmd_stats(message: Message, command: CommandObject):
+    db.remember_chat(message.chat.id)
+    target_id, target_name, _ = resolve_target_from_command_or_reply(message, command)
+    if target_id is None and command.args:
+        target_id = -1
+    if target_id == -1:
+        await message.reply(f"Пользователь @{target_name} не найден в базе — возможно, ещё не писал в чат.")
+        return
+
+    if target_id is not None:
+        stats = db.get_user_stats(message.chat.id, target_id)
+        if not stats:
+            await message.reply("По этому пользователю пока нет статистики в этом чате.")
+            return
+        top_words = db.get_user_top_words(message.chat.id, target_id, limit=5)
+        top_word = top_words[0]["word"] if top_words else "—"
+        top_word_count = top_words[0]["count"] if top_words else 0
+        avg_words = round(stats["word_count"] / max(stats["message_count"], 1), 1)
+        weird_fact = ""
+        if stats["message_count"] >= 1000:
+            weird_fact = "\n🏆 Лютый флудер беседы."
+        elif avg_words >= 12:
+            weird_fact = "\n🗣 Любит писать развернуто."
+        elif avg_words <= 3:
+            weird_fact = "\n🤏 Человек немногословный."
+        text = (
+            f"📊 *Статистика пользователя* {mention_by_db(target_id)}\n\n"
+            f"⏳ В статистике уже: *{format_duration_since(stats['created_at'])}*\n"
+            f"💬 Сообщений: *{stats['message_count']}*\n"
+            f"📝 Написано слов: *{stats['word_count']}*\n"
+            f"📏 В среднем слов на сообщение: *{avg_words}*\n"
+            f"🔤 Самое частое слово: *{top_word}* ({top_word_count})"
+            f"{weird_fact}"
+        )
+        if len(top_words) > 1:
+            extra = ", ".join(f"{w['word']} ({w['count']})" for w in top_words[:5])
+            text += f"\n\nТоп слов: {extra}"
+        await message.reply(text, parse_mode="Markdown")
+        return
+
+    top_users = db.get_chat_top_users(message.chat.id, limit=10)
+    top_words = db.get_chat_top_words(message.chat.id, limit=10)
+    if not top_users and not top_words:
+        await message.reply("Пока статистики маловато — сначала поболтайте немного.")
+        return
+    user_lines = []
+    for i, user_row in enumerate(top_users, 1):
+        user_lines.append(f"{i}. {mention_by_db(user_row['user_id'])} — {user_row['message_count']} сообщений")
+    word_lines = []
+    for i, row in enumerate(top_words, 1):
+        word_lines.append(f"{i}. *{row['word']}* — {row['count']}")
+    text = "📈 *Общая статистика чата*\n\n"
+    text += "👥 *Топ по сообщениям:*\n" + ("\n".join(user_lines) if user_lines else "пусто")
+    text += "\n\n🔤 *Топ слов чата:*\n" + ("\n".join(word_lines) if word_lines else "пусто")
+    await message.reply(text, parse_mode="Markdown")
+
+
+@dp.message(Command("таджикистан", "tadjikistan"))
+async def cmd_tadjikistan(message: Message):
+    db.remember_chat(message.chat.id)
+    chat_id = message.chat.id
+    now = datetime.utcnow()
+    last = tajikistan_state.get(chat_id)
+    if last and now - last < timedelta(minutes=5):
+        remain = timedelta(minutes=5) - (now - last)
+        mins = int(remain.total_seconds() // 60)
+        secs = int(remain.total_seconds() % 60)
+        await message.reply(f"🇹🇯 Таджикистан пока отдыхает. Попробуй через {mins}м {secs}с.")
+        return
+    tajikistan_state[chat_id] = now
+
+    event_type = random.choice(["legs", "plankton", "horde", "plain"])
+    target_id = random_known_user()
+    target = mention_by_db(target_id) if target_id else "Кто-то"
+
+    if event_type == "legs":
+        await message.reply(f"🇹🇯 {target} показывает ножки 0_0", parse_mode="Markdown")
+        return
+    if event_type == "plain":
+        await message.reply("🇹🇯 даа... таджикистан...")
+        return
+    if event_type == "plankton":
+        sent = await message.reply("🇹🇯 вы замечаете тонкие усики планктона в небе... не к добру...")
+        asyncio.create_task(tajikistan_followup(chat_id, sent.message_id, "plankton"))
+        return
+    sent = await message.reply("🇹🇯 орда таджиков на горизонте!!!")
+    asyncio.create_task(tajikistan_followup(chat_id, sent.message_id, "horde"))
 
 
 @dp.message(Command("brak"))
@@ -391,30 +462,21 @@ async def cmd_brak(message: Message, command: CommandObject):
     db.remember_chat(message.chat.id)
     proposer = message.from_user
     db.ensure_user(proposer.id, proposer.username or "", proposer.full_name)
-    target_id, target_name, target_username = resolve_target_from_command_or_reply(message, command)
+    target_id, target_name, _ = resolve_target_from_command_or_reply(message, command)
     if target_id is None:
-        await message.reply(
-            "Используй `/brak` в ответ на сообщение или `/brak @username`.",
-            parse_mode="Markdown",
-        )
+        await message.reply("Используй `/brak` в ответ на сообщение или `/brak @username`.", parse_mode="Markdown")
         return
     if target_id == -1:
-        await message.reply(f"Пользователь @{target_name} не найден в базе — возможно, ещё не писал в чат. \U0001f937")
+        await message.reply(f"Пользователь @{target_name} не найден в базе — возможно, ещё не писал в чат. 🤷")
         return
     if proposer.id == target_id:
-        await message.reply("На себе жениться нельзя! \U0001f605")
+        await message.reply("На себе жениться нельзя! 😅")
         return
     if db.are_married(proposer.id, target_id):
-        await message.reply("Вы уже состоите в браке! \U0001f491")
+        await message.reply("Вы уже состоите в браке! 💑")
         return
     db.add_marriage_proposal(proposer.id, target_id, message.chat.id)
-    proposer_mention = mention_by_user(proposer)
-    target_mention = mention_by_db(target_id)
-    await message.reply(
-        f"\U0001f48d {proposer_mention} делает предложение {target_mention}!",
-        parse_mode="Markdown",
-        reply_markup=brak_keyboard(proposer.id, target_id, message.chat.id),
-    )
+    await message.reply(f"💍 {mention_by_user(proposer)} делает предложение {mention_by_db(target_id)}!", parse_mode="Markdown", reply_markup=brak_keyboard(proposer.id, target_id, message.chat.id))
 
 
 @dp.callback_query(F.data.startswith("brak_yes:"))
@@ -423,7 +485,7 @@ async def callback_brak_yes(callback: CallbackQuery):
     _, proposer_id, target_id, chat_id = callback.data.split(":")
     proposer_id, target_id, chat_id = int(proposer_id), int(target_id), int(chat_id)
     if callback.from_user.id != target_id:
-        await callback.answer("Это предложение не тебе \U0001f63e", show_alert=True)
+        await callback.answer("Это предложение не тебе 😾", show_alert=True)
         return
     if not db.get_marriage_proposal(proposer_id, target_id, chat_id):
         await callback.answer("Предложение уже неактуально.", show_alert=True)
@@ -433,13 +495,8 @@ async def callback_brak_yes(callback: CallbackQuery):
         return
     db.add_marriage(proposer_id, target_id)
     db.delete_marriage_proposal(proposer_id, target_id, chat_id)
-    m1 = mention_by_db(proposer_id)
-    m2 = mention_by_db(target_id)
-    await callback.message.edit_text(
-        f"\U0001f492 {m1} и {m2} теперь состоят в браке! Поздравляем! \U0001f389",
-        parse_mode="Markdown",
-    )
-    await callback.answer("Согласие принято \U0001f49e")
+    await callback.message.edit_text(f"💒 {mention_by_db(proposer_id)} и {mention_by_db(target_id)} теперь состоят в браке! Поздравляем! 🎉", parse_mode="Markdown")
+    await callback.answer("Согласие принято 💞")
 
 
 @dp.callback_query(F.data.startswith("brak_no:"))
@@ -448,18 +505,13 @@ async def callback_brak_no(callback: CallbackQuery):
     _, proposer_id, target_id, chat_id = callback.data.split(":")
     proposer_id, target_id, chat_id = int(proposer_id), int(target_id), int(chat_id)
     if callback.from_user.id != target_id:
-        await callback.answer("Это предложение не тебе \U0001f63e", show_alert=True)
+        await callback.answer("Это предложение не тебе 😾", show_alert=True)
         return
     if not db.get_marriage_proposal(proposer_id, target_id, chat_id):
         await callback.answer("Предложение уже неактуально.", show_alert=True)
         return
     db.delete_marriage_proposal(proposer_id, target_id, chat_id)
-    m1 = mention_by_db(target_id)
-    m2 = mention_by_db(proposer_id)
-    await callback.message.edit_text(
-        f"\U0001f494 {m1} отклонил(а) предложение от {m2}.",
-        parse_mode="Markdown",
-    )
+    await callback.message.edit_text(f"💔 {mention_by_db(target_id)} отклонил(а) предложение от {mention_by_db(proposer_id)}.", parse_mode="Markdown")
     await callback.answer("Ну и ладно")
 
 
@@ -471,18 +523,13 @@ async def cmd_razvod(message: Message, command: CommandObject):
         await message.reply("Ответь на сообщение того, с кем разводишься, или укажи @username.")
         return
     if target_id == -1:
-        await message.reply("Пользователь не найден в базе. \U0001f937")
+        await message.reply("Пользователь не найден в базе. 🤷")
         return
     if not db.are_married(message.from_user.id, target_id):
-        await message.reply("Вы не состоите в браке. \U0001f937")
+        await message.reply("Вы не состоите в браке. 🤷")
         return
     db.remove_marriage(message.from_user.id, target_id)
-    from_mention = mention_by_user(message.from_user)
-    target_mention = mention_by_db(target_id)
-    await message.reply(
-        f"\U0001f494 {from_mention} и {target_mention} развелись.",
-        parse_mode="Markdown",
-    )
+    await message.reply(f"💔 {mention_by_user(message.from_user)} и {mention_by_db(target_id)} развелись.", parse_mode="Markdown")
 
 
 @dp.message(Command("families"))
@@ -490,7 +537,7 @@ async def cmd_families(message: Message):
     db.remember_chat(message.chat.id)
     marriages = db.get_all_marriages()
     if not marriages:
-        await message.reply("В беседе пока нет браков. \U0001f622")
+        await message.reply("В беседе пока нет браков. 😢")
         return
     parent = {}
     family_dates = {}
@@ -505,8 +552,7 @@ async def cmd_families(message: Message):
         parent[find(a)] = find(b)
 
     for item in marriages:
-        uid1, uid2 = item["user1_id"], item["user2_id"]
-        union(uid1, uid2)
+        union(item["user1_id"], item["user2_id"])
 
     families: dict[int, list[int]] = {}
     for item in marriages:
@@ -519,14 +565,12 @@ async def cmd_families(message: Message):
             families[root].append(uid2)
         family_dates.setdefault(root, []).append(item["created_at"])
 
-    lines = ["\U0001f491 *Семьи в беседе:*\n"]
+    lines = ["💑 *Семьи в беседе:*\n"]
     for i, (root, members) in enumerate(families.items(), 1):
-        names = [mention_by_db(uid) for uid in members]
-        names_str = RING.join(names)
+        names_str = RING.join(mention_by_db(uid) for uid in members)
         oldest = min(family_dates[root]) if family_dates[root] else None
         duration = format_duration_since(oldest) if oldest else "неизвестно сколько"
         lines.append(f"{i}. {names_str} — в браке уже {duration}")
-
     await message.reply("\n".join(lines), parse_mode="Markdown")
 
 
@@ -544,21 +588,8 @@ async def cmd_orgy(message: Message):
             m = rem // 60
             await message.reply(f"⏳ Следующая оргия возможна через {h}ч {m}мин.")
             return
-    poll_msg = await bot.send_poll(
-        chat_id=chat_id,
-        question="\U0001f525 ОРГИЯ — ты участвуешь?",
-        options=["Да, я в деле! \U0001f351", "Нет, не интересует \U0001f607"],
-        is_anonymous=False,
-        allows_multiple_answers=False,
-    )
-    orgy_state[chat_id] = {
-        "last_time": now,
-        "poll_message_id": poll_msg.message_id,
-        "poll_id": poll_msg.poll.id,
-        "yes_voters": [],
-        "no_voters": [],
-        "all_voter_ids": set(),
-    }
+    poll_msg = await bot.send_poll(chat_id=chat_id, question="🔥 ОРГИЯ — ты участвуешь?", options=["Да, я в деле! 🍑", "Нет, не интересует 😇"], is_anonymous=False, allows_multiple_answers=False)
+    orgy_state[chat_id] = {"last_time": now, "poll_message_id": poll_msg.message_id, "poll_id": poll_msg.poll.id, "yes_voters": [], "no_voters": [], "all_voter_ids": set()}
     asyncio.create_task(finish_orgy_after(chat_id, poll_msg.message_id))
 
 
@@ -568,34 +599,22 @@ async def finish_orgy_after(chat_id: int, poll_message_id: int):
 
 
 async def finish_orgy(chat_id: int, poll_message_id: int):
-    try:
+    with suppress(Exception):
         await bot.stop_poll(chat_id, poll_message_id)
-    except Exception:
-        pass
-    try:
+    with suppress(Exception):
         await bot.delete_message(chat_id, poll_message_id)
-    except Exception:
-        pass
     state = orgy_state.get(chat_id, {})
     yes_ids = state.get("yes_voters", [])
     no_ids = state.get("no_voters", [])
-
-    def mentions(ids):
-        return " ".join(mention_by_db(uid) for uid in ids) if ids else "никто"
-
-    yes_str = mentions(yes_ids)
-    no_str = mentions(no_ids)
-    await bot.send_message(
-        chat_id,
-        f"\U0001f525 {yes_str} поимели жёсткий секс, а {no_str} с завистью смотрели.",
-        parse_mode="Markdown",
-    )
+    yes_str = " ".join(mention_by_db(uid) for uid in yes_ids) if yes_ids else "никто"
+    no_str = " ".join(mention_by_db(uid) for uid in no_ids) if no_ids else "никто"
+    await bot.send_message(chat_id, f"🔥 {yes_str} поимели жёсткий секс, а {no_str} с завистью смотрели.", parse_mode="Markdown")
 
 
 @dp.poll_answer()
 async def handle_poll_answer(poll_answer: PollAnswer):
     user_id = poll_answer.user.id
-    for chat_id, state in orgy_state.items():
+    for _, state in orgy_state.items():
         if poll_answer.poll_id == state.get("poll_id"):
             if user_id in state["all_voter_ids"]:
                 state["yes_voters"] = [x for x in state["yes_voters"] if x != user_id]
@@ -614,30 +633,33 @@ async def handle_group_message(message: Message):
     db.remember_chat(message.chat.id)
     user = message.from_user
     db.ensure_user(user.id, user.username or "", user.full_name)
+
+    text_for_stats = message.text or message.caption or ""
+    if text_for_stats and not text_for_stats.startswith("/"):
+        db.record_message(message.chat.id, user.id, extract_words(text_for_stats))
+
     if db.is_awaiting_anketa(user.id, message.chat.id):
         text = message.text or message.caption or ""
         if text and not text.startswith("/"):
             db.save_anketa(user.id, text)
             db.clear_awaiting_anketa(user.id, message.chat.id)
-            name = mention_by_user(user)
-            await message.reply(
-                f"\u2705 Анкета сохранена, {name}!\n\n{RULES_TEXT}",
-                parse_mode="Markdown",
-            )
+            await message.reply(f"✅ Анкета сохранена, {mention_by_user(user)}!\n\n{RULES_TEXT}", parse_mode="Markdown")
 
 
 async def setup_commands():
     await bot.delete_my_commands(scope=BotCommandScopeDefault())
     group_commands = [
-        BotCommand(command="info",      description="Анкета (reply или @username)"),
-        BotCommand(command="anketa",    description="Заполнить / обновить анкету (или /анкета)"),
-        BotCommand(command="rules",     description="Правила беседы (или /правила)"),
-        BotCommand(command="nick",      description="Установить никнейм (или /ник)"),
-        BotCommand(command="d20",       description="Бросок d20 — проверка на успех"),
-        BotCommand(command="brak",      description="Сделать предложение брака"),
-        BotCommand(command="razvod",    description="Развод (reply или @username)"),
-        BotCommand(command="families",  description="Все браки в беседе"),
-        BotCommand(command="orgy",      description="Оргия-опрос (или /оргия)"),
+        BotCommand(command="info", description="Анкета (reply или @username)"),
+        BotCommand(command="anketa", description="Заполнить / обновить анкету (или /анкета)"),
+        BotCommand(command="rules", description="Правила беседы (или /правила)"),
+        BotCommand(command="nick", description="Установить никнейм (или /ник)"),
+        BotCommand(command="d20", description="Бросок d20 — проверка на успех"),
+        BotCommand(command="stats", description="Статистика чата или пользователя"),
+        BotCommand(command="tadjikistan", description="Случайный таджикистан-ивент"),
+        BotCommand(command="brak", description="Сделать предложение брака"),
+        BotCommand(command="razvod", description="Развод (reply или @username)"),
+        BotCommand(command="families", description="Все браки в беседе"),
+        BotCommand(command="orgy", description="Оргия-опрос (или /оргия)"),
     ]
     await bot.set_my_commands(group_commands, scope=BotCommandScopeAllGroupChats())
 
