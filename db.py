@@ -277,6 +277,43 @@ class Database:
             )
         c.commit()
 
+    def bulk_import_stats(
+        self,
+        chat_id: int,
+        user_id: int,
+        message_count: int,
+        word_count: int,
+        words: dict[str, int],
+    ):
+        """Добавляет статистику из исторического экспорта.
+        Если запись уже есть — суммирует (не перезаписывает),
+        чтобы повторный импорт не ломал живую статистику.
+        """
+        now = datetime.utcnow().isoformat()
+        c = self._conn()
+        c.execute(
+            """
+            INSERT INTO message_stats (chat_id, user_id, message_count, word_count, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(chat_id, user_id) DO UPDATE SET
+                message_count = message_count + excluded.message_count,
+                word_count    = word_count    + excluded.word_count,
+                updated_at    = excluded.updated_at
+            """,
+            (chat_id, user_id, message_count, word_count, now, now),
+        )
+        if words:
+            c.executemany(
+                """
+                INSERT INTO word_stats (chat_id, user_id, word, count)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(chat_id, user_id, word) DO UPDATE SET
+                    count = count + excluded.count
+                """,
+                [(chat_id, user_id, word, cnt) for word, cnt in words.items()],
+            )
+        c.commit()
+
     def get_user_stats(self, chat_id: int, user_id: int) -> Optional[dict]:
         row = self._conn().execute(
             "SELECT * FROM message_stats WHERE chat_id = ? AND user_id = ?",
