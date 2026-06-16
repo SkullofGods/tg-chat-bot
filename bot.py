@@ -265,7 +265,7 @@ async def announce_shutdown():
 async def tajikistan_followup(chat_id: int, reply_to_message_id: int, event_type: str, caller_id: int | None = None):
     await asyncio.sleep(60)
     target_id = random_known_user()
-    target = mention_by_db(target_id) if target_id else "Кто-то"
+    target = display_name_by_db(target_id) if target_id else "Кто-то"
     if event_type == "plankton":
         floor = random_wikipedia_title()
         text = f"{target} гендеросмешан! Теперь по гендеру ты {floor}."
