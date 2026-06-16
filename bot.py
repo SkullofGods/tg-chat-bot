@@ -2,6 +2,8 @@ import asyncio
 import logging
 import random
 import re
+import urllib.parse
+import urllib.request
 from contextlib import suppress
 from datetime import datetime, timedelta
 
@@ -230,6 +232,20 @@ def random_known_user(exclude_user_id: int | None = None) -> int | None:
     return random.choice(pool)["user_id"]
 
 
+def random_wikipedia_title() -> str:
+    try:
+        req = urllib.request.Request(
+            "https://ru.wikipedia.org/wiki/Special:Random",
+            headers={"User-Agent": "Mozilla/5.0"}
+        )
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            final_url = resp.geturl()
+        title = urllib.parse.unquote(final_url.split("/wiki/")[-1]).replace("_", " ")
+        return title if title and "Special:Random" not in title else "неведомая хуйня"
+    except Exception:
+        return "неведомая хуйня"
+
+
 async def announce_startup():
     for chat_id in db.get_known_chats():
         with suppress(Exception):
@@ -262,6 +278,9 @@ async def tajikistan_followup(chat_id: int, reply_to_message_id: int, event_type
     elif event_type == "strangulation":
         caller = mention_by_db(caller_id) if caller_id else "Кто-то"
         text = f"{caller} был задушен ногами. Вот тебе, бабушка, и таджикский день..."
+    elif event_type == "gender":
+        title = random_wikipedia_title()
+        text = f"{target} сменил гендер! Теперь вы *{title}*"
     else:
         text = f"{target} накормили пловом бля("
     with suppress(Exception):
@@ -452,7 +471,7 @@ async def cmd_tadjikistan(message: Message):
 
     event_type = random.choice([
         "legs", "plankton", "horde", "plain",
-        "trusygava", "helkern", "uzbek", "strangulation",
+        "trusygava", "helkern", "uzbek", "strangulation", "gender",
     ])
     target_id = random_known_user()
     target = mention_by_db(target_id) if target_id else "Кто-то"
@@ -485,6 +504,10 @@ async def cmd_tadjikistan(message: Message):
     if event_type == "strangulation":
         sent = await message.reply("🇹🇯 чьи-то ноги обвиваются вокруг шеи...")
         asyncio.create_task(tajikistan_followup(chat_id, sent.message_id, "strangulation", caller_id=caller_id))
+        return
+    if event_type == "gender":
+        sent = await message.reply("🇹🇯 гендерная аномалия в воздухе...")
+        asyncio.create_task(tajikistan_followup(chat_id, sent.message_id, "gender"))
         return
 
 
