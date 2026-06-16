@@ -276,7 +276,7 @@ async def tajikistan_followup(chat_id: int, reply_to_message_id: int, event_type
     elif event_type == "uzbek":
         text = f"{target} накормили пловом. Больше никакого таджикистана и постельный режими лаънатӣ, фоҳиша блять"
     elif event_type == "strangulation":
-        caller = mention_by_db(caller_id) if caller_id else "Кто-то"
+        caller = display_name_by_db(caller_id) if caller_id else "Кто-то"
         text = f"{caller} был задушен ногами. Вот тебе, бабушка, и таджикский день..."
     elif event_type == "gender":
         title = random_wikipedia_title()
@@ -385,7 +385,7 @@ async def cmd_d20(message: Message, command: CommandObject):
         flavor = random.choice(_D20_FAIL)
     else:
         flavor = random.choice(_D20_SUCCESS)
-    roller = mention_by_user(user)
+    roller = display_name_by_db(user)
     context = ""
     if message.reply_to_message and message.reply_to_message.text:
         preview = message.reply_to_message.text[:60]
@@ -474,7 +474,7 @@ async def cmd_tadjikistan(message: Message):
         "trusygava", "helkern", "uzbek", "strangulation", "gender",
     ])
     target_id = random_known_user()
-    target = mention_by_db(target_id) if target_id else "Кто-то"
+    target = display_name_by_db(target_id) if target_id else "Кто-то"
 
     if event_type == "legs":
         await message.reply(f"🇹🇯 {target} показывает ножки 0_0", parse_mode="Markdown")
@@ -530,7 +530,7 @@ async def cmd_brak(message: Message, command: CommandObject):
         await message.reply("Вы уже состоите в браке! 💑")
         return
     db.add_marriage_proposal(proposer.id, target_id, message.chat.id)
-    await message.reply(f"💍 {mention_by_user(proposer)} делает предложение {mention_by_db(target_id)}!", parse_mode="Markdown", reply_markup=brak_keyboard(proposer.id, target_id, message.chat.id))
+    await message.reply(f"💍 {display_name_by_db(proposer)} делает предложение {display_name_by_db(target_id)}!", parse_mode="Markdown", reply_markup=brak_keyboard(proposer.id, target_id, message.chat.id))
 
 
 @dp.callback_query(F.data.startswith("brak_yes:"))
@@ -549,7 +549,7 @@ async def callback_brak_yes(callback: CallbackQuery):
         return
     db.add_marriage(proposer_id, target_id)
     db.delete_marriage_proposal(proposer_id, target_id, chat_id)
-    await callback.message.edit_text(f"💒 {mention_by_db(proposer_id)} и {mention_by_db(target_id)} теперь состоят в браке! Поздравляем! 🎉", parse_mode="Markdown")
+    await callback.message.edit_text(f"💒 {display_name_by_db(proposer_id)} и {display_name_by_db(target_id)} теперь состоят в браке! Поздравляем! 🎉", parse_mode="Markdown")
     await callback.answer("Согласие принято 💞")
 
 
@@ -565,7 +565,7 @@ async def callback_brak_no(callback: CallbackQuery):
         await callback.answer("Предложение уже неактуально.", show_alert=True)
         return
     db.delete_marriage_proposal(proposer_id, target_id, chat_id)
-    await callback.message.edit_text(f"💔 {mention_by_db(target_id)} отклонил(а) предложение от {mention_by_db(proposer_id)}.", parse_mode="Markdown")
+    await callback.message.edit_text(f"💔 {display_name_by_db(target_id)} отклонил(а) предложение от {display_name_by_db(proposer_id)}.", parse_mode="Markdown")
     await callback.answer("Ну и ладно")
 
 
@@ -583,7 +583,7 @@ async def cmd_razvod(message: Message, command: CommandObject):
         await message.reply("Вы не состоите в браке. 🤷")
         return
     db.remove_marriage(message.from_user.id, target_id)
-    await message.reply(f"💔 {mention_by_user(message.from_user)} и {mention_by_db(target_id)} развелись.", parse_mode="Markdown")
+    await message.reply(f"💔 {display_name_by_db(message.from_user)} и {display_name_by_db(target_id)} развелись.", parse_mode="Markdown")
 
 
 @dp.message(Command("families"))
@@ -621,7 +621,7 @@ async def cmd_families(message: Message):
 
     lines = ["💑 *Семьи в беседе:*\n"]
     for i, (root, members) in enumerate(families.items(), 1):
-        names_str = RING.join(mention_by_db(uid) for uid in members)
+        names_str = RING.join(display_name_by_db(uid) for uid in members)
         oldest = min(family_dates[root]) if family_dates[root] else None
         duration = format_duration_since(oldest) if oldest else "неизвестно сколько"
         lines.append(f"{i}. {names_str} — в браке уже {duration}")
@@ -660,8 +660,8 @@ async def finish_orgy(chat_id: int, poll_message_id: int):
     state = orgy_state.get(chat_id, {})
     yes_ids = state.get("yes_voters", [])
     no_ids = state.get("no_voters", [])
-    yes_str = " ".join(mention_by_db(uid) for uid in yes_ids) if yes_ids else "никто"
-    no_str = " ".join(mention_by_db(uid) for uid in no_ids) if no_ids else "никто"
+    yes_str = " ".join(display_name_by_db(uid) for uid in yes_ids) if yes_ids else "никто"
+    no_str = " ".join(display_name_by_db(uid) for uid in no_ids) if no_ids else "никто"
     await bot.send_message(chat_id, f"🔥 {yes_str} поимели жёсткий секс, а {no_str} с завистью смотрели.", parse_mode="Markdown")
 
 
@@ -697,7 +697,7 @@ async def handle_group_message(message: Message):
         if text and not text.startswith("/"):
             db.save_anketa(user.id, text)
             db.clear_awaiting_anketa(user.id, message.chat.id)
-            await message.reply(f"✅ Анкета сохранена, {mention_by_user(user)}!\n\n{RULES_TEXT}", parse_mode="Markdown")
+            await message.reply(f"✅ Анкета сохранена, {display_name_by_db(user)}!\n\n{RULES_TEXT}", parse_mode="Markdown")
 
 
 async def setup_commands():
