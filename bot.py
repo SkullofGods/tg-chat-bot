@@ -267,8 +267,8 @@ async def tajikistan_followup(chat_id: int, reply_to_message_id: int, event_type
     target_id = random_known_user()
     target = mention_by_db(target_id) if target_id else "Кто-то"
     if event_type == "plankton":
-        floor = random.choice(TAJIK_FLOORS)
-        text = f"{target} гомосексуализирован! Теперь вы любите {floor}."
+        floor = random_wikipedia_title()
+        text = f"{target} гендеросмешан! Теперь по гендеру ты {floor}."
     elif event_type == "horde":
         text = f"{target} накормили пловом бля("
     elif event_type == "trusygava":
