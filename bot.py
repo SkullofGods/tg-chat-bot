@@ -129,44 +129,39 @@ def extract_words(text: str) -> list[str]:
     return [w for w in words if w not in COMMON_STOP_WORDS]
 
 
-def display_name_by_user(user) -> str:
-    nick = db.get_nickname(user.id)
-    if nick:
-        return nick
-    if user.first_name:
-        return user.first_name
-    return user.full_name
+def _escape_md(text: str) -> str:
+    """Escape characters that break Markdown links in aiogram."""
+    return text.replace("\\", "\\\\").replace("[", "\\[").replace("]", "\\]").replace("_", "\\_").replace("*", "\\*")
 
 
 def display_name_by_db(user_id: int) -> str:
+    """Returns a clickable tg://user link with the user's display name (no @mention, no notification)."""
     nick = db.get_nickname(user_id)
     if nick:
-        return nick
-    u = db.get_user(user_id)
-    if u:
-        return u["full_name"] or u["username"] or f"user{user_id}"
-    return f"user{user_id}"
+        name = nick
+    else:
+        u = db.get_user(user_id)
+        if u:
+            name = u["full_name"] or u["username"] or f"user{user_id}"
+        else:
+            name = f"user{user_id}"
+    return f"[{_escape_md(name)}](tg://user?id={user_id})"
 
 
-def mention_by_user(user) -> str:
+def display_name_by_user(user) -> str:
+    """Returns a clickable tg://user link using the live user object."""
     nick = db.get_nickname(user.id)
-    if nick:
-        return f"[{nick}](tg://user?id={user.id})"
-    if user.username:
-        return f"@{user.username}"
-    return user.full_name
+    name = nick or user.first_name or user.full_name or f"user{user.id}"
+    return f"[{_escape_md(name)}](tg://user?id={user.id})"
+
+
+# mention_by_user / mention_by_db kept as aliases for backwards compat
+def mention_by_user(user) -> str:
+    return display_name_by_user(user)
 
 
 def mention_by_db(user_id: int) -> str:
-    nick = db.get_nickname(user_id)
-    if nick:
-        return f"[{nick}](tg://user?id={user_id})"
-    u = db.get_user(user_id)
-    if u and u["username"]:
-        return f"@{u['username']}"
-    if u:
-        return f"[{u['full_name']}](tg://user?id={user_id})"
-    return f"[user](tg://user?id={user_id})"
+    return display_name_by_db(user_id)
 
 
 def format_duration_since(iso_dt: str) -> str:
@@ -267,8 +262,8 @@ async def tajikistan_followup(chat_id: int, reply_to_message_id: int, event_type
     target_id = random_known_user()
     target = display_name_by_db(target_id) if target_id else "Кто-то"
     if event_type == "plankton":
-        floor = random_wikipedia_title()
-        text = f"{target} гендеросмешан! Теперь по гендеру ты {floor}."
+        floor = random.choice(TAJIK_FLOORS)
+        text = f"{target} гомосексуализирован! Теперь вы любите {floor}."
     elif event_type == "horde":
         text = f"{target} накормили пловом бля("
     elif event_type == "trusygava":
@@ -280,7 +275,7 @@ async def tajikistan_followup(chat_id: int, reply_to_message_id: int, event_type
         text = f"{caller} был задушен ногами. Вот тебе, бабушка, и таджикский день..."
     elif event_type == "gender":
         title = random_wikipedia_title()
-        text = f"{target} сменил гендер! Теперь вы *{title}*"
+        text = f"{target} сменил гендер! Теперь вы *{_escape_md(title)}*"
     else:
         text = f"{target} накормили пловом бля("
     with suppress(Exception):
@@ -299,7 +294,7 @@ async def on_new_member(event: ChatMemberUpdated):
     if user.is_bot:
         return
     db.ensure_user(user.id, user.username or "", user.full_name)
-    name = mention_by_user(user)
+    name = display_name_by_user(user)
     await bot.send_message(event.chat.id, f"👋 Привет, {name}! Добро пожаловать!\n\n{ANKETA_TEXT}", parse_mode="Markdown")
     db.set_awaiting_anketa(user.id, event.chat.id)
 
@@ -315,7 +310,7 @@ async def cmd_info(message: Message, command: CommandObject):
         await message.reply(f"Пользователь @{target_name} не найден в базе — возможно, ещё не писал в чат. 🤷")
         return
     anketa = db.get_anketa(target_id)
-    display = mention_by_db(target_id)
+    display = display_name_by_db(target_id)
     if not anketa:
         await message.reply(f"У {display} анкеты пока нет. 🤷", parse_mode="Markdown")
         return
@@ -344,7 +339,7 @@ async def cmd_nick(message: Message, command: CommandObject):
     if not command.args or not command.args.strip():
         current = db.get_nickname(user.id)
         if current:
-            await message.reply(f"Твой текущий никнейм: *{current}*\nЧтобы убрать его, напиши `/ник -`", parse_mode="Markdown")
+            await message.reply(f"Твой текущий никнейм: *{_escape_md(current)}*\nЧтобы убрать его, напиши `/ник -`", parse_mode="Markdown")
         else:
             await message.reply("У тебя пока нет никнейма.\nУстанови: `/ник ИмяКоторое Хочешь`", parse_mode="Markdown")
         return
@@ -357,7 +352,7 @@ async def cmd_nick(message: Message, command: CommandObject):
         await message.reply("Никнейм слишком длинный (макс. 32 символа). 😕")
         return
     db.set_nickname(user.id, new_nick)
-    await message.reply(f"Никнейм установлен: [{new_nick}](tg://user?id={user.id}) ✅\nТеперь бот будет обращаться к тебе именно так.", parse_mode="Markdown")
+    await message.reply(f"Никнейм установлен: {display_name_by_user(user)} ✅\nТеперь бот будет обращаться к тебе именно так.", parse_mode="Markdown")
 
 
 @dp.message(Command("d20"))
@@ -385,7 +380,7 @@ async def cmd_d20(message: Message, command: CommandObject):
         flavor = random.choice(_D20_FAIL)
     else:
         flavor = random.choice(_D20_SUCCESS)
-    roller = display_name_by_db(user)
+    roller = display_name_by_user(user)
     context = ""
     if message.reply_to_message and message.reply_to_message.text:
         preview = message.reply_to_message.text[:60]
@@ -423,7 +418,7 @@ async def cmd_stats(message: Message, command: CommandObject):
         elif avg_words <= 3:
             weird_fact = "\n🤏 Человек немногословный."
         text = (
-            f"📊 *Статистика пользователя* {mention_by_db(target_id)}\n\n"
+            f"📊 *Статистика пользователя* {display_name_by_db(target_id)}\n\n"
             f"⏳ В статистике уже: *{format_duration_since(stats['created_at'])}*\n"
             f"💬 Сообщений: *{stats['message_count']}*\n"
             f"📝 Написано слов: *{stats['word_count']}*\n"
@@ -444,7 +439,7 @@ async def cmd_stats(message: Message, command: CommandObject):
         return
     user_lines = []
     for i, user_row in enumerate(top_users, 1):
-        user_lines.append(f"{i}. {mention_by_db(user_row['user_id'])} — {user_row['message_count']} сообщений")
+        user_lines.append(f"{i}. {display_name_by_db(user_row['user_id'])} — {user_row['message_count']} сообщений")
     word_lines = []
     for i, row in enumerate(top_words, 1):
         word_lines.append(f"{i}. *{row['word']}* — {row['count']}")
@@ -530,7 +525,11 @@ async def cmd_brak(message: Message, command: CommandObject):
         await message.reply("Вы уже состоите в браке! 💑")
         return
     db.add_marriage_proposal(proposer.id, target_id, message.chat.id)
-    await message.reply(f"💍 {display_name_by_db(proposer)} делает предложение {display_name_by_db(target_id)}!", parse_mode="Markdown", reply_markup=brak_keyboard(proposer.id, target_id, message.chat.id))
+    await message.reply(
+        f"💍 {display_name_by_user(proposer)} делает предложение {display_name_by_db(target_id)}!",
+        parse_mode="Markdown",
+        reply_markup=brak_keyboard(proposer.id, target_id, message.chat.id)
+    )
 
 
 @dp.callback_query(F.data.startswith("brak_yes:"))
@@ -549,7 +548,10 @@ async def callback_brak_yes(callback: CallbackQuery):
         return
     db.add_marriage(proposer_id, target_id)
     db.delete_marriage_proposal(proposer_id, target_id, chat_id)
-    await callback.message.edit_text(f"💒 {display_name_by_db(proposer_id)} и {display_name_by_db(target_id)} теперь состоят в браке! Поздравляем! 🎉", parse_mode="Markdown")
+    await callback.message.edit_text(
+        f"💒 {display_name_by_db(proposer_id)} и {display_name_by_db(target_id)} теперь состоят в браке! Поздравляем! 🎉",
+        parse_mode="Markdown"
+    )
     await callback.answer("Согласие принято 💞")
 
 
@@ -565,7 +567,10 @@ async def callback_brak_no(callback: CallbackQuery):
         await callback.answer("Предложение уже неактуально.", show_alert=True)
         return
     db.delete_marriage_proposal(proposer_id, target_id, chat_id)
-    await callback.message.edit_text(f"💔 {display_name_by_db(target_id)} отклонил(а) предложение от {display_name_by_db(proposer_id)}.", parse_mode="Markdown")
+    await callback.message.edit_text(
+        f"💔 {display_name_by_db(target_id)} отклонил(а) предложение от {display_name_by_db(proposer_id)}.",
+        parse_mode="Markdown"
+    )
     await callback.answer("Ну и ладно")
 
 
@@ -583,7 +588,10 @@ async def cmd_razvod(message: Message, command: CommandObject):
         await message.reply("Вы не состоите в браке. 🤷")
         return
     db.remove_marriage(message.from_user.id, target_id)
-    await message.reply(f"💔 {display_name_by_db(message.from_user)} и {display_name_by_db(target_id)} развелись.", parse_mode="Markdown")
+    await message.reply(
+        f"💔 {display_name_by_user(message.from_user)} и {display_name_by_db(target_id)} развелись.",
+        parse_mode="Markdown"
+    )
 
 
 @dp.message(Command("families"))
@@ -697,7 +705,7 @@ async def handle_group_message(message: Message):
         if text and not text.startswith("/"):
             db.save_anketa(user.id, text)
             db.clear_awaiting_anketa(user.id, message.chat.id)
-            await message.reply(f"✅ Анкета сохранена, {display_name_by_db(user)}!\n\n{RULES_TEXT}", parse_mode="Markdown")
+            await message.reply(f"✅ Анкета сохранена, {display_name_by_user(user)}!\n\n{RULES_TEXT}", parse_mode="Markdown")
 
 
 async def setup_commands():
