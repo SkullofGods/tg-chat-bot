@@ -246,13 +246,22 @@ async def announce_shutdown():
             await bot.send_message(chat_id, "бля, умираю")
 
 
-async def tajikistan_followup(chat_id: int, reply_to_message_id: int, event_type: str):
-    await asyncio.sleep(300)
+async def tajikistan_followup(chat_id: int, reply_to_message_id: int, event_type: str, caller_id: int | None = None):
+    await asyncio.sleep(60)
     target_id = random_known_user()
     target = mention_by_db(target_id) if target_id else "Кто-то"
     if event_type == "plankton":
         floor = random.choice(TAJIK_FLOORS)
         text = f"{target} гомосексуализирован! Теперь вы любите {floor}."
+    elif event_type == "horde":
+        text = f"{target} накормили пловом бля("
+    elif event_type == "trusygava":
+        text = f"{target} был избит. На месте преступления обнаружены трусы..."
+    elif event_type == "uzbek":
+        text = f"{target} накормили пловом. Больше никакого таджикистана и постельный режими лаънатӣ, фоҳиша блять"
+    elif event_type == "strangulation":
+        caller = mention_by_db(caller_id) if caller_id else "Кто-то"
+        text = f"{caller} был задушен ногами. Вот тебе, бабушка, и таджикский день..."
     else:
         text = f"{target} накормили пловом бля("
     with suppress(Exception):
@@ -430,6 +439,7 @@ async def cmd_stats(message: Message, command: CommandObject):
 async def cmd_tadjikistan(message: Message):
     db.remember_chat(message.chat.id)
     chat_id = message.chat.id
+    caller_id = message.from_user.id
     now = datetime.utcnow()
     last = tajikistan_state.get(chat_id)
     if last and now - last < timedelta(minutes=5):
@@ -440,7 +450,10 @@ async def cmd_tadjikistan(message: Message):
         return
     tajikistan_state[chat_id] = now
 
-    event_type = random.choice(["legs", "plankton", "horde", "plain"])
+    event_type = random.choice([
+        "legs", "plankton", "horde", "plain",
+        "trusygava", "helkern", "uzbek", "strangulation",
+    ])
     target_id = random_known_user()
     target = mention_by_db(target_id) if target_id else "Кто-то"
 
@@ -450,12 +463,29 @@ async def cmd_tadjikistan(message: Message):
     if event_type == "plain":
         await message.reply("🇹🇯 даа... таджикистан...")
         return
+    if event_type == "helkern":
+        await message.reply("🇹🇯 Бля, хелкерн расплакался")
+        return
     if event_type == "plankton":
         sent = await message.reply("🇹🇯 вы замечаете тонкие усики планктона в небе... не к добру...")
         asyncio.create_task(tajikistan_followup(chat_id, sent.message_id, "plankton"))
         return
-    sent = await message.reply("🇹🇯 орда таджиков на горизонте!!!")
-    asyncio.create_task(tajikistan_followup(chat_id, sent.message_id, "horde"))
+    if event_type == "horde":
+        sent = await message.reply("🇹🇯 орда таджиков на горизонте!!!")
+        asyncio.create_task(tajikistan_followup(chat_id, sent.message_id, "horde"))
+        return
+    if event_type == "trusygava":
+        sent = await message.reply("🇹🇯 Клан трусыгава вышел на тропу войны...")
+        asyncio.create_task(tajikistan_followup(chat_id, sent.message_id, "trusygava"))
+        return
+    if event_type == "uzbek":
+        sent = await message.reply("🇺🇿 Узбеки на горизонте... они несут плов...")
+        asyncio.create_task(tajikistan_followup(chat_id, sent.message_id, "uzbek"))
+        return
+    if event_type == "strangulation":
+        sent = await message.reply("🇹🇯 чьи-то ноги обвиваются вокруг шеи...")
+        asyncio.create_task(tajikistan_followup(chat_id, sent.message_id, "strangulation", caller_id=caller_id))
+        return
 
 
 @dp.message(Command("brak"))
@@ -666,7 +696,6 @@ async def setup_commands():
 
 
 async def main():
-    # Загружаем историю из result.json при первом старте (если файл есть и ещё не импортировался)
     imported = load_history_if_exists(db)
     if imported:
         logger.info("History import completed on startup.")
