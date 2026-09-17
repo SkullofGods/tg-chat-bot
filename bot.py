@@ -7,13 +7,16 @@ from aiogram.types import (
     BotCommandScopeAllPrivateChats,
     BotCommandScopeChat,
     BotCommandScopeDefault,
+    MenuButtonWebApp,
+    WebAppInfo,
 )
 
 import backup
 import members
 import scheduler
 import texts
-from config import BACKUP_CHAT_ID, DB_PATH
+import webserver
+from config import BACKUP_CHAT_ID, DB_PATH, WEBAPP_URL
 from handlers import build_router
 from handlers.tracking import TrackingMiddleware
 from import_history import load_history_if_exists
@@ -29,20 +32,15 @@ _background_tasks: list[asyncio.Task] = []
 GROUP_COMMANDS = [
     BotCommand(command="tajik", description="🇹🇯 Таджик дня"),
     BotCommand(command="tadjikistan", description="Случайный таджикистан-ивент"),
+    BotCommand(command="casino", description="🎰 Казино «Золотой казан»"),
     BotCommand(command="d20", description="Бросок d20 — проверка на успех"),
     BotCommand(command="dnd", description="🐉 Случайный ивент из D&D"),
     BotCommand(command="who", description="🔮 Кто из нас...? Вопрос пиши после команды"),
-    BotCommand(command="casino", description="🎰 Казино «Золотой казан»: все игры и правила"),
-    BotCommand(command="roulette", description="🎡 Рулетка: /roulette 100 красное"),
-    BotCommand(command="rr", description="🔫 Русская рулетка"),
-    BotCommand(command="slots", description="🎰 Однорукий бандит: /slots 100"),
-    BotCommand(command="coin", description="🪙 Монетка: /coin 100 орёл"),
-    BotCommand(command="duel", description="⚔️ Дуэль на таджикоины (ответом на сообщение)"),
-    BotCommand(command="balance", description="💰 Мои таджикоины"),
-    BotCommand(command="bonus", description="🎁 Бонус таджикоинов раз в день"),
-    BotCommand(command="forbes", description="🏦 Самые богатые"),
-    BotCommand(command="give", description="🤝 Перевести таджикоины (ответом на сообщение)"),
     BotCommand(command="stats", description="📊 Статистика беседы или участника (reply / @username / я)"),
+    BotCommand(command="forbes", description="🏦 Самые богатые"),
+    BotCommand(command="casinostat", description="🎰 Статистика в казино (reply / @username)"),
+    BotCommand(command="give", description="🤝 Перевести таджикоины (ответом на сообщение)"),
+    BotCommand(command="duel", description="⚔️ Дуэль на таджикоины (ответом на сообщение)"),
     BotCommand(command="tajiktop", description="Зал славы таджиков дня"),
     BotCommand(command="info", description="Анкета (reply или @username)"),
     BotCommand(command="anketa", description="Заполнить / обновить анкету (или /анкета)"),
@@ -59,15 +57,19 @@ async def setup_commands():
     await bot.delete_my_commands(scope=BotCommandScopeDefault())
     await bot.set_my_commands(GROUP_COMMANDS, scope=BotCommandScopeAllGroupChats())
     start = BotCommand(command="start", description="Кто я такой")
-    await bot.set_my_commands([start], scope=BotCommandScopeAllPrivateChats())
+    private = [start, BotCommand(command="casino", description="🎰 Открыть казино")]
+    await bot.set_my_commands(private, scope=BotCommandScopeAllPrivateChats())
     if BACKUP_CHAT_ID is not None:
         await bot.set_my_commands(
-            [
-                start,
+            private + [
                 BotCommand(command="backup", description="Сделать бэкап базы сейчас"),
                 BotCommand(command="restore", description="Ответом на файл бэкапа: откатить базу"),
             ],
             scope=BotCommandScopeChat(chat_id=BACKUP_CHAT_ID),
+        )
+    if WEBAPP_URL:  # в личке с ботом кнопка меню сразу открывает казино
+        await bot.set_chat_menu_button(
+            menu_button=MenuButtonWebApp(text="Казино", web_app=WebAppInfo(url=f"{WEBAPP_URL}/"))
         )
 
 
@@ -77,6 +79,10 @@ async def on_startup():
         await setup_commands()
     except Exception as e:
         logger.warning("Не получилось обновить меню команд: %s", e)
+    try:
+        await webserver.start()
+    except Exception:
+        logger.exception("Мини-приложение казино не запустилось")
     await scheduler.announce(texts.STARTUP_TEXT)
     _background_tasks.append(asyncio.create_task(backup.backup_loop()))
     _background_tasks.append(asyncio.create_task(members.sync_members()))
@@ -86,6 +92,7 @@ async def on_startup():
 async def on_shutdown():
     for task in _background_tasks:
         task.cancel()
+    await webserver.stop()
     await backup.final_backup()
     await scheduler.announce(texts.SHUTDOWN_TEXT)
     db.close()

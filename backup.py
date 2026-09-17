@@ -55,11 +55,15 @@ _lock = asyncio.Lock()
 # ── Работа с файлами (выполняется в отдельном потоке) ────────────────────────
 
 
-def _database_summary(path: Path) -> dict[str, int] | None:
+def _database_summary(path: Path, readonly: bool = False) -> dict[str, int] | None:
+    """readonly — только посмотреть, не трогая файл (обычное подключение при закрытии вливает -wal в базу)."""
     if not path.exists() or path.stat().st_size == 0:
         return None
     try:
-        conn = sqlite3.connect(path)
+        if readonly:
+            conn = sqlite3.connect(f"{path.resolve().as_uri()}?mode=ro", uri=True)
+        else:
+            conn = sqlite3.connect(path)
         try:
             return summarize(conn)
         finally:
@@ -80,7 +84,7 @@ def _move_legacy_database():
     for legacy in LEGACY_DB_PATHS:
         if legacy.resolve() == DB_PATH.resolve():
             continue
-        old = _database_summary(legacy) or {}
+        old = _database_summary(legacy, readonly=True) or {}
         if not any(old.values()):
             continue
         if any(current.values()) and old["messages"] <= 10 * current["messages"]:

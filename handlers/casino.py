@@ -1,39 +1,32 @@
-"""Казино «Золотой казан»: таджикоины, рулетка, русская рулетка, слоты, монетка, дуэли и /dnd."""
+"""Казино в беседе: кнопка в мини-приложение, статистика и то, что делается с другими людьми (переводы, дуэли).
+Сами игры живут в мини-приложении — см. casino_engine.py и webapp/."""
 
-import asyncio
 import random
 import re
 import time
 from contextlib import suppress
+from html import escape
 
 from aiogram import F, Router
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import Command, CommandObject
-from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
+from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message, WebAppInfo
 
 import limits
 import members
 import texts
+import webserver
+from casino_engine import GAME_NAMES, MIN_BET, money, signed
+from config import WEBAPP_URL
 from loader import bot, db
 from textstats import count_with_word, fmt_num
 from utils import local_today
 
 router = Router(name="casino")
 
-CURRENCY_FORMS = ("таджикоин", "таджикоина", "таджикоинов")
-MIN_BET = 10
 DEFAULT_BET = 100
 DUEL_TTL_SECONDS = 10 * 60
-RED_NUMBERS = {1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36}
-SLOT_SYMBOLS = ["BAR", "🍇", "🍋", "7️⃣"]
-
-
-def money(amount: int) -> str:
-    return count_with_word(amount, CURRENCY_FORMS)
-
-
-def signed(amount: int) -> str:
-    return f"{'+' if amount >= 0 else '−'}{money(abs(amount))}"
+TIMES = ("раз", "раза", "раз")
 
 
 def parse_amount(token: str, balance: int) -> int | None:
@@ -77,72 +70,28 @@ async def _check_bet(message: Message, bet: int) -> bool:
     return True
 
 
-async def _start_game(message: Message, command: str, bet: int | None = None) -> bool:
-    """Кулдаун, проверка ставки и списание её из кошелька. True — можно играть."""
-    if not await limits.allow(message, command):
-        return False
-    if bet is not None:
-        if not await _check_bet(message, bet):
-            return False
-        if not db.take_bet(message.chat.id, message.from_user.id, bet):
-            await message.reply(texts.NOT_ENOUGH_MONEY.format(balance=money(db.get_balance(message.chat.id, message.from_user.id))))
-            return False
-    limits.mark(message.chat.id, message.from_user.id, command)
-    return True
-
-
-async def _edit(message: Message, text: str):
-    try:
-        await message.edit_text(text)
-    except TelegramBadRequest:
-        await bot.send_message(message.chat.id, text)
-
-
-# ── Кошелёк ───────────────────────────────────────────────────────────────────
+# ── Вход в казино и статистика ────────────────────────────────────────────────
 
 
 @router.message(Command("casino", "казино"))
 async def cmd_casino(message: Message):
-    await message.reply(texts.CASINO_HELP)
-
-
-@router.message(Command("balance", "баланс", "кошелек", "кошелёк", "таджикоины"))
-async def cmd_balance(message: Message):
-    if not await _group_only(message):
+    if not WEBAPP_URL:
+        await message.reply(texts.CASINO_NOT_READY)
         return
-    wallet = db.get_wallet(message.chat.id, message.from_user.id)
-    lines = [
-        f"💰 {members.display_name(message.from_user.id)}: <b>{money(wallet['balance'])}</b>",
-        f"🏦 Место в Форбсе беседы: {db.wealth_place(message.chat.id, wallet['balance'])}",
-    ]
-    if wallet["games"]:
-        lines.append(
-            f"🎰 Игр: {fmt_num(wallet['games'])} · выиграно {money(wallet['won'])} · проиграно {money(wallet['lost'])}"
-        )
-    await message.reply("\n".join(lines))
-
-
-@router.message(Command("bonus", "бонус"))
-async def cmd_bonus(message: Message):
-    if not await _group_only(message):
-        return
-    chat_id, user_id = message.chat.id, message.from_user.id
-    if db.get_balance(chat_id, user_id) < MIN_BET:
-        source, amount = texts.BONUS_BANKRUPT, 500
-    else:
-        source, amount = random.choice(texts.BONUS_SOURCES), random.randint(15, 40) * 10
-    balance = db.claim_bonus(chat_id, user_id, local_today(), amount)
-    if balance is None:
-        await message.reply(texts.BONUS_ALREADY)
-        return
-    await message.reply(f"{source}: <b>{signed(amount)}</b>\n💰 Теперь у тебя {money(balance)}")
+    if message.chat.type == "private":
+        button = InlineKeyboardButton(text=texts.CASINO_BUTTON, web_app=WebAppInfo(url=f"{WEBAPP_URL}/"))
+    else:  # в беседах кнопки web_app запрещены — открываем по ссылке, в ней же передаём, какая это беседа
+        me = await bot.me()
+        button = InlineKeyboardButton(text=texts.CASINO_BUTTON, url=webserver.app_link(me.username, message.chat.id))
+    await message.reply(texts.CASINO_TEXT, reply_markup=InlineKeyboardMarkup(inline_keyboard=[[button]]))
 
 
 @router.message(Command("forbes", "форбс", "богачи"))
 async def cmd_forbes(message: Message):
     if not await _group_only(message):
         return
-    rows = db.get_richest(message.chat.id, limit=10)
+    chat_id = message.chat.id
+    rows = db.get_richest(chat_id, limit=10)
     if not rows:
         await message.reply(texts.FORBES_EMPTY)
         return
@@ -151,7 +100,73 @@ async def cmd_forbes(message: Message):
     for i, row in enumerate(rows):
         place = texts.MEDALS[i] if i < len(texts.MEDALS) else f"{i + 1}."
         lines.append(f"{place} {names[row['user_id']]} — {money(row['balance'])}")
+
+    totals = db.get_casino_totals(chat_id)
+    house = sum(t["wagered"] - t["returned"] for game, t in totals.items() if game != "duel")
+    if totals:
+        lines += ["", f"🎰 Казино {'заработало' if house >= 0 else 'раздало'} на беседе {money(abs(house))}"]
+    jackpots = (totals.get("slots") or {}).get("special") or 0
+    deaths = (totals.get("rr") or {}).get("special") or 0
+    extra = []
+    if jackpots:
+        extra.append(f"💎 джекпотов 777: {jackpots}")
+    if deaths:
+        extra.append(f"💥 смертей в русской рулетке: {deaths}")
+    if extra:
+        lines.append(" · ".join(extra))
     await message.reply("\n".join(lines))
+
+
+@router.message(Command("casinostat", "казиностат", "balance", "баланс", "кошелек", "кошелёк", "таджикоины"))
+async def cmd_casinostat(message: Message, command: CommandObject):
+    if not await _group_only(message):
+        return
+    chat_id = message.chat.id
+    args = (command.args or "").strip()
+    target_id = message.from_user.id
+    if args.lower() not in ("", "я", "me") or message.reply_to_message:
+        found, raw = members.resolve_target(message, args)
+        if found == -1:
+            await message.reply(f"Не знаю такого человека: <code>@{escape(raw)}</code> 🤷")
+            return
+        target_id = found or target_id
+
+    wallet = db.get_wallet(chat_id, target_id)
+    lines = [
+        f"🎰 <b>Казино: {members.display_name(target_id)}</b>",
+        "",
+        f"💰 {money(wallet['balance'])} · 🏦 {db.wealth_place(chat_id, wallet['balance'])}-е место в Форбсе",
+    ]
+    games = {row["game"]: row for row in db.get_casino_stats(chat_id, target_id)}
+    if not games:
+        lines.append("Игр пока не было — заходи в /casino")
+        await message.reply("\n".join(lines))
+        return
+
+    plays = sum(row["plays"] for row in games.values())
+    lines.append(f"🎲 Игр: {fmt_num(plays)} · итог: {signed(wallet['won'] - wallet['lost'])}")
+    best = max(games.values(), key=lambda row: row["best_win"])
+    if best["best_win"] > 0:
+        lines.append(f"🏆 Лучший выигрыш: {signed(best['best_win'])} ({GAME_NAMES.get(best['game'], best['game'])})")
+    favorite = max(games.values(), key=lambda row: row["plays"])
+    lines.append(f"❤️ Любимая игра: {GAME_NAMES.get(favorite['game'], favorite['game'])} "
+                 f"({count_with_word(favorite['plays'], TIMES)})")
+
+    specials = []
+    for game, label in (("slots", "💎 Джекпотов 777"), ("roulette", "🎯 Угаданных чисел"),
+                        ("blackjack", "🃏 Блэкджеков"), ("coin", "🪙 Монеток на ребре")):
+        if games.get(game, {}).get("special"):
+            specials.append(f"{label}: {games[game]['special']}")
+    if "rr" in games:
+        rr = games["rr"]
+        specials.append(f"🔫 Русская рулетка: {count_with_word(rr['plays'], ('выстрел', 'выстрела', 'выстрелов'))}, "
+                        f"{count_with_word(rr['special'], ('смерть', 'смерти', 'смертей'))}")
+    if specials:
+        lines += [""] + specials
+    await message.reply("\n".join(lines))
+
+
+# ── Переводы ──────────────────────────────────────────────────────────────────
 
 
 @router.message(Command("give", "дать", "перевод", "подарить"))
@@ -160,7 +175,7 @@ async def cmd_give(message: Message, command: CommandObject):
         return
     chat_id, sender_id = message.chat.id, message.from_user.id
     amounts, rest = _split_args(command.args, db.get_balance(chat_id, sender_id))
-    target_id, raw = members.resolve_target(message, " ".join(rest))
+    target_id, _ = members.resolve_target(message, " ".join(rest))
     if target_id is None or not amounts:
         await message.reply(
             "🤝 Ответь на сообщение человека командой <code>/give 100</code> или напиши <code>/give @username 100</code>"
@@ -185,237 +200,6 @@ async def cmd_give(message: Message, command: CommandObject):
     await message.reply(
         f"🤝 {members.display_name(sender_id)} переводит <b>{money(amount)}</b> → {members.mention(target_id)}"
     )
-
-
-# ── Рулетка ───────────────────────────────────────────────────────────────────
-
-_ROULETTE_BETS = {  # вид ставки: (подпись, множитель выплаты, выигрывает ли число)
-    "red": ("🔴 красное", 2, lambda n: n in RED_NUMBERS),
-    "black": ("⚫ чёрное", 2, lambda n: n != 0 and n not in RED_NUMBERS),
-    "even": ("чёт", 2, lambda n: n != 0 and n % 2 == 0),
-    "odd": ("нечет", 2, lambda n: n % 2 == 1),
-    "low": ("1–18", 2, lambda n: 1 <= n <= 18),
-    "high": ("19–36", 2, lambda n: 19 <= n <= 36),
-}
-_ROULETTE_WORDS = {
-    **dict.fromkeys(("красное", "красный", "красная", "красн", "кр", "red"), "red"),
-    **dict.fromkeys(("черное", "черный", "черная", "черн", "black"), "black"),
-    **dict.fromkeys(("чет", "четное", "even"), "even"),
-    **dict.fromkeys(("нечет", "нечетное", "odd"), "odd"),
-    **dict.fromkeys(("1-18", "малые", "малое", "low"), "low"),
-    **dict.fromkeys(("19-36", "большие", "большое", "high"), "high"),
-    **dict.fromkeys(("зеро", "zero", "ноль"), "zero"),
-}
-
-
-def _parse_roulette(args: str | None, balance: int) -> tuple[int, str, int | None] | None:
-    """(ставка, вид ставки, число) или None, если непонятно."""
-    kind = None
-    amounts = []
-    for token in (args or "").lower().replace("ё", "е").split():  # слова вроде «на» просто пропускаем
-        if token in _ROULETTE_WORDS:
-            kind = _ROULETTE_WORDS[token]
-        elif (amount := parse_amount(token, balance)) is not None:
-            amounts.append(amount)
-    if kind == "zero":
-        return (amounts[0] if amounts else DEFAULT_BET), "number", 0
-    if kind:
-        return (amounts[0] if amounts else DEFAULT_BET), kind, None
-    if len(amounts) == 2 and 0 <= amounts[1] <= 36:
-        return amounts[0], "number", amounts[1]
-    return None
-
-
-@router.message(Command("roulette", "рулетка"))
-async def cmd_roulette(message: Message, command: CommandObject):
-    if not await _group_only(message):
-        return
-    chat_id, user_id = message.chat.id, message.from_user.id
-    parsed = _parse_roulette(command.args, db.get_balance(chat_id, user_id))
-    if parsed is None:
-        await message.reply(texts.ROULETTE_HELP)
-        return
-    bet, kind, number = parsed
-    if not await _start_game(message, "roulette", bet):
-        return
-
-    if kind == "number":
-        label = "🟢 зеро" if number == 0 else f"число {number}"
-    else:
-        label = _ROULETTE_BETS[kind][0]
-    name = members.display_name(user_id)
-    sent = await message.reply(texts.ROULETTE_SPIN.format(name=name, bet=money(bet), target=label))
-    await asyncio.sleep(2.5)
-
-    result = random.randint(0, 36)
-    if kind == "number":
-        multiplier, won = 36, result == number
-    else:
-        _, multiplier, wins = _ROULETTE_BETS[kind]
-        won = wins(result)
-    payout = bet * multiplier if won else 0
-    balance = db.pay_out(chat_id, user_id, bet, payout)
-    color = "🟢" if result == 0 else ("🔴" if result in RED_NUMBERS else "⚫")
-    if won and multiplier == 36:
-        verdict = f"💥 <b>В ЯБЛОЧКО!</b> {signed(payout - bet)}"
-    elif won:
-        verdict = f"🎉 Победа! {signed(payout - bet)}"
-    else:
-        verdict = f"😢 Мимо. {signed(-bet)}"
-    await _edit(sent, (
-        f"🎡 {name} ставит {money(bet)} на {label}\n"
-        f"Выпало: <b>{result}</b> {color}\n"
-        f"{verdict} · баланс {money(balance)}{random.choice(texts.ROULETTE_FLAVOR)}"
-    ))
-
-
-# ── Русская рулетка ───────────────────────────────────────────────────────────
-
-_revolvers: dict[int, dict[str, int]] = {}  # chat_id -> {"bullet": гнездо с патроном, "fired": сколько уже щёлкнули}
-
-
-@router.message(Command("rr", "рр", "russian", "русская"))
-async def cmd_russian_roulette(message: Message):
-    if not await _group_only(message):
-        return
-    if not await _start_game(message, "rr"):
-        return
-    chat_id, user_id = message.chat.id, message.from_user.id
-
-    # Барабан общий на беседу и не прокручивается: с каждым выстрелом следующему страшнее.
-    # Состояние меняем до любых await, чтобы двое одновременно не выстрелили из одного гнезда.
-    revolver = _revolvers.setdefault(chat_id, {"bullet": random.randrange(6), "fired": 0})
-    chambers_left = 6 - revolver["fired"]
-    dead = revolver["fired"] == revolver["bullet"]
-    if dead:
-        _revolvers.pop(chat_id)
-    else:
-        revolver["fired"] += 1
-
-    name = members.display_name(user_id)
-    pull = texts.RR_PULL.format(name=name)
-    sent = await message.reply(pull)
-    await asyncio.sleep(2)
-    if dead:
-        balance = db.get_balance(chat_id, user_id)
-        penalty = min(balance, max(100, balance // 5))
-        balance = db.add_money(chat_id, user_id, -penalty)
-        outcome = (
-            f"{random.choice(texts.RR_DEATH).format(name=name)}\n"
-            f"⚰️ На похороны: {signed(-penalty)} · баланс {money(balance)}\n"
-            f"🔄 Шанс был 1/{chambers_left}. Барабан перезаряжен."
-        )
-    else:
-        reward = 50 * (7 - chambers_left)
-        balance = db.add_money(chat_id, user_id, reward)
-        outcome = (
-            f"{random.choice(texts.RR_SURVIVE)}\n"
-            f"🎖 За храбрость: {signed(reward)} · баланс {money(balance)}\n"
-            f"🔫 Шанс был 1/{chambers_left}. Гнёзд осталось: {chambers_left - 1} — следующему страшнее."
-        )
-    await _edit(sent, f"{pull}\n\n{outcome}")
-
-
-# ── Слоты ─────────────────────────────────────────────────────────────────────
-
-
-def slot_reels(value: int) -> list[int]:
-    """Telegram кодирует три барабана 🎰 в одном числе 1–64: 1 — BAR BAR BAR, 64 — 777."""
-    return [((value - 1) >> (2 * i)) & 3 for i in range(3)]
-
-
-@router.message(Command("slots", "слоты", "автомат"))
-async def cmd_slots(message: Message, command: CommandObject):
-    if not await _group_only(message):
-        return
-    chat_id, user_id = message.chat.id, message.from_user.id
-    amounts, _ = _split_args(command.args, db.get_balance(chat_id, user_id))
-    bet = amounts[0] if amounts else DEFAULT_BET
-    if not await _start_game(message, "slots", bet):
-        return
-
-    dice = await message.reply_dice(emoji="🎰")
-    reels = slot_reels(dice.dice.value)
-    await asyncio.sleep(2.2)  # ждём, пока докрутится анимация
-    name = members.display_name(user_id)
-    if reels == [3, 3, 3]:
-        payout, verdict = bet * 20, texts.SLOTS_WIN_JACKPOT
-    elif reels[0] == reels[1] == reels[2]:
-        payout, verdict = bet * 7, texts.SLOTS_WIN_TRIPLE
-    elif reels.count(3) == 2:
-        payout, verdict = bet * 2, texts.SLOTS_WIN_SEVENS
-    else:
-        payout, verdict = 0, f"{random.choice(texts.SLOTS_LOSE)} {signed(-bet)}"
-    balance = db.pay_out(chat_id, user_id, bet, payout)
-    combo = " ".join(SLOT_SYMBOLS[reel] for reel in reels)
-    verdict = verdict.format(name=name, win=money(payout - bet))
-    await dice.reply(f"🎰 {combo}\n{verdict}\n💰 Баланс: {money(balance)}")
-
-
-# ── Монетка ───────────────────────────────────────────────────────────────────
-
-_HEADS = {"орел", "о", "heads", "h"}
-_TAILS = {"решка", "р", "tails", "t"}
-
-
-@router.message(Command("coin", "монетка", "монета"))
-async def cmd_coin(message: Message, command: CommandObject):
-    chat_id, user_id = message.chat.id, message.from_user.id
-    balance = db.get_balance(chat_id, user_id)
-    side, amounts = None, []
-    for token in (command.args or "").lower().replace("ё", "е").split():
-        if token in _HEADS:
-            side = "heads"
-        elif token in _TAILS:
-            side = "tails"
-        elif (amount := parse_amount(token, balance)) is not None:
-            amounts.append(amount)
-    name = members.display_name(user_id)
-
-    if side is None and not amounts:  # просто подбросить
-        if not await _start_game(message, "coin"):
-            return
-        result = texts.COIN_HEADS if random.random() < 0.5 else texts.COIN_TAILS
-        await message.reply(f"🪙 {name} подбрасывает монетку... <b>{result}</b>!")
-        return
-    if side is None:
-        await message.reply("🪙 На что ставим? Например: <code>/coin 100 орёл</code>")
-        return
-    if not await _group_only(message):
-        return
-    bet = amounts[0] if amounts else DEFAULT_BET
-    if not await _start_game(message, "coin", bet):
-        return
-
-    roll = random.random()
-    if roll < 0.01:
-        payout, text = bet, texts.COIN_EDGE
-    elif roll < 0.02:
-        payout, text = 0, texts.COIN_STOLEN
-    else:
-        result = "heads" if random.random() < 0.5 else "tails"
-        payout = bet * 2 if result == side else 0
-        shown = texts.COIN_HEADS if result == "heads" else texts.COIN_TAILS
-        text = f"<b>{shown}</b>! " + ("🎉 Угадал(а)!" if payout else "😢 Не угадал(а).")
-    balance = db.pay_out(chat_id, user_id, bet, payout)
-    await message.reply(f"🪙 {name} ставит {money(bet)}...\n{text} {signed(payout - bet)} · баланс {money(balance)}")
-
-
-# ── /dnd ──────────────────────────────────────────────────────────────────────
-
-
-@router.message(Command("dnd", "днд"))
-async def cmd_dnd(message: Message):
-    if not await _start_game(message, "dnd"):
-        return
-    user_id = message.from_user.id
-    event = random.choice(texts.DND_EVENTS)
-    if "{member}" in event:
-        member_id = None
-        if members.is_group(message.chat):
-            member_id = await members.random_member(message.chat.id, exclude={user_id})
-        event = event.format(member=members.display_name(member_id) if member_id else "Случайный прохожий")
-    await message.reply(texts.DND_TEMPLATE.format(name=f"<b>{members.display_name(user_id)}</b>", event=event))
 
 
 # ── Дуэли ─────────────────────────────────────────────────────────────────────
@@ -456,8 +240,9 @@ async def cmd_duel(message: Message, command: CommandObject):
     if target_balance < bet:
         await message.reply(f"💸 У {members.display_name(target)} столько нет: всего {money(target_balance)}.")
         return
-    if not await _start_game(message, "duel"):
+    if not await limits.allow(message, "duel"):
         return
+    limits.mark(chat_id, challenger, "duel")
 
     duel_id = str(time.monotonic_ns())
     _duels[duel_id] = {"chat_id": chat_id, "challenger": challenger, "target": target, "bet": bet,
@@ -525,8 +310,8 @@ async def on_duel_button(callback: CallbackQuery):
         db.add_money(chat_id, target, bet)
         result = texts.DUEL_DRAW
     else:
-        db.pay_out(chat_id, winner, bet, bet * 2)
-        db.pay_out(chat_id, loser, bet, 0)
+        db.casino_settle(chat_id, winner, "duel", bet, bet * 2)
+        db.casino_settle(chat_id, loser, "duel", bet, 0)
         result = texts.DUEL_WIN.format(winner=members.mention(winner), pot=money(bet * 2))
     await _edit_duel(
         callback, chat_id,

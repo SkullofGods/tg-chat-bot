@@ -76,13 +76,22 @@ def plain_name(user_id: int, row: dict | None = None) -> str:
 
 
 def display_name(user_id: int, row: dict | None = None) -> str:
-    """Имя для сообщения в HTML: просто текст, человек не получает уведомление."""
-    return escape(plain_name(user_id, row), quote=False)
+    """Кликабельное имя для HTML. С юзернеймом — ссылка на профиль t.me, она не присылает уведомление,
+    поэтому годится и для списков. Без юзернейма иначе на профиль не сослаться — будет обычное упоминание."""
+    if row is None:
+        row = db.get_name_rows([user_id]).get(user_id, {})
+    name = escape(plain_name(user_id, row), quote=False)
+    username = (row.get("username") or "").strip()
+    if username:
+        return f'<a href="https://t.me/{escape(username)}">{name}</a>'
+    return f'<a href="tg://user?id={user_id}">{name}</a>'
 
 
 def mention(user_id: int, row: dict | None = None) -> str:
-    """Кликабельное имя: человек получит уведомление, как при упоминании."""
-    return f'<a href="tg://user?id={user_id}">{display_name(user_id, row)}</a>'
+    """Упоминание: человек получит уведомление. Для тех, кого зовут лично (брак, дуэль, ивенты)."""
+    if row is None:
+        row = db.get_name_rows([user_id]).get(user_id, {})
+    return f'<a href="tg://user?id={user_id}">{escape(plain_name(user_id, row), quote=False)}</a>'
 
 
 def display_names(user_ids: Iterable[int]) -> dict[int, str]:

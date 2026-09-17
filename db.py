@@ -1,3 +1,4 @@
+import json
 import sqlite3
 from collections import Counter
 from contextlib import contextmanager
@@ -115,6 +116,36 @@ _SCHEMA = [
         lost       INTEGER NOT NULL DEFAULT 0,
         PRIMARY KEY (chat_id, user_id)
     ) WITHOUT ROWID""",
+    # Статистика казино по играм. special — джекпоты 777, угаданные числа, монетки на ребре, смерти в русской рулетке
+    """CREATE TABLE IF NOT EXISTS casino_stats (
+        chat_id  INTEGER NOT NULL,
+        user_id  INTEGER NOT NULL,
+        game     TEXT NOT NULL,
+        plays    INTEGER NOT NULL DEFAULT 0,
+        wagered  INTEGER NOT NULL DEFAULT 0,
+        returned INTEGER NOT NULL DEFAULT 0,
+        best_win INTEGER NOT NULL DEFAULT 0,
+        special  INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (chat_id, user_id, game)
+    ) WITHOUT ROWID""",
+    # Недоигранные раздачи блэкджека: ставка уже списана, карты лежат тут (JSON), переживут перезапуск бота
+    """CREATE TABLE IF NOT EXISTS blackjack_hands (
+        chat_id    INTEGER NOT NULL,
+        user_id    INTEGER NOT NULL,
+        hand       TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        PRIMARY KEY (chat_id, user_id)
+    ) WITHOUT ROWID""",
+    """CREATE TABLE IF NOT EXISTS donations (
+        id         INTEGER PRIMARY KEY,
+        chat_id    INTEGER NOT NULL,
+        user_id    INTEGER NOT NULL,
+        amount     INTEGER NOT NULL,
+        message    TEXT NOT NULL DEFAULT '',
+        status     TEXT NOT NULL DEFAULT 'pending',
+        created_at TEXT NOT NULL,
+        decided_at TEXT
+    )""",
 ]
 
 START_BALANCE = 1000  # таджикоинов у каждого на старте
@@ -499,6 +530,13 @@ class Database:
                 (chat_id, user_id, int(is_member), utcnow_iso() if checked else None),
             )
 
+    def member_status(self, chat_id: int, user_id: int) -> Optional[bool]:
+        """True — в беседе, False — ушёл, None — бот о таком не знает."""
+        row = self.conn.execute(
+            "SELECT is_member FROM chat_members WHERE chat_id = ? AND user_id = ?", (chat_id, user_id)
+        ).fetchone()
+        return None if row is None else bool(row["is_member"])
+
     def get_member_rows(self, chat_id: int) -> list[dict]:
         rows = self.conn.execute(
             "SELECT user_id, is_member, checked_at FROM chat_members WHERE chat_id = ?", (chat_id,)
@@ -738,16 +776,85 @@ class Database:
             )
             return cursor.rowcount == 1
 
-    def pay_out(self, chat_id: int, user_id: int, bet: int, payout: int) -> int:
-        """Выплата после игры (payout — сколько вернуть вместе со ставкой). Возвращает новый баланс."""
+    @staticmethod
+    def _record_game(c: sqlite3.Connection, chat_id: int, user_id: int, game: str,
+                     wagered: int, returned: int, special: bool):
+        c.execute(
+            "UPDATE wallets SET games = games + 1, won = won + ?, lost = lost + ? WHERE chat_id = ? AND user_id = ?",
+            (max(returned - wagered, 0), max(wagered - returned, 0), chat_id, user_id),
+        )
+        c.execute(
+            """
+            INSERT INTO casino_stats (chat_id, user_id, game, plays, wagered, returned, best_win, special)
+            VALUES (?, ?, ?, 1, ?, ?, ?, ?)
+            ON CONFLICT(chat_id, user_id, game) DO UPDATE SET
+                plays    = plays + 1,
+                wagered  = wagered + excluded.wagered,
+                returned = returned + excluded.returned,
+                best_win = MAX(best_win, excluded.best_win),
+                special  = special + excluded.special
+            """,
+            (chat_id, user_id, game, wagered, returned, max(returned - wagered, 0), int(special)),
+        )
+
+    def casino_settle(self, chat_id: int, user_id: int, game: str, bet: int, payout: int,
+                      special: bool = False) -> int:
+        """Выплата после игры, ставка уже списана take_bet (payout — сколько вернуть вместе со ставкой).
+        Возвращает новый баланс."""
         with self._tx() as c:
             self._ensure_wallet(c, chat_id, user_id)
-            c.execute(
-                "UPDATE wallets SET balance = balance + ?, games = games + 1, won = won + ?, lost = lost + ? "
-                "WHERE chat_id = ? AND user_id = ?",
-                (payout, max(payout - bet, 0), max(bet - payout, 0), chat_id, user_id),
-            )
+            c.execute("UPDATE wallets SET balance = balance + ? WHERE chat_id = ? AND user_id = ?",
+                      (payout, chat_id, user_id))
+            self._record_game(c, chat_id, user_id, game, bet, payout, special)
             return self._balance(c, chat_id, user_id)
+
+    def casino_russian_roulette(self, chat_id: int, user_id: int, delta: int, died: bool) -> int:
+        """Выстрел в русской рулетке: награда за храбрость или штраф на похороны."""
+        with self._tx() as c:
+            self._ensure_wallet(c, chat_id, user_id)
+            c.execute("UPDATE wallets SET balance = MAX(0, balance + ?) WHERE chat_id = ? AND user_id = ?",
+                      (delta, chat_id, user_id))
+            self._record_game(c, chat_id, user_id, "rr", max(-delta, 0), max(delta, 0), died)
+            return self._balance(c, chat_id, user_id)
+
+    def get_blackjack_hand(self, chat_id: int, user_id: int) -> Optional[dict]:
+        row = self.conn.execute(
+            "SELECT hand FROM blackjack_hands WHERE chat_id = ? AND user_id = ?", (chat_id, user_id)
+        ).fetchone()
+        return json.loads(row["hand"]) if row else None
+
+    def save_blackjack_hand(self, chat_id: int, user_id: int, hand: dict):
+        with self._tx() as c:
+            c.execute(
+                "INSERT INTO blackjack_hands (chat_id, user_id, hand, created_at) VALUES (?, ?, ?, ?) "
+                "ON CONFLICT(chat_id, user_id) DO UPDATE SET hand = excluded.hand",
+                (chat_id, user_id, json.dumps(hand), utcnow_iso()),
+            )
+
+    def finish_blackjack(self, chat_id: int, user_id: int, stake: int, payout: int, blackjack: bool) -> int:
+        """Убирает раздачу и выплачивает выигрыш одной транзакцией. Возвращает новый баланс."""
+        with self._tx() as c:
+            c.execute("DELETE FROM blackjack_hands WHERE chat_id = ? AND user_id = ?", (chat_id, user_id))
+            self._ensure_wallet(c, chat_id, user_id)
+            c.execute("UPDATE wallets SET balance = balance + ? WHERE chat_id = ? AND user_id = ?",
+                      (payout, chat_id, user_id))
+            self._record_game(c, chat_id, user_id, "blackjack", stake, payout, blackjack)
+            return self._balance(c, chat_id, user_id)
+
+    def get_casino_stats(self, chat_id: int, user_id: int) -> list[dict]:
+        rows = self.conn.execute(
+            "SELECT * FROM casino_stats WHERE chat_id = ? AND user_id = ? ORDER BY plays DESC", (chat_id, user_id)
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def get_casino_totals(self, chat_id: int) -> dict[str, dict]:
+        """Итоги по каждой игре в беседе."""
+        rows = self.conn.execute(
+            "SELECT game, SUM(plays) AS plays, SUM(wagered) AS wagered, SUM(returned) AS returned, "
+            "SUM(special) AS special FROM casino_stats WHERE chat_id = ? GROUP BY game",
+            (chat_id,),
+        ).fetchall()
+        return {r["game"]: dict(r) for r in rows}
 
     def claim_bonus(self, chat_id: int, user_id: int, day: str, amount: int) -> Optional[int]:
         """Ежедневный бонус. None — сегодня уже получали."""
@@ -817,4 +924,33 @@ class Database:
     def wealth_place(self, chat_id: int, balance: int) -> int:
         return 1 + self.conn.execute(
             f"SELECT COUNT(*) {self._RICH_FILTER} AND w.balance > ?", (chat_id, balance)
+        ).fetchone()[0]
+
+    # ── Донаты ─────────────────────────────────────────────────────────────────
+
+    def add_donation(self, chat_id: int, user_id: int, amount: int, message: str, status: str = "pending") -> int:
+        with self._tx(important=True) as c:
+            cursor = c.execute(
+                "INSERT INTO donations (chat_id, user_id, amount, message, status, created_at, decided_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (chat_id, user_id, amount, message, status, utcnow_iso(), None if status == "pending" else utcnow_iso()),
+            )
+            return cursor.lastrowid
+
+    def get_donation(self, donation_id: int) -> Optional[dict]:
+        row = self.conn.execute("SELECT * FROM donations WHERE id = ?", (donation_id,)).fetchone()
+        return dict(row) if row else None
+
+    def decide_donation(self, donation_id: int, status: str) -> bool:
+        """Подтвердить или отклонить. False — донат уже кто-то решил раньше."""
+        with self._tx(important=True) as c:
+            cursor = c.execute(
+                "UPDATE donations SET status = ?, decided_at = ? WHERE id = ? AND status = 'pending'",
+                (status, utcnow_iso(), donation_id),
+            )
+            return cursor.rowcount == 1
+
+    def count_pending_donations(self, user_id: int) -> int:
+        return self.conn.execute(
+            "SELECT COUNT(*) FROM donations WHERE user_id = ? AND status = 'pending'", (user_id,)
         ).fetchone()[0]

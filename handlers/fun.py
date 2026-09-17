@@ -171,6 +171,24 @@ async def cmd_who(message: Message, command: CommandObject):
     await message.reply(f"❓ <i>{escape(question, quote=False)}</i>\n{answer}")
 
 
+# ── /dnd ──────────────────────────────────────────────────────────────────────
+
+
+@router.message(Command("dnd", "днд"))
+async def cmd_dnd(message: Message):
+    user_id = message.from_user.id
+    if not await limits.allow(message, "dnd"):
+        return
+    limits.mark(message.chat.id, user_id, "dnd")
+    event = random.choice(texts.DND_EVENTS)
+    if "{member}" in event:
+        member_id = None
+        if members.is_group(message.chat):
+            member_id = await members.random_member(message.chat.id, exclude={user_id})
+        event = event.format(member=members.display_name(member_id) if member_id else "Случайный прохожий")
+    await message.reply(texts.DND_TEMPLATE.format(name=f"<b>{members.display_name(user_id)}</b>", event=event))
+
+
 # ── /orgy ─────────────────────────────────────────────────────────────────────
 
 

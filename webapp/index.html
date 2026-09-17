@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0a0f0c">
+  <title>Золотой казан</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="stylesheet" href="static/casino.css?v={{VERSION}}">
+</head>
+<body>
+  <div class="app" id="app">
+    <header class="topbar">
+      <div class="brand"><span class="brand-icon" aria-hidden="true">🍲</span><span>Золотой казан</span></div>
+      <div class="wallet" id="wallet" aria-label="Баланс"><span aria-hidden="true">🪙</span><span id="balance">—</span></div>
+    </header>
+
+    <div class="spam-banner" id="spam-banner" hidden>🔥 Спам-день! Русская рулетка перезаряжается за секунды — до 23:59</div>
+
+    <main>
+      <!-- ─── Лобби ─── -->
+      <section class="screen active" data-screen="lobby">
+        <div class="card hero">
+          <div class="hero-hello" id="hello">Открываем казино…</div>
+          <div class="hero-balance"><span id="hero-balance">—</span></div>
+          <div class="hero-sub"><span id="hero-currency">таджикоинов</span> · <span id="hero-place"></span></div>
+        </div>
+
+        <div class="card tajik-banner" id="tajik-banner" hidden></div>
+
+        <button class="card bonus" id="bonus-btn" type="button" disabled>
+          <span class="bonus-icon" aria-hidden="true">🎁</span>
+          <span class="bonus-text">
+            <b id="bonus-title">Ежедневный бонус</b>
+            <small id="bonus-sub">150–400 таджикоинов раз в день</small>
+          </span>
+          <span class="bonus-arrow" aria-hidden="true">›</span>
+        </button>
+
+        <div class="games">
+          <button class="game-tile blackjack wide" data-go="blackjack" type="button">
+            <span class="tile-icon">🃏</span><b>Блэкджек и шлюхи</b><small>«Построим своё казино — с блэкджеком и шлюхами!»</small>
+          </button>
+          <button class="game-tile roulette" data-go="roulette" type="button">
+            <span class="tile-icon">🎡</span><b>Рулетка</b><small>до ×36</small>
+          </button>
+          <button class="game-tile slots" data-go="slots" type="button">
+            <span class="tile-icon">🎰</span><b>Слоты</b><small>до ×100</small>
+          </button>
+          <button class="game-tile coin" data-go="coin" type="button">
+            <span class="tile-icon">🪙</span><b>Монетка</b><small>×2</small>
+          </button>
+          <button class="game-tile rr" data-go="rr" type="button">
+            <span class="tile-icon">🔫</span><b>Русская рулетка</b><small>1 патрон из 6</small>
+          </button>
+        </div>
+
+        <h2 class="section-title">🏦 Форбс Таджикистана</h2>
+        <ol class="card top-list" id="top-list"></ol>
+
+        <h2 class="section-title">📰 Лента казино</h2>
+        <ul class="card feed" id="feed"><li class="empty">Пока тихо. Сыграй первым!</li></ul>
+
+        <div class="my-stats" id="my-stats"></div>
+
+        <button class="donate-link" id="donate-link" type="button" hidden>☕ Поддержать казан</button>
+      </section>
+
+      <!-- ─── Блэкджек ─── -->
+      <section class="screen" data-screen="blackjack">
+        <div class="bj-table">
+          <div class="bj-sign">Блэкджек <span>и шлюхи</span></div>
+          <div class="bj-quote">«Построим своё казино — с блэкджеком и шлюхами!»</div>
+
+          <div class="bj-side">
+            <div class="bj-label">Дилер <span class="bj-total" id="bj-dealer-total" hidden></span></div>
+            <div class="bj-cards" id="bj-dealer"></div>
+          </div>
+
+          <div class="bj-message" id="bj-message">Делайте ставки, господа 🎩</div>
+
+          <div class="bj-side">
+            <div class="bj-cards" id="bj-player"></div>
+            <div class="bj-label">Ты <span class="bj-total" id="bj-player-total" hidden></span></div>
+          </div>
+        </div>
+
+        <div id="bj-betting">
+          <div class="bet-control" data-bet-control></div>
+          <button class="play-btn" id="bj-deal" type="button">Раздать</button>
+        </div>
+        <div class="bj-actions" id="bj-actions" hidden>
+          <button class="bj-action" id="bj-hit" type="button">Ещё</button>
+          <button class="bj-action" id="bj-stand" type="button">Хватит</button>
+          <button class="bj-action double" id="bj-double" type="button">Удвоить</button>
+        </div>
+        <p class="hint">Блэкджек платит 3:2, дилер останавливается на 17. Удвоить можно на первых двух картах.</p>
+      </section>
+
+      <!-- ─── Рулетка ─── -->
+      <section class="screen" data-screen="roulette">
+        <div class="wheel-wrap">
+          <svg class="wheel" viewBox="0 0 320 320" aria-label="Колесо рулетки">
+            <defs>
+              <radialGradient id="rim-grad" cx="50%" cy="40%" r="60%">
+                <stop offset="0%" stop-color="#ffe7a3"/>
+                <stop offset="55%" stop-color="#d9a32b"/>
+                <stop offset="100%" stop-color="#7a5310"/>
+              </radialGradient>
+              <radialGradient id="cone-grad" cx="50%" cy="45%" r="55%">
+                <stop offset="0%" stop-color="#6b3f1d"/>
+                <stop offset="100%" stop-color="#2b1709"/>
+              </radialGradient>
+              <radialGradient id="hub-grad" cx="45%" cy="35%" r="65%">
+                <stop offset="0%" stop-color="#fff2c4"/>
+                <stop offset="60%" stop-color="#e2ad3a"/>
+                <stop offset="100%" stop-color="#8a5d12"/>
+              </radialGradient>
+            </defs>
+            <circle cx="160" cy="160" r="158" fill="url(#rim-grad)"/>
+            <circle cx="160" cy="160" r="150" fill="#1a120b"/>
+            <g id="wheel-rotor" class="wheel-rotor"></g>
+            <g id="wheel-ball" class="wheel-ball"><circle id="ball-dot" class="ball-dot" cx="160" cy="40" r="7"/></g>
+            <polygon class="wheel-pointer" points="150,0 170,0 160,18"/>
+          </svg>
+          <div class="wheel-result" id="wheel-result" hidden></div>
+        </div>
+
+        <div class="history" id="roulette-history" aria-label="Последние числа"></div>
+
+        <div class="bet-kinds" id="bet-kinds"></div>
+        <div class="numbers" id="numbers" hidden></div>
+
+        <div class="bet-control" data-bet-control></div>
+        <button class="play-btn" id="roulette-play" type="button">Крутить</button>
+      </section>
+
+      <!-- ─── Слоты ─── -->
+      <section class="screen" data-screen="slots">
+        <div class="machine">
+          <div class="machine-lights" aria-hidden="true"></div>
+          <div class="machine-title">ЗОЛОТОЙ КАЗАН</div>
+          <div class="reels" id="reels">
+            <div class="reel"><div class="strip"></div></div>
+            <div class="reel"><div class="strip"></div></div>
+            <div class="reel"><div class="strip"></div></div>
+            <div class="payline" aria-hidden="true"></div>
+          </div>
+          <div class="machine-message" id="slots-message">Крути барабаны!</div>
+        </div>
+
+        <div class="bet-control" data-bet-control></div>
+        <button class="play-btn" id="slots-play" type="button">Крутить</button>
+
+        <details class="card paytable">
+          <summary>Таблица выплат</summary>
+          <ul>
+            <li><span>7️⃣ 7️⃣ 7️⃣</span><b>×100</b></li>
+            <li><span>💎 💎 💎</span><b>×40</b></li>
+            <li><span>🔔 🔔 🔔</span><b>×20</b></li>
+            <li><span>🍇 🍇 🍇</span><b>×12</b></li>
+            <li><span>🍋 🍋 🍋</span><b>×8</b></li>
+            <li><span>🍒 🍒 🍒</span><b>×6</b></li>
+            <li><span>7️⃣ 7️⃣ и любой</span><b>×4</b></li>
+            <li><span>Два одинаковых</span><b>ставка назад</b></li>
+          </ul>
+        </details>
+      </section>
+
+      <!-- ─── Монетка ─── -->
+      <section class="screen" data-screen="coin">
+        <div class="coin-stage">
+          <div class="coin-toss" id="coin-toss">
+            <div class="coin" id="coin">
+              <div class="coin-face heads">🦅</div>
+              <div class="coin-face tails">👑</div>
+              <div class="coin-edge"></div>
+            </div>
+          </div>
+          <div class="coin-shadow" id="coin-shadow"></div>
+        </div>
+        <div class="coin-message" id="coin-message">Орёл или решка?</div>
+
+        <div class="segmented" id="coin-side">
+          <button type="button" data-side="heads" class="active">🦅 Орёл</button>
+          <button type="button" data-side="tails">👑 Решка</button>
+        </div>
+
+        <div class="bet-control" data-bet-control></div>
+        <button class="play-btn" id="coin-play" type="button">Подбросить</button>
+      </section>
+
+      <!-- ─── Русская рулетка ─── -->
+      <section class="screen" data-screen="rr">
+        <div class="rr-stage" id="rr-stage">
+          <svg class="cylinder" viewBox="0 0 240 240" aria-label="Барабан револьвера">
+            <defs>
+              <radialGradient id="steel" cx="40%" cy="35%" r="70%">
+                <stop offset="0%" stop-color="#8e969e"/>
+                <stop offset="55%" stop-color="#4a5057"/>
+                <stop offset="100%" stop-color="#1e2226"/>
+              </radialGradient>
+              <radialGradient id="hole" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#000"/>
+                <stop offset="100%" stop-color="#2a2e33"/>
+              </radialGradient>
+            </defs>
+            <g id="cylinder-rotor" class="cylinder-rotor">
+              <circle cx="120" cy="120" r="104" fill="url(#steel)" stroke="#15181b" stroke-width="4"/>
+              <g id="chambers"></g>
+              <circle cx="120" cy="120" r="16" fill="#2b3035" stroke="#6f777f" stroke-width="3"/>
+            </g>
+            <polygon class="hammer" points="108,0 132,0 120,14"/>
+          </svg>
+          <div class="rr-message" id="rr-message">Барабан на шесть гнёзд общий для всей беседы</div>
+        </div>
+
+        <div class="card rr-info">
+          <div class="rr-stat"><small>Осталось гнёзд</small><b id="rr-left">6</b></div>
+          <div class="rr-stat"><small>Шанс умереть</small><b id="rr-chance">1/6</b></div>
+          <div class="rr-stat"><small>За храбрость</small><b id="rr-reward">+50</b></div>
+        </div>
+        <p class="hint">Не повезло — минус 20% кошелька на похороны (минимум 100). Стрелять можно раз в 20 минут.</p>
+
+        <button class="play-btn danger" id="rr-play" type="button">Нажать на спуск</button>
+        <ul class="card feed" id="rr-feed"></ul>
+      </section>
+    </main>
+
+    <nav class="tabbar" aria-label="Разделы">
+      <button type="button" data-tab="lobby" class="active"><span>🏠</span><small>Лобби</small></button>
+      <button type="button" data-tab="roulette"><span>🎡</span><small>Рулетка</small></button>
+      <button type="button" data-tab="slots"><span>🎰</span><small>Слоты</small></button>
+      <button type="button" data-tab="blackjack"><span>🃏</span><small>Блэкджек</small></button>
+      <button type="button" data-tab="coin"><span>🪙</span><small>Монетка</small></button>
+      <button type="button" data-tab="rr"><span>🔫</span><small>Русская</small></button>
+    </nav>
+  </div>
+
+  <div class="gate" id="gate" hidden>
+    <div class="gate-box">
+      <div class="gate-icon">🍲</div>
+      <h1>Золотой казан</h1>
+      <p id="gate-text">Открой казино кнопкой в Telegram-беседе.</p>
+      <button class="play-btn" id="gate-retry" type="button">Попробовать ещё раз</button>
+    </div>
+  </div>
+
+  <div class="sheet-backdrop" id="donate-sheet" hidden>
+    <form class="sheet" id="donate-form">
+      <div class="sheet-handle"></div>
+      <h2>☕ Поддержать казан</h2>
+      <p class="sheet-text">Переведи сколько не жалко по СБП:</p>
+      <div class="donate-details">
+        <div class="donate-phone">
+          <small>⚡ СБП · по номеру телефона</small>
+          <code id="donate-phone"></code>
+          <small id="donate-bank" hidden></small>
+        </div>
+        <button class="copy-btn" id="donate-copy" type="button">Скопировать</button>
+      </div>
+      <p class="sheet-note">В приложении банка: «Платежи» → «По номеру телефона».</p>
+      <label class="field">
+        <span>Сколько перевёл(а), ₽</span>
+        <input id="donate-amount" type="number" inputmode="numeric" min="10" step="1" placeholder="300" required>
+      </label>
+      <label class="field">
+        <span>Сообщение для беседы (необязательно)</span>
+        <textarea id="donate-message" maxlength="200" rows="2" placeholder="На плов и шлюх"></textarea>
+      </label>
+      <button class="play-btn" id="donate-send" type="submit">Я перевёл(а)</button>
+      <p class="hint">Бот не видит банковские переводы: донат появится в беседе, когда хозяин его подтвердит.</p>
+    </form>
+  </div>
+
+  <div class="flash" id="flash"></div>
+  <canvas class="confetti" id="confetti"></canvas>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="static/casino.js?v={{VERSION}}"></script>
+</body>
+</html>
