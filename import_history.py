@@ -1,9 +1,13 @@
 """
 import_history.py — загружает экспорт истории Telegram (result.json) в базу бота.
 
-Запуск вручную:  python import_history.py result.json
-Автоматический:  бот сам вызывает load_history_if_exists() при старте;
-                 если файл уже был импортирован — пропустит.
+Автоматически: положи result.json рядом с bot.py (или в папку с базой) и перезапусти бота.
+Вручную:       python import_history.py result.json
+
+Что импортируется:
+  - статистика сообщений и слов — если этот чат ещё не импортировался;
+  - последние 20 000 сообщений для сглыпа-режима — если ещё не импортировались.
+Что уже импортировано, записано в самой базе, так что повторный запуск ничего не задвоит.
 
 Как получить result.json:
   Telegram Desktop → название беседы → ⋮ → Экспорт истории чата
@@ -14,154 +18,215 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import re
 import sys
-from collections import Counter
-from datetime import datetime
-from typing import Any
+from collections import Counter, deque
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Iterator
 
-from db import Database
+from db import SUPERGROUP_ID_SHIFT, Database, utcnow_iso
+from textstats import extract_words, is_corpus_worthy
 
 logger = logging.getLogger(__name__)
 
-HISTORY_FILE = os.getenv("HISTORY_FILE", "result.json")
-IMPORT_STAMP = "history_imported.stamp"   # сигнальный файл — уже импортировано
-
-WORD_RE = re.compile(r"[A-Za-zА-Яа-яЁё0-9]{3,}")
-COMMON_STOP_WORDS = {
-    "это", "как", "что", "чтобы", "или", "его", "ее", "её", "она", "они", "оно", "при", "про", "для",
-    "без", "под", "над", "тут", "там", "пока", "если", "где", "когда", "потом", "тогда", "типа",
-    "блин", "бля", "ага", "нет", "да", "тоже", "ещё", "еще", "только", "очень", "просто", "мне",
-    "тебе", "тебя", "меня", "нас", "вам", "вот", "короче", "чето", "что-то", "какой", "какая",
-    "который", "которая", "чел", "люди", "будет", "было", "были", "есть", "нету", "уже", "щас",
-}
+MAX_PHRASES = 20_000
+_CHUNK = 1 << 20
+_MESSAGES_KEY_RE = re.compile(r'"messages"\s*:\s*\[')
+_ID_RE = re.compile(r'"id"\s*:\s*(-?\d+)')
+_TYPE_RE = re.compile(r'"type"\s*:\s*"([^"]+)"')
 
 
-def _extract_words(text: str) -> list[str]:
-    words = [w.lower() for w in WORD_RE.findall(text or "")]
-    return [w for w in words if w not in COMMON_STOP_WORDS]
+def read_export(path: Path) -> tuple[int | None, str | None, Iterator[dict[str, Any]]]:
+    """Потоковое чтение экспорта: файл может весить сотни мегабайт, а памяти на хостинге мало.
+    Возвращает (id чата из экспорта, тип чата, итератор сообщений)."""
+    f = open(path, encoding="utf-8")
+    buffer = ""
+    while True:
+        match = _MESSAGES_KEY_RE.search(buffer)
+        if match:
+            break
+        chunk = f.read(_CHUNK)
+        if not chunk:
+            f.close()
+            raise ValueError("в файле нет списка messages — это точно экспорт одной беседы?")
+        buffer += chunk
+    header = buffer[:match.start()]
+    id_match, type_match = _ID_RE.search(header), _TYPE_RE.search(header)
+    export_id = int(id_match.group(1)) if id_match else None
+    export_type = type_match.group(1) if type_match else None
+
+    def messages() -> Iterator[dict[str, Any]]:
+        nonlocal buffer
+        decoder = json.JSONDecoder()
+        pos = match.end()
+        try:
+            while True:
+                while pos < len(buffer) and buffer[pos] in " \t\r\n,":
+                    pos += 1
+                if pos >= len(buffer):
+                    chunk = f.read(_CHUNK)
+                    if not chunk:
+                        return
+                    buffer, pos = buffer[pos:] + chunk, 0
+                    continue
+                if buffer[pos] == "]":
+                    return
+                try:
+                    item, end = decoder.raw_decode(buffer, pos)
+                except json.JSONDecodeError:
+                    chunk = f.read(_CHUNK)
+                    if not chunk:
+                        raise
+                    buffer, pos = buffer[pos:] + chunk, 0
+                    continue
+                pos = end
+                if isinstance(item, dict):
+                    yield item
+                if pos > _CHUNK:
+                    buffer, pos = buffer[pos:], 0
+        finally:
+            f.close()
+
+    return export_id, export_type, messages()
+
+
+def bot_chat_id(export_id: int, export_type: str | None) -> int:
+    """Экспорт хранит id без префикса: супергруппа 3706796442 для бота — это -1003706796442."""
+    if export_id < 0 or export_type in ("personal_chat", "bot_chat", "saved_messages"):
+        return export_id
+    if export_type == "private_group":
+        return -export_id
+    return -(SUPERGROUP_ID_SHIFT + export_id)
 
 
 def _message_text(msg: dict[str, Any]) -> str:
-    """Достаёт текст из сообщения Telegram JSON-экспорта.
-    Поле text может быть строкой или списком кусков.
-    """
+    """Поле text бывает строкой или списком кусков с разметкой."""
     raw = msg.get("text", "")
     if isinstance(raw, str):
         return raw
     if isinstance(raw, list):
-        parts = []
-        for chunk in raw:
-            if isinstance(chunk, str):
-                parts.append(chunk)
-            elif isinstance(chunk, dict):
-                parts.append(chunk.get("text", ""))
-        return "".join(parts)
+        return "".join(chunk if isinstance(chunk, str) else chunk.get("text", "") for chunk in raw)
     return ""
 
 
-def import_history(path: str, db: Database, chat_id: int | None = None) -> dict[str, int]:
-    """Импортирует result.json в базу.
-    Возвращает статистику: {'messages': N, 'users': M}.
-    """
-    with open(path, encoding="utf-8") as f:
-        data = json.load(f)
+def _author_id(msg: dict[str, Any]) -> int | None:
+    raw = msg.get("from_id", "")
+    if isinstance(raw, int):
+        return raw
+    if isinstance(raw, str) and raw.startswith("user"):
+        try:
+            return int(raw[4:])
+        except ValueError:
+            return None
+    return None
 
-    messages: list[dict] = data if isinstance(data, list) else data.get("messages", [])
 
+def _message_time(msg: dict[str, Any]) -> str | None:
+    try:
+        stamp = int(msg["date_unixtime"])
+    except (KeyError, TypeError, ValueError):
+        return None
+    return datetime.fromtimestamp(stamp, timezone.utc).replace(tzinfo=None).isoformat()
+
+
+def import_history(path: Path, db: Database, chat_id: int | None = None) -> dict[str, int]:
+    export_id, export_type, messages = read_export(path)
     if chat_id is None:
-        chat_id = data.get("id") if isinstance(data, dict) else None
-    if chat_id is None:
-        chat_id = 0
+        if export_id is None:
+            raise ValueError("не нашёл id беседы в экспорте")
+        chat_id = bot_chat_id(export_id, export_type)
 
-    db.remember_chat(chat_id)
+    stats_done = db.get_meta(f"history_import:{chat_id}") is not None
+    phrases_done = db.get_meta(f"phrases_import:{chat_id}") is not None
+    result = {"messages": 0, "users": 0, "phrases": 0}
+    if stats_done and phrases_done:
+        return result
 
-    # user_id → {message_count, word_count, words: Counter}
     users: dict[int, dict] = {}
-
-    skipped = 0
+    phrases: deque[tuple[int, str]] = deque(maxlen=MAX_PHRASES)
     for msg in messages:
         if msg.get("type") != "message":
             continue
-        from_id_raw = msg.get("from_id", "")
-        if isinstance(from_id_raw, str) and from_id_raw.startswith("user"):
-            try:
-                user_id = int(from_id_raw[4:])
-            except ValueError:
-                skipped += 1
-                continue
-        elif isinstance(from_id_raw, int):
-            user_id = from_id_raw
-        else:
-            skipped += 1
-            continue
-
+        user_id = _author_id(msg)
         text = _message_text(msg)
-        if not text or text.startswith("/"):
+        if user_id is None or not text or text.startswith("/"):
             continue
+        if not stats_done:
+            words = extract_words(text)
+            user = users.setdefault(
+                user_id, {"message_count": 0, "word_count": 0, "words": Counter(), "last": None, "name": ""}
+            )
+            user["message_count"] += 1
+            user["word_count"] += len(words)
+            user["words"].update(words)
+            user["last"] = _message_time(msg) or user["last"]
+            user["name"] = msg.get("from") or user["name"]
+        if not phrases_done and not msg.get("forwarded_from") and not msg.get("via_bot") and is_corpus_worthy(text):
+            phrases.append((user_id, text))
 
-        words = _extract_words(text)
+    if not stats_done:
+        for user_id, user in users.items():
+            # Имя из экспорта — это имя из контактов того, кто экспортировал. Берём его, только если
+            # другого нет; настоящее имя бот узнает, когда сверит участников или человек напишет сам.
+            db.add_user_if_missing(user_id, user["name"])
+            db.bulk_import_stats(
+                chat_id, user_id, user["message_count"], user["word_count"], dict(user["words"]), user["last"]
+            )
+        db.set_meta(f"history_import:{chat_id}", utcnow_iso(), important=True)
+        result["messages"] = sum(u["message_count"] for u in users.values())
+        result["users"] = len(users)
+    if not phrases_done:
+        bots = {uid for uid in {uid for uid, _ in phrases} if (db.get_user(uid) or {}).get("is_bot")}
+        rows = [(uid, text) for uid, text in phrases if uid not in bots]
+        db.import_phrases(chat_id, rows)
+        db.set_meta(f"phrases_import:{chat_id}", utcnow_iso(), important=True)
+        result["phrases"] = len(rows)
+    db.remember_chat(chat_id)
+    return result
 
-        if user_id not in users:
-            users[user_id] = {
-                "message_count": 0,
-                "word_count": 0,
-                "words": Counter(),
-            }
-        u = users[user_id]
-        u["message_count"] += 1
-        u["word_count"] += len(words)
-        u["words"].update(words)
 
-    # Записываем только статистику — имена не трогаем.
-    # ensure_user не вызываем: имена из JSON-экспорта берутся из контактов
-    # владельца экспорта и могут не совпадать с реальными именами в Telegram.
-    # Бот запомнит настоящие имена когда юзеры напишут в чат сами.
-    for user_id, u in users.items():
-        db.bulk_import_stats(
-            chat_id=chat_id,
-            user_id=user_id,
-            message_count=u["message_count"],
-            word_count=u["word_count"],
-            words=dict(u["words"]),
-        )
+def find_history_file() -> Path | None:
+    from config import BASE_DIR, DB_PATH, HISTORY_FILE
 
-    logger.info(
-        "import_history: processed %d messages, %d users, %d skipped",
-        sum(u["message_count"] for u in users.values()),
-        len(users),
-        skipped,
-    )
-    return {"messages": sum(u["message_count"] for u in users.values()), "users": len(users)}
+    for candidate in (Path(HISTORY_FILE), BASE_DIR / HISTORY_FILE, DB_PATH.parent / HISTORY_FILE):
+        if candidate.is_file():
+            return candidate
+    return None
 
 
 def load_history_if_exists(db: Database) -> bool:
-    """Вызывается ботом при старте.
-    Если result.json есть и stamp-файла нет — импортирует и ставит stamp.
-    Возвращает True, если импорт был выполнен.
-    """
-    if os.path.exists(IMPORT_STAMP):
-        return False
-    if not os.path.exists(HISTORY_FILE):
+    """Вызывается ботом при старте. Возвращает True, если что-то импортировалось."""
+    path = find_history_file()
+    if not path:
         return False
     try:
-        stats = import_history(HISTORY_FILE, db)
-        with open(IMPORT_STAMP, "w") as f:
-            f.write(datetime.utcnow().isoformat())
-        logger.info("History imported: %s messages, %s users", stats["messages"], stats["users"])
-        return True
-    except Exception as exc:
-        logger.error("Failed to import history: %s", exc)
+        stats = import_history(path, db)
+    except Exception:
+        logger.exception("Не получилось импортировать историю из %s", path)
         return False
+    if any(stats.values()):
+        logger.info(
+            "История импортирована из %s: %s сообщений от %s человек, %s фраз для сглыпы",
+            path, stats["messages"], stats["users"], stats["phrases"],
+        )
+        return True
+    return False
 
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    path = sys.argv[1] if len(sys.argv) > 1 else HISTORY_FILE
-    if not os.path.exists(path):
-        print(f"Файл не найден: {path}")
+    from config import DB_PATH
+
+    file_path = Path(sys.argv[1] if len(sys.argv) > 1 else "result.json")
+    if not file_path.is_file():
+        print(f"Файл не найден: {file_path}")
         sys.exit(1)
-    db = Database()
-    stats = import_history(path, db)
-    print(f"✅ Импорт завершён: {stats['messages']} сообщений, {stats['users']} пользователей")
+    database = Database(DB_PATH)
+    database.open()
+    stats = import_history(file_path, database)
+    database.close()
+    print(
+        f"✅ Импорт завершён: {stats['messages']} сообщений, {stats['users']} пользователей, "
+        f"{stats['phrases']} фраз для сглыпы"
+    )

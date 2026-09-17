@@ -1,7 +1,20 @@
 .env
-bot.db
 __pycache__/
 *.pyc
 *.pyo
 .venv/
 venv/
+.idea/
+
+# база и всё, что с ней связано
+data/
+bot.db
+bot.db-wal
+bot.db-shm
+*.moved
+*.before-restore
+*.before-legacy
+
+# экспорт истории чата
+result.json
+history_imported.stamp

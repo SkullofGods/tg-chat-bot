@@ -1,0 +1,20 @@
+from aiogram import Router
+
+from . import casino, chat, debug, family, fun, profile, service, stats, tajik_day
+
+
+def build_router() -> Router:
+    router = Router(name="root")
+    # Порядок важен: chat ловит все остальные сообщения, поэтому он последний
+    router.include_routers(
+        debug.router,
+        service.router,
+        profile.router,
+        family.router,
+        fun.router,
+        casino.router,
+        tajik_day.router,
+        stats.router,
+        chat.router,
+    )
+    return router
