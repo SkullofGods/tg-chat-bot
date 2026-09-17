@@ -11,7 +11,7 @@ from aiogram.types import CallbackQuery, Message
 import donations
 import members
 import texts
-from casino_engine import GameError
+from casino_engine import GameError, signed
 from config import OWNER_ID
 from loader import db
 
@@ -35,14 +35,15 @@ async def cmd_donate(message: Message, command: CommandObject):
     args = (command.args or "").split(maxsplit=1)
     if not args or not args[0].isdigit():
         bank = f" ({escape(info['bank'], quote=False)})" if info["bank"] else ""
-        await message.answer(texts.DONATION_INFO.format(phone=info["pretty"], bank=bank))
+        await message.answer(texts.DONATION_INFO.format(phone=info["pretty"], bank=bank, rate=donations.COINS_PER_RUBLE))
         return
+    amount = int(args[0])
     try:
-        await donations.request(chat_id, message.from_user.id, int(args[0]), args[1] if len(args) > 1 else "")
+        await donations.request(chat_id, message.from_user.id, amount, args[1] if len(args) > 1 else "")
     except GameError as e:
         await message.answer(str(e))
         return
-    await message.answer(texts.DONATION_THANKS)
+    await message.answer(texts.DONATION_THANKS.format(coins=signed(donations.reward(amount))))
 
 
 @router.callback_query(F.data.startswith("don:"), F.from_user.id == OWNER_ID)
@@ -60,12 +61,16 @@ async def cmd_donated(message: Message, command: CommandObject):
     """/donated @username 500 сообщение — отметить донат, который пришёл мимо формы."""
     args = (command.args or "").split(maxsplit=2)
     if len(args) < 2 or not args[1].isdigit():
-        await message.answer("💸 <code>/donated @username 500 сообщение</code> — объявить донат в беседе")
+        await message.answer(
+            "💸 <code>/donated @username 500 сообщение</code> — объявить донат в беседе "
+            f"и начислить таджикоины (×{donations.COINS_PER_RUBLE})"
+        )
         return
     target_id, raw = members.resolve_target(message, args[0])
     chat_id = db.get_main_chat()
     if target_id in (None, -1) or chat_id is None:
         await message.answer(f"Не знаю такого человека: <code>{escape(raw or args[0])}</code>")
         return
-    await donations.add_confirmed(chat_id, target_id, int(args[1]), args[2] if len(args) > 2 else "")
-    await message.answer("Объявил в беседе ❤️")
+    amount = int(args[1])
+    await donations.add_confirmed(chat_id, target_id, amount, args[2] if len(args) > 2 else "")
+    await message.answer(f"Объявил в беседе ❤️ Начислил {signed(donations.reward(amount))}")

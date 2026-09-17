@@ -98,6 +98,21 @@ async def on_shutdown():
     db.close()
 
 
+def grant_by_nickname_once(key: str, nickname: str, amount: int):
+    """Разовое начисление одному человеку в главной беседе. Кого — определяем по нику в боте."""
+    if db.get_meta(f"grant:{key}") is not None:
+        return
+    chat_id = db.get_main_chat()
+    user_ids = db.find_users_by_nickname(nickname)
+    if chat_id is None or len(user_ids) != 1:
+        logger.warning("Разовое начисление %s не сделано: беседа %s, людей с ником «%s»: %s",
+                       key, chat_id, nickname, len(user_ids))
+        return
+    balance = db.grant_user_once(key, chat_id, user_ids[0], amount)
+    if balance is not None:
+        logger.info("Начислил «%s» %s таджикоинов, баланс: %s", nickname, amount, balance)
+
+
 async def main():
     logger.info("База: %s", DB_PATH)
     await backup.prepare_database()
@@ -105,6 +120,7 @@ async def main():
     granted = db.grant_once("welcome_1000", 1000)  # разовая раздача при запуске казино
     if granted:
         logger.info("Выдал по 1000 таджикоинов: %s участникам", granted)
+    grant_by_nickname_once("tajik_1900", "таджик", 1900)  # по просьбе хозяина, 17.09.2026
 
     dp.message.outer_middleware(TrackingMiddleware())
     dp.callback_query.outer_middleware(TrackingMiddleware())

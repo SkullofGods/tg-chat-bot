@@ -409,6 +409,12 @@ class Database:
         row = self.conn.execute("SELECT nickname FROM nicknames WHERE user_id = ?", (user_id,)).fetchone()
         return row["nickname"] if row else None
 
+    def find_users_by_nickname(self, nickname: str) -> list[int]:
+        """Кто носит этот ник (без учёта регистра: SQLite сам не умеет сравнивать кириллицу без регистра)."""
+        wanted = nickname.strip().casefold()
+        rows = self.conn.execute("SELECT user_id, nickname FROM nicknames").fetchall()
+        return [row["user_id"] for row in rows if row["nickname"].strip().casefold() == wanted]
+
     # ── Anketas ────────────────────────────────────────────────────────────────
 
     def save_anketa(self, user_id: int, text: str):
@@ -908,6 +914,19 @@ class Database:
             c.execute("INSERT INTO meta (key, value) VALUES (?, ?)", (meta_key, utcnow_iso()))
         return len(rows)
 
+    def grant_user_once(self, key: str, chat_id: int, user_id: int, amount: int) -> Optional[int]:
+        """Разовое начисление одному человеку. None — уже начисляли, иначе новый баланс."""
+        meta_key = f"grant:{key}"
+        with self._tx(important=True) as c:
+            if c.execute("SELECT 1 FROM meta WHERE key = ?", (meta_key,)).fetchone():
+                return None
+            self._ensure_wallet(c, chat_id, user_id)
+            c.execute(
+                "UPDATE wallets SET balance = balance + ? WHERE chat_id = ? AND user_id = ?", (amount, chat_id, user_id)
+            )
+            c.execute("INSERT INTO meta (key, value) VALUES (?, ?)", (meta_key, utcnow_iso()))
+            return self._balance(c, chat_id, user_id)
+
     _RICH_FILTER = (
         "FROM wallets w LEFT JOIN users u ON u.user_id = w.user_id "
         "LEFT JOIN chat_members cm ON cm.chat_id = w.chat_id AND cm.user_id = w.user_id "
@@ -928,27 +947,43 @@ class Database:
 
     # ── Донаты ─────────────────────────────────────────────────────────────────
 
-    def add_donation(self, chat_id: int, user_id: int, amount: int, message: str, status: str = "pending") -> int:
+    def _reward_donor(self, c: sqlite3.Connection, donation_id: int, coins_per_ruble: int):
+        """Таджикоины за подтверждённый донат — в той же транзакции, что и подтверждение."""
+        row = c.execute("SELECT chat_id, user_id, amount FROM donations WHERE id = ?", (donation_id,)).fetchone()
+        self._ensure_wallet(c, row["chat_id"], row["user_id"])
+        c.execute(
+            "UPDATE wallets SET balance = balance + ? WHERE chat_id = ? AND user_id = ?",
+            (row["amount"] * coins_per_ruble, row["chat_id"], row["user_id"]),
+        )
+
+    def add_donation(self, chat_id: int, user_id: int, amount: int, message: str,
+                     status: str = "pending", coins_per_ruble: int = 0) -> int:
         with self._tx(important=True) as c:
             cursor = c.execute(
                 "INSERT INTO donations (chat_id, user_id, amount, message, status, created_at, decided_at) "
                 "VALUES (?, ?, ?, ?, ?, ?, ?)",
                 (chat_id, user_id, amount, message, status, utcnow_iso(), None if status == "pending" else utcnow_iso()),
             )
+            if status == "confirmed" and coins_per_ruble:
+                self._reward_donor(c, cursor.lastrowid, coins_per_ruble)
             return cursor.lastrowid
 
     def get_donation(self, donation_id: int) -> Optional[dict]:
         row = self.conn.execute("SELECT * FROM donations WHERE id = ?", (donation_id,)).fetchone()
         return dict(row) if row else None
 
-    def decide_donation(self, donation_id: int, status: str) -> bool:
-        """Подтвердить или отклонить. False — донат уже кто-то решил раньше."""
+    def decide_donation(self, donation_id: int, status: str, coins_per_ruble: int = 0) -> bool:
+        """Подтвердить (и начислить таджикоины) или отклонить. False — донат уже кто-то решил раньше."""
         with self._tx(important=True) as c:
             cursor = c.execute(
                 "UPDATE donations SET status = ?, decided_at = ? WHERE id = ? AND status = 'pending'",
                 (status, utcnow_iso(), donation_id),
             )
-            return cursor.rowcount == 1
+            if cursor.rowcount != 1:
+                return False
+            if status == "confirmed" and coins_per_ruble:
+                self._reward_donor(c, donation_id, coins_per_ruble)
+            return True
 
     def count_pending_donations(self, user_id: int) -> int:
         return self.conn.execute(

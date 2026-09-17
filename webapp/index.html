@@ -793,6 +793,7 @@ button:disabled { cursor: default; }
 .donate-phone small { color: var(--muted); font-size: 12px; }
 .donate-phone code { font-size: 21px; font-weight: 800; color: var(--gold); letter-spacing: 0.02em; }
 .sheet-note { margin: 8px 2px 0; color: var(--muted); font-size: 13px; }
+.donate-reward { color: var(--gold); font-weight: 700; }
 .copy-btn { padding: 8px 12px; border-radius: 10px; font-weight: 700; font-size: 13px; background: var(--card-strong); }
 .field { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; font-size: 13px; color: var(--muted); }
 .field input, .field textarea {
@@ -1157,13 +1158,14 @@ body.dead::after {
       <label class="field">
         <span>Сколько перевёл(а), ₽</span>
         <input id="donate-amount" type="number" inputmode="numeric" min="10" step="1" placeholder="300" required>
+        <small class="donate-reward" id="donate-reward"></small>
       </label>
       <label class="field">
         <span>Сообщение для беседы (необязательно)</span>
         <textarea id="donate-message" maxlength="200" rows="2" placeholder="На плов и шлюх"></textarea>
       </label>
       <button class="play-btn" id="donate-send" type="submit">Я перевёл(а)</button>
-      <p class="hint">Бот не видит банковские переводы: донат появится в беседе, когда хозяин его подтвердит.</p>
+      <p class="hint">Бот не видит банковские переводы: донат появится в беседе, а таджикоины — на счету, когда хозяин его подтвердит.</p>
     </form>
   </div>
 
@@ -2073,8 +2075,17 @@ body.dead::after {
     const bank = $("#donate-bank");
     bank.hidden = !state.donate.bank;
     bank.textContent = state.donate.bank ? `Банк: ${state.donate.bank}` : "";
+    updateDonateReward();
     $("#donate-sheet").hidden = false;
     haptic.tap();
+  }
+
+  function updateDonateReward() {
+    const amount = Number($("#donate-amount").value);
+    const coins = amount * state.donate.coins_per_ruble;
+    $("#donate-reward").textContent = Number.isInteger(amount) && amount > 0
+      ? `🪙 В казино упадёт +${fmt(coins)} ${plural(coins, COIN_FORMS)}`
+      : `🪙 За каждый рубль — ${state.donate.coins_per_ruble} таджикоинов в казино`;
   }
 
   function closeDonate() {
@@ -2106,10 +2117,11 @@ body.dead::after {
     button.disabled = true;
     try {
       await api("donate", { amount, message: $("#donate-message").value });
+      const coins = amount * state.donate.coins_per_ruble;
       closeDonate();
       $("#donate-form").reset();
       haptic.notify("success");
-      toast("❤️ Спасибо! Донат появится в беседе после проверки", "win");
+      toast(`❤️ Спасибо! После проверки на счёт упадёт +${fmt(coins)} 🪙`, "win");
     } catch (error) {
       showError(error);
     } finally {
@@ -2224,6 +2236,7 @@ body.dead::after {
     $("#donate-link").addEventListener("click", openDonate);
     $("#donate-copy").addEventListener("click", copyDonateDetails);
     $("#donate-form").addEventListener("submit", sendDonate);
+    $("#donate-amount").addEventListener("input", updateDonateReward);
     $("#donate-sheet").addEventListener("click", (event) => {
       if (event.target.id === "donate-sheet") closeDonate();
     });
