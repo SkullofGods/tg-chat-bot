@@ -5,7 +5,6 @@
 ссылки на приложение (g1003706796442 → -1003706796442), без него — главная беседа.
 """
 
-import hashlib
 import json
 import logging
 import time
@@ -166,17 +165,10 @@ async def api_donate(request: web.Request) -> web.Response:
 # ── Страница ──────────────────────────────────────────────────────────────────
 
 
-def _static_version() -> str:
-    """Меняется при каждом обновлении файлов — Telegram не будет показывать старую версию из кэша."""
-    digest = hashlib.sha1()
-    for path in sorted((APP_DIR / "static").glob("*")):
-        digest.update(path.read_bytes())
-    return digest.hexdigest()[:10]
-
-
 def build_app() -> web.Application:
     app = web.Application(middlewares=[_errors])
-    index_html = (APP_DIR / "index.html").read_text(encoding="utf-8").replace("{{VERSION}}", _static_version())
+    # Приложение — один файл: стили и скрипт внутри index.html (см. комментарий в нём)
+    index_html = (APP_DIR / "index.html").read_text(encoding="utf-8")
 
     async def index(_: web.Request) -> web.Response:
         return web.Response(text=index_html, content_type="text/html", headers={"Cache-Control": "no-cache"})
@@ -191,7 +183,6 @@ def build_app() -> web.Application:
     app.router.add_get("/casino", casino_redirect)
     for prefix in ("", "/casino"):  # приложение открывается и с корня домена, и с /casino/
         app.router.add_get(f"{prefix}/", index)
-        app.router.add_static(f"{prefix}/static", APP_DIR / "static")
         app.router.add_post(f"{prefix}/api/state", api_state)
         app.router.add_post(f"{prefix}/api/bonus", api_bonus)
         app.router.add_post(f"{prefix}/api/roulette", api_roulette)
