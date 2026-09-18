@@ -99,7 +99,7 @@ async def cmd_forbes(message: Message):
     lines = [texts.FORBES_TITLE, ""]
     for i, row in enumerate(rows):
         place = texts.MEDALS[i] if i < len(texts.MEDALS) else f"{i + 1}."
-        lines.append(f"{place} {names[row['user_id']]} — {money(row['balance'])}")
+        lines.append(f"{place} {names[row['user_id']]} — {money(row['wealth'])}")
 
     totals = db.get_casino_totals(chat_id)
     house = sum(t["wagered"] - t["returned"] for game, t in totals.items() if game != "duel")
@@ -132,10 +132,12 @@ async def cmd_casinostat(message: Message, command: CommandObject):
         target_id = found or target_id
 
     wallet = db.get_wallet(chat_id, target_id)
+    in_bank = db.bank_total(chat_id, target_id)
     lines = [
         f"🎰 <b>Казино: {members.display_name(target_id)}</b>",
         "",
-        f"💰 {money(wallet['balance'])} · 🏦 {db.wealth_place(chat_id, wallet['balance'])}-е место в Форбсе",
+        f"💰 {money(wallet['balance'])}" + (f" · в банке ещё {money(in_bank)}" if in_bank else ""),
+        f"🏦 {db.wealth_place(chat_id, wallet['balance'] + in_bank)}-е место в Форбсе",
     ]
     games = {row["game"]: row for row in db.get_casino_stats(chat_id, target_id)}
     if not games:
@@ -154,7 +156,8 @@ async def cmd_casinostat(message: Message, command: CommandObject):
 
     specials = []
     for game, label in (("slots", "💎 Джекпотов 777"), ("roulette", "🎯 Угаданных чисел"),
-                        ("blackjack", "🃏 Блэкджеков"), ("coin", "🪙 Монеток на ребре")):
+                        ("race", "🏇 Угаданных забегов"), ("blackjack", "🃏 Блэкджеков"),
+                        ("coin", "🪙 Монеток на ребре")):
         if games.get(game, {}).get("special"):
             specials.append(f"{label}: {games[game]['special']}")
     if "rr" in games:

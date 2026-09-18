@@ -14,7 +14,9 @@ from aiohttp import web
 from aiogram.types import User
 from aiogram.utils.web_app import safe_parse_webapp_init_data
 
+import casino_bank as bank
 import casino_engine as engine
+import casino_tables as tables
 import donations
 import members
 from config import BASE_DIR, BOT_TOKEN, CASINO_APP_NAME, WEB_PORT, WEBAPP_DEV_USER_ID
@@ -113,18 +115,15 @@ async def _errors(request: web.Request, handler):
 
 async def api_state(request: web.Request) -> web.Response:
     chat_id, user_id = await _player(request)
-    return _json(engine.state(chat_id, user_id) | {"donate": donations.payment_info()})
+    bank.pay_matured()
+    return _json(engine.state(chat_id, user_id) | {
+        "donate": donations.payment_info(), "bank": bank.summary(chat_id, user_id),
+    })
 
 
 async def api_bonus(request: web.Request) -> web.Response:
     chat_id, user_id = await _player(request)
     return _json(engine.claim_bonus(chat_id, user_id))
-
-
-async def api_roulette(request: web.Request) -> web.Response:
-    chat_id, user_id = await _player(request)
-    body = await _body(request)
-    return _json(engine.play_roulette(chat_id, user_id, body.get("bet"), body.get("kind"), body.get("number")))
 
 
 async def api_slots(request: web.Request) -> web.Response:
@@ -162,6 +161,42 @@ async def api_donate(request: web.Request) -> web.Response:
     return _json(await donations.request(chat_id, user_id, body.get("amount"), body.get("message")))
 
 
+# Общие столы: рулетка и скачки
+
+
+async def api_table(request: web.Request) -> web.Response:
+    chat_id, user_id = await _player(request)
+    body = await _body(request)
+    return _json(tables.table_state(chat_id, user_id, body.get("game")))
+
+
+async def api_table_bet(request: web.Request) -> web.Response:
+    chat_id, user_id = await _player(request)
+    body = await _body(request)
+    return _json(tables.place_bet(chat_id, user_id, body.get("game"), body.get("bet"), body.get("kind"), body.get("pick"),
+                                  body.get("round")))
+
+
+# Банк
+
+
+async def api_bank(request: web.Request) -> web.Response:
+    chat_id, user_id = await _player(request)
+    return _json(bank.bank_state(chat_id, user_id))
+
+
+async def api_bank_deposit(request: web.Request) -> web.Response:
+    chat_id, user_id = await _player(request)
+    body = await _body(request)
+    return _json(bank.deposit(chat_id, user_id, body.get("amount"), body.get("term")))
+
+
+async def api_bank_withdraw(request: web.Request) -> web.Response:
+    chat_id, user_id = await _player(request)
+    body = await _body(request)
+    return _json(bank.withdraw(chat_id, user_id, body.get("id")))
+
+
 # ── Страница ──────────────────────────────────────────────────────────────────
 
 
@@ -185,12 +220,16 @@ def build_app() -> web.Application:
         app.router.add_get(f"{prefix}/", index)
         app.router.add_post(f"{prefix}/api/state", api_state)
         app.router.add_post(f"{prefix}/api/bonus", api_bonus)
-        app.router.add_post(f"{prefix}/api/roulette", api_roulette)
         app.router.add_post(f"{prefix}/api/slots", api_slots)
         app.router.add_post(f"{prefix}/api/coin", api_coin)
         app.router.add_post(f"{prefix}/api/rr", api_rr)
         app.router.add_post(f"{prefix}/api/blackjack/{{action}}", api_blackjack)
         app.router.add_post(f"{prefix}/api/donate", api_donate)
+        app.router.add_post(f"{prefix}/api/table", api_table)
+        app.router.add_post(f"{prefix}/api/table/bet", api_table_bet)
+        app.router.add_post(f"{prefix}/api/bank", api_bank)
+        app.router.add_post(f"{prefix}/api/bank/deposit", api_bank_deposit)
+        app.router.add_post(f"{prefix}/api/bank/withdraw", api_bank_withdraw)
     return app
 
 

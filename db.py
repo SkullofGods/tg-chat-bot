@@ -4,7 +4,7 @@ from collections import Counter
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Iterable, Iterator, Optional
+from typing import Callable, Iterable, Iterator, Optional
 
 SCHEMA_VERSION = 1
 SUPERGROUP_ID_SHIFT = 1_000_000_000_000  # экспорт Telegram пишет id супергруппы без префикса -100
@@ -146,6 +146,49 @@ _SCHEMA = [
         created_at TEXT NOT NULL,
         decided_at TEXT
     )""",
+    # Ставки за общими столами (рулетка, скачки). Деньги списаны сразу, payout = NULL — раунд ещё не разыгран
+    """CREATE TABLE IF NOT EXISTS table_bets (
+        id         INTEGER PRIMARY KEY,
+        chat_id    INTEGER NOT NULL,
+        game       TEXT NOT NULL,
+        round      INTEGER NOT NULL,
+        user_id    INTEGER NOT NULL,
+        kind       TEXT NOT NULL,
+        pick       INTEGER,
+        amount     INTEGER NOT NULL,
+        odds       REAL NOT NULL,
+        payout     INTEGER,
+        created_at TEXT NOT NULL
+    )""",
+    "CREATE INDEX IF NOT EXISTS table_bets_round ON table_bets (chat_id, game, round)",
+    "CREATE INDEX IF NOT EXISTS table_bets_open ON table_bets (game, round) WHERE payout IS NULL",
+    # Последние результаты игр для истории в приложении (JSON). У общих столов есть номер раунда
+    """CREATE TABLE IF NOT EXISTS casino_history (
+        id         INTEGER PRIMARY KEY,
+        chat_id    INTEGER NOT NULL,
+        game       TEXT NOT NULL,
+        round      INTEGER,
+        data       TEXT NOT NULL,
+        created_at TEXT NOT NULL
+    )""",
+    "CREATE UNIQUE INDEX IF NOT EXISTS casino_history_round ON casino_history (chat_id, game, round) "
+    "WHERE round IS NOT NULL",
+    "CREATE INDEX IF NOT EXISTS casino_history_recent ON casino_history (chat_id, game, id)",
+    # Вклады в банке казино. Время — unix-секунды
+    """CREATE TABLE IF NOT EXISTS bank_deposits (
+        id        INTEGER PRIMARY KEY,
+        chat_id   INTEGER NOT NULL,
+        user_id   INTEGER NOT NULL,
+        amount    INTEGER NOT NULL,
+        interest  INTEGER NOT NULL,
+        term      TEXT NOT NULL,
+        opened_at INTEGER NOT NULL,
+        ends_at   INTEGER NOT NULL,
+        status    TEXT NOT NULL DEFAULT 'active',
+        closed_at INTEGER
+    )""",
+    "CREATE INDEX IF NOT EXISTS bank_deposits_user ON bank_deposits (chat_id, user_id, status)",
+    "CREATE INDEX IF NOT EXISTS bank_deposits_due ON bank_deposits (ends_at) WHERE status = 'active'",
 ]
 
 START_BALANCE = 1000  # таджикоинов у каждого на старте
@@ -933,17 +976,208 @@ class Database:
         "WHERE w.chat_id = ? AND COALESCE(u.is_bot, 0) = 0 AND COALESCE(cm.is_member, 1) = 1"
     )
 
+    # Капитал для Форбса: кошелёк плюс то, что лежит во вкладах
+    _WEALTH = (
+        "(w.balance + COALESCE((SELECT SUM(d.amount) FROM bank_deposits d WHERE d.chat_id = w.chat_id "
+        "AND d.user_id = w.user_id AND d.status = 'active'), 0))"
+    )
+
     def get_richest(self, chat_id: int, limit: int = 10) -> list[dict]:
         """Самые богатые из тех, кто всё ещё в беседе."""
         rows = self.conn.execute(
-            f"SELECT w.user_id, w.balance {self._RICH_FILTER} ORDER BY w.balance DESC LIMIT ?", (chat_id, limit)
+            f"SELECT w.user_id, w.balance, {self._WEALTH} AS wealth {self._RICH_FILTER} ORDER BY wealth DESC LIMIT ?",
+            (chat_id, limit),
         ).fetchall()
         return [dict(r) for r in rows]
 
-    def wealth_place(self, chat_id: int, balance: int) -> int:
+    def get_wealth(self, chat_id: int, user_id: int) -> int:
+        return self.get_balance(chat_id, user_id) + self.bank_total(chat_id, user_id)
+
+    def wealth_place(self, chat_id: int, wealth: int) -> int:
         return 1 + self.conn.execute(
-            f"SELECT COUNT(*) {self._RICH_FILTER} AND w.balance > ?", (chat_id, balance)
+            f"SELECT COUNT(*) {self._RICH_FILTER} AND {self._WEALTH} > ?", (chat_id, wealth)
         ).fetchone()[0]
+
+    # ── Общие столы: рулетка и скачки ─────────────────────────────────────────
+
+    def add_table_bet(self, chat_id: int, game: str, round_no: int, user_id: int,
+                      kind: str, pick: Optional[int], amount: int, odds: float) -> Optional[int]:
+        """Списывает ставку и записывает её на раунд одной транзакцией. None — не хватает денег."""
+        with self._tx() as c:
+            self._ensure_wallet(c, chat_id, user_id)
+            cursor = c.execute(
+                "UPDATE wallets SET balance = balance - ? WHERE chat_id = ? AND user_id = ? AND balance >= ?",
+                (amount, chat_id, user_id, amount),
+            )
+            if cursor.rowcount != 1:
+                return None
+            cursor = c.execute(
+                "INSERT INTO table_bets (chat_id, game, round, user_id, kind, pick, amount, odds, created_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (chat_id, game, round_no, user_id, kind, pick, amount, odds, utcnow_iso()),
+            )
+            return cursor.lastrowid
+
+    def round_bets(self, chat_id: int, game: str, round_no: int) -> list[dict]:
+        rows = self.conn.execute(
+            "SELECT * FROM table_bets WHERE chat_id = ? AND game = ? AND round = ? ORDER BY id",
+            (chat_id, game, round_no),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def count_round_bets(self, chat_id: int, game: str, round_no: int, user_id: int) -> int:
+        return self.conn.execute(
+            "SELECT COUNT(*) FROM table_bets WHERE chat_id = ? AND game = ? AND round = ? AND user_id = ?",
+            (chat_id, game, round_no, user_id),
+        ).fetchone()[0]
+
+    def open_bet_rounds(self) -> list[tuple[int, str, int]]:
+        """Раунды, в которых есть неразыгранные ставки."""
+        rows = self.conn.execute(
+            "SELECT DISTINCT chat_id, game, round FROM table_bets WHERE payout IS NULL"
+        ).fetchall()
+        return [(r["chat_id"], r["game"], r["round"]) for r in rows]
+
+    def round_result(self, chat_id: int, game: str, round_no: int) -> Optional[dict]:
+        row = self.conn.execute(
+            "SELECT data FROM casino_history WHERE chat_id = ? AND game = ? AND round = ?", (chat_id, game, round_no)
+        ).fetchone()
+        return json.loads(row["data"]) if row else None
+
+    def settle_table_round(self, chat_id: int, game: str, round_no: int, result: dict,
+                           payout_of: Callable[[dict], tuple[int, bool]]) -> Optional[list[dict]]:
+        """Записывает исход раунда и выплачивает все его ставки одной транзакцией.
+        payout_of(ставка) -> (выплата вместе со ставкой, особый ли выигрыш). None — раунд уже разыгран."""
+        with self._tx() as c:
+            cursor = c.execute(
+                "INSERT OR IGNORE INTO casino_history (chat_id, game, round, data, created_at) VALUES (?, ?, ?, ?, ?)",
+                (chat_id, game, round_no, json.dumps(result, ensure_ascii=False), utcnow_iso()),
+            )
+            if cursor.rowcount == 0:
+                return None
+            bets = [dict(r) for r in c.execute(
+                "SELECT * FROM table_bets WHERE chat_id = ? AND game = ? AND round = ? AND payout IS NULL ORDER BY id",
+                (chat_id, game, round_no),
+            ).fetchall()]
+            for bet in bets:
+                bet["payout"], special = payout_of(bet)
+                c.execute("UPDATE table_bets SET payout = ? WHERE id = ?", (bet["payout"], bet["id"]))
+                self._ensure_wallet(c, chat_id, bet["user_id"])
+                c.execute("UPDATE wallets SET balance = balance + ? WHERE chat_id = ? AND user_id = ?",
+                          (bet["payout"], chat_id, bet["user_id"]))
+                self._record_game(c, chat_id, bet["user_id"], game, bet["amount"], bet["payout"], special)
+            self._prune_history(c, chat_id, game)
+            return bets
+
+    def prune_table_bets(self, game: str, before_round: int):
+        """Разыгранные ставки старше суток больше не нужны."""
+        with self._tx() as c:
+            c.execute("DELETE FROM table_bets WHERE game = ? AND round < ? AND payout IS NOT NULL", (game, before_round))
+
+    # ── История игр ────────────────────────────────────────────────────────────
+
+    HISTORY_KEEP = 60  # сколько последних результатов каждой игры хранить
+
+    @classmethod
+    def _prune_history(cls, c: sqlite3.Connection, chat_id: int, game: str):
+        c.execute(
+            "DELETE FROM casino_history WHERE chat_id = ? AND game = ? AND id NOT IN ("
+            "SELECT id FROM casino_history WHERE chat_id = ? AND game = ? ORDER BY round DESC, id DESC LIMIT ?)",
+            (chat_id, game, chat_id, game, cls.HISTORY_KEEP),
+        )
+
+    def add_history(self, chat_id: int, game: str, data: dict):
+        with self._tx() as c:
+            c.execute(
+                "INSERT INTO casino_history (chat_id, game, data, created_at) VALUES (?, ?, ?, ?)",
+                (chat_id, game, json.dumps(data, ensure_ascii=False), utcnow_iso()),
+            )
+            self._prune_history(c, chat_id, game)
+
+    def get_history(self, chat_id: int, game: str, limit: int) -> list[dict]:
+        """Последние результаты, свежие первыми. У общих столов в каждом есть номер раунда."""
+        rows = self.conn.execute(
+            "SELECT id, round, data FROM casino_history WHERE chat_id = ? AND game = ? "
+            "ORDER BY round DESC, id DESC LIMIT ?",
+            (chat_id, game, limit),
+        ).fetchall()
+        return [json.loads(r["data"]) | {"id": r["id"]} | ({"round": r["round"]} if r["round"] is not None else {})
+                for r in rows]
+
+    # ── Банк ───────────────────────────────────────────────────────────────────
+
+    def open_deposit(self, chat_id: int, user_id: int, amount: int, interest: int, term: str,
+                     opened_at: int, ends_at: int) -> Optional[int]:
+        """Переносит деньги из кошелька во вклад. None — в кошельке столько нет."""
+        with self._tx(important=True) as c:
+            self._ensure_wallet(c, chat_id, user_id)
+            cursor = c.execute(
+                "UPDATE wallets SET balance = balance - ? WHERE chat_id = ? AND user_id = ? AND balance >= ?",
+                (amount, chat_id, user_id, amount),
+            )
+            if cursor.rowcount != 1:
+                return None
+            cursor = c.execute(
+                "INSERT INTO bank_deposits (chat_id, user_id, amount, interest, term, opened_at, ends_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (chat_id, user_id, amount, interest, term, opened_at, ends_at),
+            )
+            return cursor.lastrowid
+
+    def get_deposit(self, deposit_id: int) -> Optional[dict]:
+        row = self.conn.execute("SELECT * FROM bank_deposits WHERE id = ?", (deposit_id,)).fetchone()
+        return dict(row) if row else None
+
+    def get_deposits(self, chat_id: int, user_id: int, closed_limit: int = 5) -> list[dict]:
+        """Открытые вклады (ближайшие к выплате первыми) и несколько последних закрытых."""
+        active = self.conn.execute(
+            "SELECT * FROM bank_deposits WHERE chat_id = ? AND user_id = ? AND status = 'active' ORDER BY ends_at",
+            (chat_id, user_id),
+        ).fetchall()
+        closed = self.conn.execute(
+            "SELECT * FROM bank_deposits WHERE chat_id = ? AND user_id = ? AND status != 'active' "
+            "ORDER BY closed_at DESC, id DESC LIMIT ?",
+            (chat_id, user_id, closed_limit),
+        ).fetchall()
+        return [dict(r) for r in active] + [dict(r) for r in closed]
+
+    def count_active_deposits(self, chat_id: int, user_id: int) -> int:
+        return self.conn.execute(
+            "SELECT COUNT(*) FROM bank_deposits WHERE chat_id = ? AND user_id = ? AND status = 'active'",
+            (chat_id, user_id),
+        ).fetchone()[0]
+
+    def bank_total(self, chat_id: int, user_id: int) -> int:
+        return self.conn.execute(
+            "SELECT COALESCE(SUM(amount), 0) FROM bank_deposits WHERE chat_id = ? AND user_id = ? AND status = 'active'",
+            (chat_id, user_id),
+        ).fetchone()[0]
+
+    def due_deposits(self, now: int) -> list[dict]:
+        rows = self.conn.execute(
+            "SELECT * FROM bank_deposits WHERE status = 'active' AND ends_at <= ? ORDER BY ends_at", (now,)
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def close_deposit(self, deposit_id: int, status: str, pay: int, now: int) -> bool:
+        """Закрывает вклад и возвращает деньги в кошелёк. False — вклад уже закрыт."""
+        with self._tx(important=True) as c:
+            cursor = c.execute(
+                "UPDATE bank_deposits SET status = ?, closed_at = ? WHERE id = ? AND status = 'active'",
+                (status, now, deposit_id),
+            )
+            if cursor.rowcount != 1:
+                return False
+            row = c.execute("SELECT chat_id, user_id FROM bank_deposits WHERE id = ?", (deposit_id,)).fetchone()
+            self._ensure_wallet(c, row["chat_id"], row["user_id"])
+            c.execute("UPDATE wallets SET balance = balance + ? WHERE chat_id = ? AND user_id = ?",
+                      (pay, row["chat_id"], row["user_id"]))
+            return True
+
+    def prune_deposits(self, before: int):
+        """Закрытые вклады старше месяца уже никому не интересны."""
+        with self._tx() as c:
+            c.execute("DELETE FROM bank_deposits WHERE status != 'active' AND closed_at < ?", (before,))
 
     # ── Донаты ─────────────────────────────────────────────────────────────────
 

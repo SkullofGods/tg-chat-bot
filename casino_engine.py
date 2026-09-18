@@ -1,7 +1,8 @@
-"""Движок казино «Золотой казан»: правила игр и расчёт выигрышей.
+"""Движок казино «Золотой казан»: личные игры, русская рулетка и то, что нужно всем играм.
 
-Исход каждой игры решает сервер, мини-приложение его только красиво показывает,
-поэтому подкрутить результат из браузера нельзя.
+Исход каждой игры решает сервер, мини-приложение его только красиво показывает, поэтому
+подкрутить результат из браузера нельзя. Может только хозяин — скрытой командой /debug_casino_dev в личке с ботом (casino_rig.py).
+Общие столы (рулетка и скачки) живут в casino_tables.py, банк — в casino_bank.py.
 """
 
 import asyncio
@@ -11,6 +12,7 @@ import random
 import time
 from collections import defaultdict, deque
 
+import casino_rig
 import limits
 import members
 import texts
@@ -25,19 +27,7 @@ MIN_BET = 10
 ACTION_INTERVAL_SECONDS = 0.8  # не чаще одной игры за столько секунд — защита от скриптов
 NEWS_TO_CHAT = True            # писать в беседу о смертях в русской рулетке и джекпотах
 NEWS_DELAY_SECONDS = 5         # новость приходит в беседу, когда анимация в приложении уже доиграла
-
-RED_NUMBERS = frozenset({1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36})
-ROULETTE_BETS = {  # вид ставки: (множитель выплаты, выигрывает ли выпавшее число)
-    "red": (2, lambda n: n in RED_NUMBERS),
-    "black": (2, lambda n: n != 0 and n not in RED_NUMBERS),
-    "even": (2, lambda n: n != 0 and n % 2 == 0),
-    "odd": (2, lambda n: n % 2 == 1),
-    "low": (2, lambda n: 1 <= n <= 18),
-    "high": (2, lambda n: 19 <= n <= 36),
-    "dozen1": (3, lambda n: 1 <= n <= 12),
-    "dozen2": (3, lambda n: 13 <= n <= 24),
-    "dozen3": (3, lambda n: 25 <= n <= 36),
-}
+HISTORY_SHOWN = 12             # сколько последних результатов показывать в приложении
 
 # Каждый барабан крутится независимо, редкие символы выпадают реже. Возврат игроку ≈ 93%.
 SLOT_SYMBOLS = ("cherry", "lemon", "grapes", "bell", "diamond", "seven")
@@ -47,10 +37,14 @@ SLOT_TWO_SEVENS = 4  # две семёрки из трёх
 SLOT_PAIR = 1        # два одинаковых символа — ставка возвращается
 
 RR_CHAMBERS = 6
-RR_REWARD_STEP = 50  # награда за выстрел растёт вместе с риском: 50, 100, 150...
+# Награда за выстрел — доля кошелька стрелка (не меньше минимума). Чем ближе патрон, тем щедрее
+RR_REWARDS = ((5, 50), (10, 100), (15, 150), (20, 200), (40, 400), (100, 1000))
+RR_EMPTY_CHANCE = 0.05   # изредка барабан заряжают без патрона — тогда можно пережить и шестой выстрел
+RR_FUNERAL_PERCENT = 20  # смерть — минус 20% кошелька на похороны…
+RR_FUNERAL_MIN = 100     # …но не меньше сотни
 
 GAME_NAMES = {
-    "roulette": "рулетка", "slots": "слоты", "coin": "монетка", "blackjack": "блэкджек",
+    "roulette": "рулетка", "race": "скачки", "slots": "слоты", "coin": "монетка", "blackjack": "блэкджек",
     "rr": "русская рулетка", "duel": "дуэли",
 }
 
@@ -73,7 +67,8 @@ def signed(amount: int) -> str:
 
 _last_action: dict[tuple[int, int], float] = {}
 _feeds: dict[int, deque] = defaultdict(lambda: deque(maxlen=30))
-_revolvers: dict[int, dict[str, int]] = {}  # chat_id -> {"bullet": гнездо с патроном, "fired": сколько уже щёлкнули}
+# chat_id -> {"bullet": гнездо с патроном (0–5) или None, если барабан пустой, "fired": сколько уже щёлкнули}
+_revolvers: dict[int, dict] = {}
 
 
 def add_feed(chat_id: int, text: str):
@@ -81,29 +76,33 @@ def add_feed(chat_id: int, text: str):
     _feeds[chat_id].appendleft((time.time(), text))
 
 
-def _throttle(chat_id: int, user_id: int):
+def throttle(chat_id: int, user_id: int):
     now = time.monotonic()
     if now - _last_action.get((chat_id, user_id), 0.0) < ACTION_INTERVAL_SECONDS:
         raise GameError("Не так быстро 🙂", 429)
     _last_action[(chat_id, user_id)] = now
 
 
-def _check_bet(bet):
+def check_bet(bet):
     if isinstance(bet, bool) or not isinstance(bet, int):
         raise GameError("Ставка должна быть целым числом")
     if bet < MIN_BET:
         raise GameError(f"Минимальная ставка — {money(MIN_BET)}")
 
 
-def _take_bet(chat_id: int, user_id: int, bet: int):
+def not_enough_money(chat_id: int, user_id: int) -> GameError:
+    return GameError(texts.NOT_ENOUGH_MONEY.format(balance=money(db.get_balance(chat_id, user_id))), 409)
+
+
+def take_bet(chat_id: int, user_id: int, bet: int):
     """Проверка, антиспам и списание ставки. Ошибки в самой ставке не считаются попыткой."""
-    _check_bet(bet)
-    _throttle(chat_id, user_id)
+    check_bet(bet)
+    throttle(chat_id, user_id)
     if not db.take_bet(chat_id, user_id, bet):
-        raise GameError(texts.NOT_ENOUGH_MONEY.format(balance=money(db.get_balance(chat_id, user_id))), 409)
+        raise not_enough_money(chat_id, user_id)
 
 
-def _news(chat_id: int, text: str):
+def news(chat_id: int, text: str):
     if NEWS_TO_CHAT:
         spawn(_send_news(chat_id, text))
 
@@ -116,8 +115,17 @@ async def _send_news(chat_id: int, text: str):
         logger.warning("Новость казино не отправилась в %s: %s", chat_id, e)
 
 
-def _name(user_id: int) -> str:
+def player_name(user_id: int) -> str:
     return members.plain_name(user_id)
+
+
+def players(chat_id: int) -> list[dict]:
+    """Участники беседы с кошельками — кого можно порадовать подкруткой."""
+    rows = db.get_richest(chat_id, limit=500)
+    names = db.get_name_rows(row["user_id"] for row in rows)
+    found = [{"id": row["user_id"], "name": members.plain_name(row["user_id"], names.get(row["user_id"], {}))}
+             for row in rows]
+    return sorted(found, key=lambda player: player["name"].lower())
 
 
 # ── Лобби ─────────────────────────────────────────────────────────────────────
@@ -128,12 +136,11 @@ def state(chat_id: int, user_id: int) -> dict:
     richest = db.get_richest(chat_id, limit=10)
     tajik_id = db.get_tajik_of_day(chat_id, local_today())
     names = db.get_name_rows([row["user_id"] for row in richest] + [user_id] + ([tajik_id] if tajik_id else []))
-    fired = _revolvers[chat_id]["fired"] if chat_id in _revolvers else 0
     now = time.time()
     return {
         "user": {"id": user_id, "name": members.plain_name(user_id, names.get(user_id, {}))},
         "balance": wallet["balance"],
-        "place": db.wealth_place(chat_id, wallet["balance"]),
+        "place": db.wealth_place(chat_id, wallet["balance"] + db.bank_total(chat_id, user_id)),
         "min_bet": MIN_BET,
         "stats": {"games": wallet["games"], "won": wallet["won"], "lost": wallet["lost"]},
         "bonus_available": wallet["last_bonus"] != local_today(),
@@ -143,16 +150,13 @@ def state(chat_id: int, user_id: int) -> dict:
             "is_me": tajik_id == user_id,
             "prize": texts.TAJIK_DAY_PRIZE,
         },
-        "rr": {
-            "chambers_left": RR_CHAMBERS - fired,
-            "reward": RR_REWARD_STEP * (fired + 1),
-            "cooldown": math.ceil(limits.remaining(chat_id, user_id, "rr")),
-        },
+        "rr": rr_state(chat_id, user_id, wallet["balance"]),
+        "coin_history": db.get_history(chat_id, "coin", HISTORY_SHOWN),
         "top": [
             {
                 "name": members.plain_name(row["user_id"], names.get(row["user_id"], {})),
                 "username": names.get(row["user_id"], {}).get("username") or None,
-                "balance": row["balance"],
+                "balance": row["wealth"],
                 "me": row["user_id"] == user_id,
             }
             for row in richest
@@ -163,7 +167,7 @@ def state(chat_id: int, user_id: int) -> dict:
 
 
 def claim_bonus(chat_id: int, user_id: int) -> dict:
-    _throttle(chat_id, user_id)
+    throttle(chat_id, user_id)
     if db.get_balance(chat_id, user_id) < MIN_BET:
         source, amount = texts.BONUS_BANKRUPT, 500
     else:
@@ -174,39 +178,16 @@ def claim_bonus(chat_id: int, user_id: int) -> dict:
     return {"amount": amount, "source": source, "balance": balance}
 
 
-# ── Игры ──────────────────────────────────────────────────────────────────────
-
-
-def play_roulette(chat_id: int, user_id: int, bet, kind, number=None) -> dict:
-    if kind == "number":
-        if isinstance(number, bool) or not isinstance(number, int) or not 0 <= number <= 36:
-            raise GameError("Выбери число от 0 до 36")
-        multiplier = 36
-    elif kind in ROULETTE_BETS:
-        multiplier = ROULETTE_BETS[kind][0]
-    else:
-        raise GameError("Непонятная ставка")
-    _take_bet(chat_id, user_id, bet)
-
-    result = random.randint(0, 36)
-    won = result == number if kind == "number" else ROULETTE_BETS[kind][1](result)
-    payout = bet * multiplier if won else 0
-    balance = db.casino_settle(chat_id, user_id, "roulette", bet, payout, special=won and kind == "number")
-    if won and kind == "number":
-        add_feed(chat_id, f"🎡 {_name(user_id)} угадывает число {result}: {signed(payout - bet)}")
-    elif payout - bet >= 2000:
-        add_feed(chat_id, f"🎡 {_name(user_id)} выигрывает в рулетке {signed(payout - bet)}")
-    return {
-        "result": result,
-        "color": "green" if result == 0 else ("red" if result in RED_NUMBERS else "black"),
-        "won": won, "payout": payout, "net": payout - bet, "balance": balance,
-    }
+# ── Слоты и монетка ───────────────────────────────────────────────────────────
 
 
 def play_slots(chat_id: int, user_id: int, bet) -> dict:
-    _take_bet(chat_id, user_id, bet)
+    take_bet(chat_id, user_id, bet)
 
-    reels = random.choices(SLOT_SYMBOLS, weights=SLOT_WEIGHTS, k=3)
+    if casino_rig.take(chat_id, "slots", user_id):
+        reels = ["seven"] * 3
+    else:
+        reels = random.choices(SLOT_SYMBOLS, weights=SLOT_WEIGHTS, k=3)
     if reels[0] == reels[1] == reels[2]:
         combo, multiplier = ("jackpot" if reels[0] == "seven" else "triple"), SLOT_TRIPLES[reels[0]]
     elif reels.count("seven") == 2:
@@ -217,11 +198,11 @@ def play_slots(chat_id: int, user_id: int, bet) -> dict:
         combo, multiplier = "lose", 0
     payout = bet * multiplier
     balance = db.casino_settle(chat_id, user_id, "slots", bet, payout, special=combo == "jackpot")
-    name = _name(user_id)
+    name = player_name(user_id)
     if combo == "jackpot":
         add_feed(chat_id, f"💎 {name} срывает джекпот 7️⃣7️⃣7️⃣: {signed(payout - bet)}")
-        _news(chat_id, f"💎 <b>ДЖЕКПОТ!</b> {members.display_name(user_id)} выбивает 7️⃣7️⃣7️⃣ в казино "
-                       f"и забирает <b>{money(payout)}</b>!\n<i>/casino</i>")
+        news(chat_id, f"💎 <b>ДЖЕКПОТ!</b> {members.display_name(user_id)} выбивает 7️⃣7️⃣7️⃣ в казино "
+                      f"и забирает <b>{money(payout)}</b>!\n<i>/casino</i>")
     elif combo == "triple" and multiplier >= 20:
         add_feed(chat_id, f"🎰 {name} собирает три в ряд: {signed(payout - bet)}")
     return {"reels": reels, "combo": combo, "multiplier": multiplier, "payout": payout,
@@ -231,52 +212,97 @@ def play_slots(chat_id: int, user_id: int, bet) -> dict:
 def play_coin(chat_id: int, user_id: int, bet, side) -> dict:
     if side not in ("heads", "tails"):
         raise GameError("Выбери орла или решку")
-    _take_bet(chat_id, user_id, bet)
+    take_bet(chat_id, user_id, bet)
 
-    roll = random.random()
-    if roll < 0.01:
-        result, payout = "edge", bet  # встала на ребро — ставка возвращается
-    elif roll < 0.02:
-        result, payout = "stolen", 0  # украли узбеки
-    else:
-        result = random.choice(("heads", "tails"))
-        payout = bet * 2 if result == side else 0
+    result = casino_rig.take(chat_id, "coin", user_id)
+    if result is None:
+        roll = random.random()
+        if roll < 0.01:
+            result = "edge"  # встала на ребро — ставка возвращается
+        elif roll < 0.02:
+            result = "stolen"  # украли узбеки
+        else:
+            result = random.choice(("heads", "tails"))
+    payout = bet if result == "edge" else (bet * 2 if result == side else 0)
     balance = db.casino_settle(chat_id, user_id, "coin", bet, payout, special=result == "edge")
+    name = player_name(user_id)
     if result == "edge":
-        add_feed(chat_id, f"🪙 У {_name(user_id)} монетка встала на ребро!")
-    return {"result": result, "won": payout > bet, "payout": payout, "net": payout - bet, "balance": balance}
+        add_feed(chat_id, f"🪙 У {name} монетка встала на ребро!")
+    db.add_history(chat_id, "coin", {"result": result, "name": name, "net": payout - bet})
+    return {"result": result, "won": payout > bet, "payout": payout, "net": payout - bet, "balance": balance,
+            "history": db.get_history(chat_id, "coin", HISTORY_SHOWN)}
+
+
+# ── Русская рулетка ───────────────────────────────────────────────────────────
+# Барабан общий на беседу и не прокручивается: с каждым выстрелом следующему страшнее, зато и награда больше.
+
+
+def _load_cylinder() -> dict:
+    bullet = None if random.random() < RR_EMPTY_CHANCE else random.randrange(RR_CHAMBERS)
+    return {"bullet": bullet, "fired": 0}
+
+
+def rr_reward(shot: int, balance: int) -> int:
+    """Награда за выстрел номер shot (с нуля) при таком кошельке."""
+    percent, minimum = RR_REWARDS[shot]
+    return max(minimum, balance * percent // 100)
+
+
+def rr_state(chat_id: int, user_id: int, balance: int) -> dict:
+    """Что видит игрок. Про пустой барабан молчим: шанс показываем классический (1 из оставшихся гнёзд),
+    а шестой выстрел выглядит верной смертью без награды — пусть пустой барабан будет сюрпризом."""
+    fired = _revolvers[chat_id]["fired"] if chat_id in _revolvers else 0
+    last = fired == RR_CHAMBERS - 1
+    percent, minimum = RR_REWARDS[fired]
+    return {
+        "chambers_left": RR_CHAMBERS - fired,
+        "reward": None if last else rr_reward(fired, balance),
+        "reward_percent": None if last else percent,
+        "reward_min": None if last else minimum,
+        "cooldown": math.ceil(limits.remaining(chat_id, user_id, "rr")),
+        "history": db.get_history(chat_id, "rr", 8),
+    }
 
 
 def pull_trigger(chat_id: int, user_id: int) -> dict:
-    """Русская рулетка: барабан общий на беседу и не прокручивается — с каждым выстрелом следующему страшнее."""
-    _throttle(chat_id, user_id)
+    throttle(chat_id, user_id)
     wait = limits.remaining(chat_id, user_id, "rr")
     if wait > 0:
         raise GameError(f"Револьвер перезаряжается: ещё {limits.format_wait(wait)}", 429)
     limits.mark(chat_id, user_id, "rr")
 
-    revolver = _revolvers.setdefault(chat_id, {"bullet": random.randrange(RR_CHAMBERS), "fired": 0})
-    chance = RR_CHAMBERS - revolver["fired"]
-    dead = revolver["fired"] == revolver["bullet"]
-    name = _name(user_id)
+    revolver = _revolvers.setdefault(chat_id, _load_cylinder())
+    shot = revolver["fired"]
+    chance = RR_CHAMBERS - shot  # как видят игроки: 1 из оставшихся гнёзд
+    balance = db.get_balance(chat_id, user_id)
+    dead = revolver["bullet"] == shot
+    survived_all = not dead and shot == RR_CHAMBERS - 1  # барабан был пустой, и его прошли до конца
+    name = player_name(user_id)
     if dead:
-        _revolvers.pop(chat_id)
-        balance = db.get_balance(chat_id, user_id)
-        delta = -min(balance, max(100, balance // 5))
+        delta = -min(balance, max(RR_FUNERAL_MIN, balance * RR_FUNERAL_PERCENT // 100))
         add_feed(chat_id, f"💥 {name} — БАХ! Шанс был 1/{chance}, {signed(delta)}")
-        _news(chat_id, random.choice(texts.RR_DEATH).format(name=f"<b>{members.display_name(user_id)}</b>")
-              + f"\n<i>Русская рулетка в /casino · шанс был 1/{chance}</i>")
+        news(chat_id, random.choice(texts.RR_DEATH).format(name=f"<b>{members.display_name(user_id)}</b>")
+             + f"\n<i>Русская рулетка в /casino · шанс был 1/{chance}</i>")
     else:
+        delta = rr_reward(shot, balance)
         revolver["fired"] += 1
-        delta = RR_REWARD_STEP * revolver["fired"]
-        add_feed(chat_id, f"🔫 {name} — щёлк! Шанс был 1/{chance}, {signed(delta)}")
+        add_feed(chat_id, f"🍀 {name} — щёлк! Барабан был пустой, {signed(delta)}" if survived_all
+                 else f"🔫 {name} — щёлк! Шанс был 1/{chance}, {signed(delta)}")
+    if survived_all:
+        news(chat_id, texts.RR_EMPTY.format(name=f"<b>{members.display_name(user_id)}</b>", reward=signed(delta)))
+    if dead or survived_all:
+        _revolvers.pop(chat_id)
+        db.add_history(chat_id, "rr", {"bullet": shot + 1 if dead else None, "name": name})
     balance = db.casino_russian_roulette(chat_id, user_id, delta, died=dead)
-    fired = 0 if dead else revolver["fired"]
     return {
-        "dead": dead, "chance": chance, "delta": delta, "balance": balance,
-        "chambers_left": RR_CHAMBERS - fired, "next_reward": RR_REWARD_STEP * (fired + 1),
-        "cooldown": math.ceil(limits.cooldown()),
+        "dead": dead, "survived_all": survived_all, "shot": shot + 1, "chance": chance, "delta": delta,
+        "balance": balance, "cooldown": math.ceil(limits.cooldown()), "rr": rr_state(chat_id, user_id, balance),
     }
+
+
+def empty_cylinder(chat_id: int):
+    """Подкрутка: вынуть патрон. Все оставшиеся выстрелы, включая шестой, будут холостыми."""
+    _revolvers.setdefault(chat_id, _load_cylinder())["bullet"] = None
 
 
 # ── Блэкджек ──────────────────────────────────────────────────────────────────
@@ -308,6 +334,19 @@ def _is_blackjack(cards: list[str]) -> bool:
     return len(cards) == 2 and hand_value(cards)[0] == 21
 
 
+def _deal_natural(deck: list[str]) -> tuple[list[str], list[str]]:
+    """Пульт хозяина: игроку сразу блэкджек, а у дилера своего нет."""
+    ace = next(card for card in deck if card[:-1] == "A")
+    deck.remove(ace)
+    ten = next(card for card in deck if card[:-1] in ("10", "J", "Q", "K"))
+    deck.remove(ten)
+    dealer = [deck.pop(), deck.pop()]
+    while _is_blackjack(dealer):
+        deck.insert(0, dealer.pop())
+        dealer.append(deck.pop())
+    return [ace, ten], dealer
+
+
 def _blackjack_view(hand: dict, balance: int, outcome: str | None = None, payout: int = 0) -> dict:
     finished = outcome is not None
     stake = hand["bet"] * (2 if hand["doubled"] else 1)
@@ -335,7 +374,7 @@ def _blackjack_finish(chat_id: int, user_id: int, hand: dict, outcome: str) -> d
     payout = int(stake * BJ_PAYOUTS[outcome])
     balance = db.finish_blackjack(chat_id, user_id, stake, payout, blackjack=outcome == "blackjack")
     if outcome == "blackjack" and stake >= 500:
-        add_feed(chat_id, f"🃏 {_name(user_id)} собирает блэкджек: {signed(payout - stake)}")
+        add_feed(chat_id, f"🃏 {player_name(user_id)} собирает блэкджек: {signed(payout - stake)}")
     return _blackjack_view(hand, balance, outcome, payout)
 
 
@@ -369,13 +408,16 @@ def blackjack_state(chat_id: int, user_id: int) -> dict | None:
 def blackjack_start(chat_id: int, user_id: int, bet) -> dict:
     if db.get_blackjack_hand(chat_id, user_id) is not None:
         raise GameError("Сначала доиграй текущую раздачу", 409)
-    _take_bet(chat_id, user_id, bet)
+    take_bet(chat_id, user_id, bet)
     deck = [rank + suit for rank in BJ_RANKS for suit in BJ_SUITS]
     random.shuffle(deck)
     hand = {"bet": bet, "doubled": False, "deck": deck, "player": [], "dealer": []}
-    for _ in range(2):
-        hand["player"].append(deck.pop())
-        hand["dealer"].append(deck.pop())
+    if casino_rig.take(chat_id, "blackjack", user_id):
+        hand["player"], hand["dealer"] = _deal_natural(deck)
+    else:
+        for _ in range(2):
+            hand["player"].append(deck.pop())
+            hand["dealer"].append(deck.pop())
     # дилер сразу проверяет блэкджеки: раздача может закончиться, не начавшись
     player_bj, dealer_bj = _is_blackjack(hand["player"]), _is_blackjack(hand["dealer"])
     if player_bj or dealer_bj:
@@ -405,7 +447,7 @@ def blackjack_double(chat_id: int, user_id: int) -> dict:
     hand = _current_hand(chat_id, user_id)
     if len(hand["player"]) != 2 or hand["doubled"]:
         raise GameError("Удвоить можно только на первых двух картах")
-    _take_bet(chat_id, user_id, hand["bet"])
+    take_bet(chat_id, user_id, hand["bet"])
     hand["doubled"] = True
     hand["player"].append(hand["deck"].pop())
     if hand_value(hand["player"])[0] > 21:

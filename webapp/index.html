@@ -186,6 +186,16 @@ button:disabled { cursor: default; }
   color: transparent;
 }
 .hero-sub { color: var(--muted); font-size: 14px; }
+.hero-bank {
+  margin-top: 10px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gold-2);
+  background: rgba(245, 197, 66, 0.12);
+  border: 1px solid var(--line);
+}
 
 .tajik-banner {
   margin-top: 12px;
@@ -254,6 +264,8 @@ button:disabled { cursor: default; }
 .game-tile.slots { background: linear-gradient(145deg, #7a2a8f, #2a0f33); }
 .game-tile.coin { background: linear-gradient(145deg, #9a7314, #3a2a06); }
 .game-tile.rr { background: linear-gradient(145deg, #8f1d1d, #2b0808); }
+.game-tile.race { background: linear-gradient(145deg, #7a4a1c, #2a1606); }
+.game-tile.bank { background: linear-gradient(145deg, #1d4f7a, #08182b); }
 
 .top-list, .feed { margin: 0; padding: 6px 0; list-style: none; }
 .top-list li, .feed li {
@@ -391,8 +403,8 @@ button:disabled { cursor: default; }
   border-radius: 50%;
   font-size: 11px;
   font-weight: 800;
-  animation: pop-in 0.3s ease-out;
 }
+.history span.fresh { animation: pop-in 0.3s ease-out; }
 .history .red { background: #c62828; }
 .history .black { background: #2a2d33; }
 .history .green { background: #138a45; }
@@ -428,6 +440,142 @@ button:disabled { cursor: default; }
 .numbers .black { background: #22252b; }
 .numbers .green { background: #11703a; grid-column: span 6; }
 .numbers .active { border-color: var(--gold); transform: scale(1.05); }
+
+/* ─── Общие столы: статус раунда и ставки ─── */
+
+.table-status { margin: 10px 0 4px; }
+.status-text { min-height: 22px; text-align: center; font-weight: 800; }
+.status-text.win { color: var(--win); }
+.status-text.lose { color: #ffb3b3; }
+.status-bar { height: 6px; margin-top: 6px; border-radius: 6px; overflow: hidden; background: rgba(255, 255, 255, 0.08); }
+.status-bar i {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--gold-deep), var(--gold-2));
+  transition: width 0.25s linear;
+}
+.status-bar i.playing { background: linear-gradient(90deg, #7a1f1f, #ff6b6b); }
+
+.table-bets { margin: 0; padding: 4px 0; list-style: none; }
+.table-bets li { display: flex; align-items: center; gap: 8px; padding: 8px 14px; font-size: 14px; }
+.table-bets li + li { border-top: 1px solid rgba(255, 255, 255, 0.05); }
+.table-bets .who { flex: 0 1 34%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
+.table-bets .me .who { color: var(--gold); font-weight: 700; }
+.table-bets .what { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.table-bets .sum { font-weight: 700; font-variant-numeric: tabular-nums; }
+.table-bets .net { min-width: 56px; text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; }
+.table-bets .sep { padding: 6px 14px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.table-bets .empty { justify-content: center; color: var(--muted); }
+
+/* ─── Скачки ─── */
+
+.track {
+  position: relative;
+  margin-top: 4px;
+  padding: 10px 10px 10px 8px;
+  border-radius: 20px;
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.03) 0 22px, transparent 22px 44px),
+    linear-gradient(180deg, #3d7a2c, #2a5a1e);
+  border: 3px solid #6b4a1c;
+  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.45);
+}
+.lane { display: flex; align-items: center; gap: 6px; height: 40px; }
+.lane + .lane { border-top: 1px dashed rgba(255, 255, 255, 0.18); }
+.lane-no {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+.runway { position: relative; flex: 1; height: 100%; }
+.runway::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  background: repeating-linear-gradient(180deg, #fff 0 5px, #111 5px 10px);
+  opacity: 0.85;
+}
+.runner {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  z-index: 1;
+  width: 32px;
+  height: 32px;
+  margin-top: -16px;
+  will-change: transform;
+}
+.runner[data-medal]::before {
+  content: attr(data-medal);
+  position: absolute;
+  right: calc(100% + 2px);
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 18px;
+  animation: pop-in 0.3s ease-out;
+}
+.lane-name {
+  position: absolute;
+  left: 38px;
+  top: 50%;
+  transform: translateY(-50%);
+  max-width: calc(100% - 50px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.55);
+  pointer-events: none;
+}
+.horse { display: inline-block; font-size: 28px; line-height: 1; transform: scaleX(-1); }
+.track.running .horse { animation: gallop 0.28s ease-in-out infinite alternate; }
+@keyframes gallop { from { transform: scaleX(-1) translateY(0) rotate(-3deg); } to { transform: scaleX(-1) translateY(-4px) rotate(3deg); } }
+.race-banner {
+  min-height: 24px;
+  margin-top: 8px;
+  text-align: center;
+  font-weight: 800;
+}
+
+.horses { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-top: 10px; }
+.horse-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+  border-radius: 12px;
+  text-align: left;
+  background: var(--card);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.horse-card-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; font-size: 14px; }
+.horse-card b { color: var(--gold); font-variant-numeric: tabular-nums; }
+.horse-card.active { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold) inset; background: rgba(245, 197, 66, 0.1); }
+
+.race-history span {
+  display: inline-flex;
+  align-items: center;
+  width: auto;
+  min-width: 26px;
+  padding: 0 6px;
+  border-radius: 9px;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+.race-history small { margin-left: 3px; font-weight: 700; opacity: 0.85; }
 
 /* ─── Слоты ─── */
 
@@ -619,6 +767,12 @@ button:disabled { cursor: default; }
 .segmented button { padding: 11px; border-radius: 10px; font-weight: 700; }
 .segmented .active { background: var(--gold); color: #241600; }
 
+.coin-history { flex-wrap: wrap; }
+.coin-history span { width: 30px; height: 30px; font-size: 17px; background: rgba(255, 255, 255, 0.07); }
+.coin-history span.win { box-shadow: 0 0 0 2px rgba(84, 224, 138, 0.55) inset; }
+.coin-history span.lose { box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.4) inset; }
+.coin-history span.edge { box-shadow: 0 0 0 2px var(--gold) inset; }
+
 /* ─── Русская рулетка ─── */
 
 .rr-stage { display: flex; flex-direction: column; align-items: center; padding-top: 4px; }
@@ -643,6 +797,31 @@ button:disabled { cursor: default; }
 .rr-stat b { font-size: 20px; font-variant-numeric: tabular-nums; }
 #rr-feed { margin-top: 14px; }
 #rr-feed:empty { display: none; }
+.rr-stat .sub { display: block; margin-top: 1px; color: var(--muted); font-size: 11px; }
+.rr-ladder { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin-top: 8px; }
+.rr-ladder span {
+  padding: 6px 0;
+  border-radius: 10px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--muted);
+  background: var(--card);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.rr-ladder span.done { opacity: 0.4; text-decoration: line-through; }
+.rr-ladder span.now { color: #fff; background: rgba(226, 60, 60, 0.35); border-color: rgba(255, 107, 107, 0.7); }
+.rr-ladder span.last { color: var(--gold-2); }
+.rr-history { margin: 0; padding: 4px 0; list-style: none; }
+.rr-history li { display: flex; align-items: center; gap: 10px; padding: 8px 14px; font-size: 14px; }
+.rr-history li + li { border-top: 1px solid rgba(255, 255, 255, 0.05); }
+.rr-history .empty { justify-content: center; color: var(--muted); }
+.mini-cylinder { display: flex; gap: 3px; flex: none; }
+.mini-cylinder i { width: 11px; height: 11px; border-radius: 50%; background: #3b4148; }
+.mini-cylinder i.bullet { background: #ff4d4d; box-shadow: 0 0 6px rgba(255, 77, 77, 0.8); }
+.mini-cylinder i.after { background: #22262b; }
+.mini-cylinder.empty i { background: #2fd27a; }
+.rr-history .text { flex: 1; min-width: 0; }
 
 /* ─── Блэкджек ─── */
 
@@ -809,6 +988,50 @@ button:disabled { cursor: default; }
 }
 .field input:focus, .field textarea:focus { outline: 2px solid rgba(245, 197, 66, 0.5); }
 
+/* ─── Банк ─── */
+
+.bank-hero {
+  margin-top: 4px;
+  padding: 16px;
+  background:
+    radial-gradient(90% 120% at 100% 0%, rgba(80, 160, 255, 0.22), rgba(80, 160, 255, 0) 60%),
+    linear-gradient(160deg, rgba(29, 79, 122, 0.45), rgba(255, 255, 255, 0.03));
+}
+.bank-title { font-weight: 800; }
+.bank-total { margin: 6px 0 2px; font-size: 34px; font-weight: 900; font-variant-numeric: tabular-nums; color: var(--gold-2); }
+.bank-total small { margin-left: 6px; font-size: 14px; font-weight: 600; color: var(--muted); }
+.bank-hero p { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
+.terms { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 12px; }
+.term {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 9px 4px;
+  border-radius: 12px;
+  font-weight: 800;
+  background: var(--card);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.term small { color: var(--win); font-size: 13px; }
+.term.active { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold) inset; background: rgba(245, 197, 66, 0.1); }
+.bank-preview { min-height: 20px; margin-top: 10px; text-align: center; color: var(--muted); font-size: 14px; }
+.bank-preview b { color: var(--win); }
+.deposits { margin: 0; padding: 4px 0; list-style: none; }
+.deposits li { padding: 11px 14px; }
+.deposits li + li { border-top: 1px solid rgba(255, 255, 255, 0.05); }
+.deposits .empty { text-align: center; color: var(--muted); }
+.deposit-head { display: flex; align-items: baseline; gap: 8px; }
+.deposit-head b { font-size: 16px; font-variant-numeric: tabular-nums; }
+.deposit-head span { flex: 1; color: var(--muted); font-size: 13px; }
+.deposit-head em { font-style: normal; font-weight: 800; color: var(--win); font-variant-numeric: tabular-nums; }
+.deposit-bar { height: 6px; margin: 8px 0 6px; border-radius: 6px; overflow: hidden; background: rgba(255, 255, 255, 0.08); }
+.deposit-bar i { display: block; height: 100%; border-radius: 6px; background: linear-gradient(90deg, #1d6fb8, #6ec1ff); }
+.deposit-foot { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+.deposit-foot span { flex: 1; }
+.deposit-foot button { padding: 6px 10px; border-radius: 9px; font-size: 12px; font-weight: 700; background: var(--card-strong); }
+.deposit-foot button.confirm { color: #fff; background: var(--red); }
+.deposits li.closed { opacity: 0.7; font-size: 14px; }
+
 /* ─── Нижняя навигация ─── */
 
 .tabbar {
@@ -817,8 +1040,10 @@ button:disabled { cursor: default; }
   right: 0;
   bottom: 0;
   z-index: 30;
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
   max-width: 520px;
   margin: 0 auto;
   padding: 6px 6px calc(6px + var(--safe-bottom));
@@ -826,7 +1051,9 @@ button:disabled { cursor: default; }
   border-top: 1px solid var(--line);
   backdrop-filter: blur(10px);
 }
+.tabbar::-webkit-scrollbar { display: none; }
 .tabbar button {
+  flex: 1 0 58px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -870,6 +1097,7 @@ body.dead::after {
   left: 50%;
   top: 12px;
   z-index: 100;
+  width: max-content;
   max-width: calc(100% - 28px);
   padding: 10px 16px;
   border-radius: 14px;
@@ -919,6 +1147,7 @@ body.dead::after {
           <div class="hero-hello" id="hello">Открываем казино…</div>
           <div class="hero-balance"><span id="hero-balance">—</span></div>
           <div class="hero-sub"><span id="hero-currency">таджикоинов</span> · <span id="hero-place"></span></div>
+          <button class="hero-bank" id="hero-bank" type="button" data-go="bank" hidden></button>
         </div>
 
         <div class="card tajik-banner" id="tajik-banner" hidden></div>
@@ -937,7 +1166,10 @@ body.dead::after {
             <span class="tile-icon">🃏</span><b>Блэкджек и шлюхи</b><small>«Построим своё казино — с блэкджеком и шлюхами!»</small>
           </button>
           <button class="game-tile roulette" data-go="roulette" type="button">
-            <span class="tile-icon">🎡</span><b>Рулетка</b><small>до ×36</small>
+            <span class="tile-icon">🎡</span><b>Рулетка</b><small>общий стол · до ×36</small>
+          </button>
+          <button class="game-tile race" data-go="race" type="button">
+            <span class="tile-icon">🏇</span><b>Скачки</b><small>забег каждые 30 с</small>
           </button>
           <button class="game-tile slots" data-go="slots" type="button">
             <span class="tile-icon">🎰</span><b>Слоты</b><small>до ×100</small>
@@ -947,6 +1179,9 @@ body.dead::after {
           </button>
           <button class="game-tile rr" data-go="rr" type="button">
             <span class="tile-icon">🔫</span><b>Русская рулетка</b><small>1 патрон из 6</small>
+          </button>
+          <button class="game-tile bank" data-go="bank" type="button">
+            <span class="tile-icon">🏦</span><b>Банк</b><small>вклады до +100%</small>
           </button>
         </div>
 
@@ -1021,13 +1256,40 @@ body.dead::after {
           <div class="wheel-result" id="wheel-result" hidden></div>
         </div>
 
+        <div class="table-status">
+          <div class="status-text" id="roulette-status-text">Подходим к столу…</div>
+          <div class="status-bar"><i id="roulette-status-bar"></i></div>
+        </div>
         <div class="history" id="roulette-history" aria-label="Последние числа"></div>
 
         <div class="bet-kinds" id="bet-kinds"></div>
         <div class="numbers" id="numbers" hidden></div>
 
         <div class="bet-control" data-bet-control></div>
-        <button class="play-btn" id="roulette-play" type="button">Крутить</button>
+        <button class="play-btn" id="roulette-play" type="button">Поставить</button>
+        <p class="hint">Колесо общее для всей беседы: 5 секунд на ставки, потом крутим. Можно поставить несколько раз.</p>
+
+        <h2 class="section-title">🎲 Ставки на столе</h2>
+        <ul class="card table-bets" id="roulette-bets"></ul>
+      </section>
+
+      <!-- ─── Скачки ─── -->
+      <section class="screen" data-screen="race">
+        <div class="track" id="track"></div>
+        <div class="race-banner" id="race-banner"></div>
+        <div class="table-status">
+          <div class="status-text" id="race-status-text">Выводим лошадей…</div>
+          <div class="status-bar"><i id="race-status-bar"></i></div>
+        </div>
+        <div class="history race-history" id="race-history" aria-label="Последние победители"></div>
+
+        <div class="horses" id="horses"></div>
+        <div class="bet-control" data-bet-control></div>
+        <button class="play-btn" id="race-play" type="button">Поставить</button>
+        <p class="hint">Забег общий для всей беседы: 20 секунд на ставки, потом старт. Выигрыш — ставка × коэффициент лошади.</p>
+
+        <h2 class="section-title">🎲 Ставки на забег</h2>
+        <ul class="card table-bets" id="race-bets"></ul>
       </section>
 
       <!-- ─── Слоты ─── -->
@@ -1083,6 +1345,10 @@ body.dead::after {
 
         <div class="bet-control" data-bet-control></div>
         <button class="play-btn" id="coin-play" type="button">Подбросить</button>
+
+        <h2 class="section-title">🕘 Последние броски</h2>
+        <div class="history coin-history" id="coin-history"></div>
+        <ul class="card feed" id="coin-feed"></ul>
       </section>
 
       <!-- ─── Русская рулетка ─── -->
@@ -1113,22 +1379,44 @@ body.dead::after {
         <div class="card rr-info">
           <div class="rr-stat"><small>Осталось гнёзд</small><b id="rr-left">6</b></div>
           <div class="rr-stat"><small>Шанс умереть</small><b id="rr-chance">1/6</b></div>
-          <div class="rr-stat"><small>За храбрость</small><b id="rr-reward">+50</b></div>
+          <div class="rr-stat"><small>За храбрость</small><b id="rr-reward">+50</b><span class="sub" id="rr-reward-sub">5% кошелька</span></div>
         </div>
-        <p class="hint">Не повезло — минус 20% кошелька на похороны (минимум 100). Стрелять можно раз в 20 минут.</p>
+        <div class="rr-ladder" id="rr-ladder"></div>
+        <p class="hint">Барабан общий на всю беседу и не прокручивается: чем ближе патрон, тем больше награда — до 40% кошелька. Смерть — минус 20% кошелька на похороны (минимум 100). Стрелять можно раз в 20 минут.</p>
 
         <button class="play-btn danger" id="rr-play" type="button">Нажать на спуск</button>
+
+        <h2 class="section-title">🕘 Где был патрон</h2>
+        <ul class="card rr-history" id="rr-history"></ul>
         <ul class="card feed" id="rr-feed"></ul>
+      </section>
+
+      <!-- ─── Банк ─── -->
+      <section class="screen" data-screen="bank">
+        <div class="card bank-hero">
+          <div class="bank-title">🏦 Банк «Золотой казан»</div>
+          <div class="bank-total"><span id="bank-total">0</span><small>во вкладах</small></div>
+          <p>Положи таджикоины под процент. Когда срок выйдет, вклад с процентами сам вернётся в кошелёк. Забрать раньше можно, но без процентов.</p>
+        </div>
+        <div class="terms" id="bank-terms"></div>
+        <div class="bet-control" data-bet-control data-bet-label="вклад"></div>
+        <div class="bank-preview" id="bank-preview"></div>
+        <button class="play-btn" id="bank-deposit" type="button">Положить</button>
+
+        <h2 class="section-title">📒 Мои вклады</h2>
+        <ul class="card deposits" id="deposits"><li class="empty">Загружаем…</li></ul>
       </section>
     </main>
 
     <nav class="tabbar" aria-label="Разделы">
       <button type="button" data-tab="lobby" class="active"><span>🏠</span><small>Лобби</small></button>
       <button type="button" data-tab="roulette"><span>🎡</span><small>Рулетка</small></button>
+      <button type="button" data-tab="race"><span>🏇</span><small>Скачки</small></button>
       <button type="button" data-tab="slots"><span>🎰</span><small>Слоты</small></button>
       <button type="button" data-tab="blackjack"><span>🃏</span><small>Блэкджек</small></button>
       <button type="button" data-tab="coin"><span>🪙</span><small>Монетка</small></button>
       <button type="button" data-tab="rr"><span>🔫</span><small>Русская</small></button>
+      <button type="button" data-tab="bank"><span>🏦</span><small>Банк</small></button>
     </nav>
   </div>
 
@@ -1225,8 +1513,9 @@ body.dead::after {
     rouletteKind: "red",
     rouletteNumber: 17,
     coinSide: "heads",
-    rrLeft: 6,
-    rrReward: 50,
+    raceHorse: 1,
+    term: "24h",
+    rr: null, // русская рулетка из последнего ответа сервера
     rrCooldownUntil: 0,
   };
 
@@ -1322,7 +1611,7 @@ body.dead::after {
 
   function setBusy(busy) {
     state.busy = busy;
-    ["#roulette-play", "#slots-play", "#coin-play", "#bj-deal", "#bj-hit", "#bj-stand"].forEach((selector) => {
+    ["#slots-play", "#coin-play", "#bj-deal", "#bj-hit", "#bj-stand"].forEach((selector) => {
       $(selector).disabled = busy;
     });
     $("#bj-double").disabled = busy || !(bjHand && bjHand.active && bjHand.can_double && state.balance >= bjHand.bet);
@@ -1339,7 +1628,11 @@ body.dead::after {
       if (screen === "lobby") tg.BackButton.hide();
       else tg.BackButton.show();
     } catch (error) { /* вне Telegram */ }
-    if (screen === "lobby" || screen === "rr") refresh();
+    if (screen === "lobby" || screen === "rr" || screen === "coin") refresh();
+    if (screen in tables) pollTable(screen);
+    if (screen === "bank") loadBank();
+    const tab = $(`.tabbar [data-tab="${screen}"]`);
+    if (tab) tab.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" });
   }
 
   // ─── Ставка ────────────────────────────────────────────────────────────────
@@ -1355,7 +1648,7 @@ body.dead::after {
         root.innerHTML = `
           <div class="bet-row">
             <button class="bet-step" type="button" data-step="half" aria-label="Ставку пополам">½</button>
-            <div class="bet-value"><span class="bet-amount"></span><small>ставка</small></div>
+            <div class="bet-value"><span class="bet-amount"></span><small>${root.dataset.betLabel || "ставка"}</small></div>
             <button class="bet-step" type="button" data-step="double" aria-label="Удвоить ставку">×2</button>
           </div>
           <div class="chips">
@@ -1372,7 +1665,9 @@ body.dead::after {
         chip.classList.toggle("active", active);
       });
     });
-    $("#roulette-play").textContent = `Крутить · ${fmt(state.bet)}`;
+    renderTableButton("roulette");
+    renderTableButton("race");
+    renderBankPreview();
     $("#slots-play").textContent = `Крутить · ${fmt(state.bet)}`;
     $("#coin-play").textContent = `Подбросить · ${fmt(state.bet)}`;
     $("#bj-deal").textContent = `Раздать · ${fmt(state.bet)}`;
@@ -1418,6 +1713,9 @@ body.dead::after {
 
     $("#hello").textContent = `Привет, ${data.user.name}!`;
     $("#hero-place").textContent = `${data.place}-е место в Форбсе`;
+    const heroBank = $("#hero-bank");
+    heroBank.hidden = !data.bank.total;
+    heroBank.textContent = `🏦 В банке: ${fmt(data.bank.total)} · открыть`;
     $("#spam-banner").hidden = !data.spam_day;
 
     const bonus = $("#bonus-btn");
@@ -1447,7 +1745,8 @@ body.dead::after {
     });
 
     renderFeed($("#feed"), data.feed, "Пока тихо. Сыграй первым!");
-    renderFeed($("#rr-feed"), data.feed.filter((item) => item.text.startsWith("💥") || item.text.startsWith("🔫")).slice(0, 6));
+    renderFeed($("#rr-feed"), data.feed.filter((item) => ["💥", "🔫", "🍀"].some((icon) => item.text.startsWith(icon))).slice(0, 6));
+    renderCoinHistory(data.coin_history);
 
     const stats = $("#my-stats");
     stats.replaceChildren();
@@ -1461,11 +1760,11 @@ body.dead::after {
     $("#donate-link").hidden = !data.donate;
 
     if (!state.busy) {
-      state.rrLeft = data.rr.chambers_left;
-      state.rrReward = data.rr.reward;
+      state.rr = data.rr;
       state.rrCooldownUntil = Date.now() + data.rr.cooldown * 1000;
       syncRevolver(6 - data.rr.chambers_left);
       renderRussianInfo();
+      renderRussianHistory(data.rr.history);
       if (data.blackjack && !(bjHand && bjHand.active)) {
         clearBlackjackTable(); // недоигранная раздача — показываем её как была
         renderBlackjack(data.blackjack, false);
@@ -1571,6 +1870,7 @@ body.dead::after {
       state.rouletteKind = button.dataset.kind;
       haptic.tap();
       renderRouletteControls();
+      renderTableButton("roulette");
     });
 
     const numbers = $("#numbers");
@@ -1586,6 +1886,7 @@ body.dead::after {
       state.rouletteNumber = Number(button.dataset.number);
       haptic.tap();
       renderRouletteControls();
+      renderTableButton("roulette");
     });
     renderRouletteControls();
   }
@@ -1597,64 +1898,426 @@ body.dead::after {
     $('#bet-kinds [data-kind="number"] small').textContent = state.rouletteKind === "number" ? `на ${state.rouletteNumber}` : "×36";
   }
 
+  const KIND_WORDS = {
+    red: "красное", black: "чёрное", even: "чёт", odd: "нечет", low: "1–18", high: "19–36",
+    dozen1: "1–12", dozen2: "13–24", dozen3: "25–36",
+  };
   let rotorAngle = 0;
   let ballAngle = 0;
+  let wheelPlaced = false;
 
-  async function playRoulette() {
-    if (state.busy) return;
-    const body = { bet: state.bet, kind: state.rouletteKind };
-    if (state.rouletteKind === "number") body.number = state.rouletteNumber;
-    setBusy(true);
+  function wheelTarget(number) {
+    const step = 360 / WHEEL.length;
+    const target = (360 - WHEEL.indexOf(number) * step) % 360;
+    return ((target - (rotorAngle % 360)) % 360 + 360) % 360;
+  }
+
+  function placeWheel(number) {
+    // без анимации: колесо сразу стоит на числе, шарик — у стрелки
+    rotorAngle += wheelTarget(number);
+    ballAngle = Math.round(ballAngle / 360) * 360;
+    [["#wheel-rotor", rotorAngle], ["#wheel-ball", ballAngle]].forEach(([selector, angle]) => {
+      const node = $(selector);
+      node.style.transitionDuration = "0s";
+      node.style.transform = `rotate(${angle}deg)`;
+    });
+    $("#ball-dot").style.transform = "translateY(0)";
+    wheelPlaced = true;
+  }
+
+  async function spinTableWheel(view) {
+    $("#wheel-result").hidden = true;
+    const seconds = Math.min(4.6, view.ends_at - serverNow() - 1);
+    if (seconds < 1.2) {
+      placeWheel(view.result.number);
+      return;
+    }
+    const here = () => state.screen === "roulette";
+    if (here()) haptic.impact("medium");
+    const turns = seconds > 3 ? 5 : 2;
+    rotorAngle += 360 * turns + wheelTarget(view.result.number);
+    ballAngle -= 360 * (turns + 2);
+    const dot = $("#ball-dot");
+    dot.style.transition = "transform .3s ease-out";
+    dot.style.transform = "translateY(-24px)";
+    [["#wheel-rotor", rotorAngle], ["#wheel-ball", ballAngle]].forEach(([selector, angle]) => {
+      const node = $(selector);
+      node.style.transitionDuration = `${seconds}s`;
+      node.style.transform = `rotate(${angle}deg)`;
+    });
+    wheelPlaced = true;
+    await wait((seconds - 1.2) * 1000);
+    dot.style.transition = "transform .9s cubic-bezier(.3,1.8,.5,1)";
+    dot.style.transform = "translateY(0)";
+    if (here()) haptic.impact("light");
+    await wait(1350);
+  }
+
+  function showWheelResult(view) {
+    const box = $("#wheel-result");
+    const net = myNet(view);
+    box.className = `wheel-result ${view.result.color}`;
+    box.replaceChildren(el("div", "num", String(view.result.number)));
+    if (net !== null) box.append(el("div", `net ${net >= 0 ? "win" : "lose"}`, signedShort(net)));
+    box.hidden = false;
+  }
+
+  function renderRoulette(view) {
+    const history = view.history.filter((item) => !(unrevealed("roulette", view) && item.round === view.round));
+    if (!wheelPlaced && history.length && !(view.phase === "playing" && view.result)) placeWheel(history[0].number);
+    renderStrip($("#roulette-history"), history.slice(0, 10), (item) => String(item.round),
+      (item) => el("span", item.color, String(item.number)));
+    renderTableBets($("#roulette-bets"), view, "roulette");
+    renderTableButton("roulette");
+  }
+
+  // ─── Общие столы: рулетка и скачки ─────────────────────────────────────────
+  // Раунды идут по часам сервера: окно ставок, потом розыгрыш. Исход приходит с сервера,
+  // а приложение доигрывает анимацию так, чтобы она кончилась до следующего окна ставок.
+
+  let clockOffset = 0; // на сколько часы сервера спешат относительно телефона, мс
+  const serverNow = () => (Date.now() + clockOffset) / 1000;
+  const TABLE_POLL_MS = { roulette: 1000, race: 1500 };
+  const tables = {
+    roulette: { view: null, lastPoll: 0, polling: false, shown: -1, animating: -1, sending: false },
+    race: { view: null, lastPoll: 0, polling: false, shown: -1, animating: -1, sending: false },
+  };
+
+  // Полоска последних результатов: перерисовываем, только когда появился новый, и анимируем только его
+  function renderStrip(strip, items, keyOf, build) {
+    const keys = items.map(keyOf);
+    if (strip.dataset.keys === keys.join("|")) return;
+    const known = strip.dataset.keys ? new Set(strip.dataset.keys.split("|")) : null;
+    strip.dataset.keys = keys.join("|");
+    strip.replaceChildren(...items.map((item, index) => {
+      const node = build(item);
+      if (known && !known.has(keys[index])) node.classList.add("fresh");
+      return node;
+    }));
+  }
+
+  // Исход раунда уже известен серверу, но игрок его ещё не видел — историю и баланс пока не трогаем
+  const unrevealed = (game, view) => view.phase === "playing" && tables[game].shown !== view.round;
+
+  async function pollTable(game) {
+    const table = tables[game];
+    if (table.polling) return;
+    table.polling = true;
+    table.lastPoll = Date.now();
+    const started = Date.now();
     try {
-      const result = await api("roulette", body);
-      setBalance(state.balance - body.bet);
-      haptic.impact("medium");
-      $("#wheel-result").hidden = true;
-
-      const step = 360 / WHEEL.length;
-      const target = (360 - WHEEL.indexOf(result.result) * step) % 360;
-      rotorAngle += 360 * 5 + ((target - (rotorAngle % 360)) % 360 + 360) % 360;
-      ballAngle -= 360 * 7;
-      const dot = $("#ball-dot");
-      dot.style.transition = "transform .3s ease-out";
-      dot.style.transform = "translateY(-24px)";
-      $("#wheel-rotor").style.transform = `rotate(${rotorAngle}deg)`;
-      $("#wheel-ball").style.transform = `rotate(${ballAngle}deg)`;
-
-      await wait(3400);
-      dot.style.transition = "transform .9s cubic-bezier(.3,1.8,.5,1)";
-      dot.style.transform = "translateY(0)";
-      haptic.impact("light");
-      await wait(1350);
-      showRouletteResult(result, body.bet);
+      const view = await api("table", { game });
+      clockOffset = view.now * 1000 - (started + Date.now()) / 2;
+      applyTable(game, view);
     } catch (error) {
-      showError(error);
+      if (error.status === 401 || error.status === 403) showError(error);
     } finally {
-      setBusy(false);
+      table.polling = false;
     }
   }
 
-  function showRouletteResult(result, bet) {
-    const box = $("#wheel-result");
-    box.className = `wheel-result ${result.color}`;
-    box.replaceChildren(el("div", "num", String(result.result)), el("div", `net ${result.won ? "win" : "lose"}`, signedShort(result.net)));
-    box.hidden = false;
-
-    const history = $("#roulette-history");
-    history.prepend(el("span", result.color, String(result.result)));
-    while (history.children.length > 10) history.lastElementChild.remove();
-
-    setBalance(result.balance);
-    if (!result.won) {
-      haptic.notify("warning");
-    } else if (result.payout >= bet * 36) {
-      haptic.notify("success");
-      confetti.burst(160);
-      toast(`💥 В яблочко! ${signedCoins(result.net)}`, "win");
-    } else {
-      haptic.notify("success");
-      if (result.payout >= bet * 3) confetti.burst(60);
+  function applyTable(game, view) {
+    const table = tables[game];
+    table.view = view;
+    if (!unrevealed(game, view)) setBalance(view.balance, state.loaded);
+    if (game === "roulette") renderRoulette(view);
+    else renderRace(view);
+    renderTableStatus(game);
+    if (view.phase === "playing" && view.result && table.animating !== view.round && table.shown !== view.round) {
+      table.animating = view.round;
+      const play = game === "roulette" ? spinTableWheel(view) : runRace(view);
+      play.then(() => revealRound(game, view.round));
     }
+  }
+
+  function myNet(view) {
+    const mine = view.bets.filter((bet) => bet.me && bet.payout !== null);
+    if (!mine.length) return null;
+    return mine.reduce((sum, bet) => sum + bet.payout - bet.amount, 0);
+  }
+
+  function resultLine(game, view) {
+    if (game === "roulette") {
+      const number = view.result.number;
+      return `Выпало ${number} ${number === 0 ? "🟢" : RED.has(number) ? "🔴" : "⚫"}`;
+    }
+    const winner = view.result.horses.find((horse) => horse.no === view.result.order[0]);
+    return `Победил №${winner.no} «${winner.name}» ${odds(winner.odds)}`;
+  }
+
+  function revealRound(game, round) {
+    const table = tables[game];
+    table.shown = round;
+    table.animating = -1;
+    const view = table.view;
+    if (!view || view.round !== round) return; // пока крутили, начался следующий раунд — его отрисует опрос
+    setBalance(view.balance);
+    if (game === "roulette") {
+      renderRoulette(view);
+      showWheelResult(view);
+    } else {
+      renderRace(view);
+      showRaceWinner(view);
+    }
+    renderTableStatus(game);
+    const net = myNet(view);
+    if (net === null || state.screen !== game) return;
+    if (net > 0) {
+      haptic.notify("success");
+      const staked = view.bets.filter((bet) => bet.me).reduce((sum, bet) => sum + bet.amount, 0);
+      confetti.burst(net >= staked * 4 ? 180 : 70);
+      toast(`${game === "roulette" ? "🎡" : "🏇"} Выигрыш! ${signedCoins(net)}`, "win");
+    } else {
+      haptic.notify(net < 0 ? "warning" : "success");
+    }
+  }
+
+  function renderTableStatus(game) {
+    const view = tables[game].view;
+    if (!view) return;
+    const now = serverNow();
+    const text = $(`#${game}-status-text`);
+    const bar = $(`#${game}-status-bar`);
+    let message;
+    let share;
+    let tone = "";
+    if (now < view.closes_at) {
+      const left = view.closes_at - now;
+      message = game === "roulette" ? `Ставки принимаются · ${Math.ceil(left)} с` : `До старта ${Math.ceil(left)} с — делайте ставки`;
+      share = left / view.betting;
+    } else {
+      share = Math.max(0, view.ends_at - now) / view.playing;
+      if (view.result && tables[game].shown === view.round) {
+        const net = myNet(view);
+        message = resultLine(game, view) + (net === null ? "" : ` · ${signedShort(net)}`);
+        tone = net === null || net === 0 ? "" : net > 0 ? "win" : "lose";
+      } else {
+        message = game === "roulette" ? "Ставок больше нет — крутим!" : "Забег идёт!";
+      }
+    }
+    text.textContent = message;
+    text.className = `status-text ${tone}`;
+    bar.style.width = `${Math.min(1, share) * 100}%`;
+    bar.classList.toggle("playing", now >= view.closes_at);
+  }
+
+  function renderTableBets(list, view, game) {
+    const hideResults = unrevealed(game, view);
+    list.replaceChildren();
+    const addRows = (bets, withResults) => bets.forEach((bet) => {
+      const row = el("li", bet.me ? "me" : "");
+      row.append(el("span", "who", bet.me ? "Ты" : bet.name), el("span", "what", bet.label), el("span", "sum", fmt(bet.amount)));
+      if (withResults && bet.payout !== null) {
+        const net = bet.payout - bet.amount;
+        row.append(el("span", `net ${net > 0 ? "win" : "lose"}`, signedShort(net)));
+      }
+      list.append(row);
+    });
+    addRows(view.bets, !hideResults);
+    if (view.next_bets.length) {
+      list.append(el("li", "sep", game === "roulette" ? "На следующий спин" : "На следующий забег"));
+      addRows(view.next_bets, false);
+    }
+    if (!view.bets.length && !view.next_bets.length) list.append(el("li", "empty", "Пока никто не поставил — будь первым"));
+  }
+
+  function renderTableButton(game) {
+    const table = tables[game];
+    const button = $(`#${game}-play`);
+    const later = table.view && serverNow() >= table.view.closes_at;
+    if (game === "roulette") {
+      const what = state.rouletteKind === "number" ? `число ${state.rouletteNumber}` : KIND_WORDS[state.rouletteKind];
+      button.textContent = `${later ? "На следующий спин" : "Ставлю"}: ${what} · ${fmt(state.bet)}`;
+    } else {
+      const horse = table.view && table.view.lineup.find((item) => item.no === state.raceHorse);
+      const what = horse ? `№${horse.no} ${horse.name}` : `№${state.raceHorse}`;
+      button.textContent = `${later ? "На следующий забег" : "Ставлю"}: ${what} · ${fmt(state.bet)}`;
+    }
+    button.disabled = table.sending || !table.view;
+  }
+
+  async function placeTableBet(game) {
+    const table = tables[game];
+    if (table.sending || !table.view) return;
+    const body = { game, bet: state.bet };
+    if (game === "roulette") {
+      body.kind = state.rouletteKind;
+      if (state.rouletteKind === "number") body.pick = state.rouletteNumber;
+    } else {
+      body.pick = state.raceHorse;
+      body.round = table.view.open_round; // лошадь выбрана в этом забеге — в следующем под её номером бежит другая
+    }
+    table.sending = true;
+    renderTableButton(game);
+    try {
+      const view = await api("table/bet", body);
+      haptic.impact("medium");
+      applyTable(game, view);
+      if (unrevealed(game, view)) setBalance(state.balance - body.bet); // остальное баланс покажет после розыгрыша
+      toast(`🎲 Ставка принята: ${fmt(body.bet)}`);
+    } catch (error) {
+      showError(error);
+      if (error.status === 409) pollTable(game); // забег уже стартовал — покажем новых лошадей
+    } finally {
+      table.sending = false;
+      renderTableButton(game);
+    }
+  }
+
+  function tickTables() {
+    const game = state.screen;
+    if (!(game in tables) || document.visibilityState !== "visible") return;
+    const table = tables[game];
+    const view = table.view;
+    const now = serverNow();
+    if (!view || Date.now() - table.lastPoll >= TABLE_POLL_MS[game]
+        || (view.phase === "betting" && now >= view.closes_at + 0.2) || now >= view.ends_at) {
+      pollTable(game);
+    }
+    renderTableStatus(game);
+    renderTableButton(game);
+  }
+
+  // ─── Скачки ────────────────────────────────────────────────────────────────
+
+  const HORSE_COLORS = ["#e53935", "#1e88e5", "#43a047", "#f9a825", "#8e24aa", "#fb8c00"];
+  const MEDALS = ["🥇", "🥈", "🥉"];
+  const odds = (value) => `×${value.toLocaleString("ru-RU")}`;
+  let raceFrame = 0;
+  let raceOnTrack = null; // какой забег сейчас стоит на дорожке
+
+  function buildTrack() {
+    const track = $("#track");
+    for (let i = 0; i < 6; i += 1) {
+      const lane = el("div", "lane");
+      const badge = el("span", "lane-no", String(i + 1));
+      badge.style.background = HORSE_COLORS[i];
+      const runway = el("div", "runway");
+      const runner = el("div", "runner");
+      runner.append(el("span", "horse", "🏇"));
+      runway.append(el("span", "lane-name", ""), runner); // имя стоит на месте: позицию на дорожке задаёт только лошадь
+      lane.append(badge, runway);
+      track.append(lane);
+    }
+  }
+
+  function setRunners(horses, progressOf) {
+    $$("#track .lane").forEach((lane, index) => {
+      const runner = lane.querySelector(".runner");
+      lane.querySelector(".lane-name").textContent = horses[index] ? horses[index].name : "";
+      const room = Math.max(0, lane.querySelector(".runway").clientWidth - runner.offsetWidth - 6);
+      runner.style.transform = `translateX(${progressOf(index) * room}px)`;
+    });
+  }
+
+  function clearPlaces() {
+    $$("#track .runner").forEach((runner) => delete runner.dataset.medal);
+  }
+
+  function mulberry32(seed) {
+    let a = seed >>> 0;
+    return () => {
+      a = (a + 0x6D2B79F5) >>> 0;
+      let t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  // У каждой лошади свои рывки и провалы — из seed с сервера, поэтому у всех зрителей забег одинаковый
+  function raceCurves(result) {
+    return result.times.map((finish, index) => {
+      const random = mulberry32(result.seed + index * 7919);
+      return {
+        finish,
+        a1: 0.02 + random() * 0.03, f1: 1 + random(), p1: random() * 6.28,
+        a2: 0.005 + random() * 0.015, f2: 2 + random() * 2, p2: random() * 6.28,
+      };
+    });
+  }
+
+  function raceProgress(curve, elapsed) {
+    if (elapsed <= 0) return 0;
+    if (elapsed >= curve.finish) return 1;
+    const u = elapsed / curve.finish;
+    const wobble = (curve.a1 * Math.sin(u * Math.PI * curve.f1 + curve.p1) + curve.a2 * Math.sin(u * Math.PI * curve.f2 + curve.p2)) * 4 * u * (1 - u);
+    return Math.min(1, Math.max(0, u + wobble));
+  }
+
+  function runRace(view) {
+    cancelAnimationFrame(raceFrame);
+    const result = view.result;
+    const curves = raceCurves(result);
+    const last = Math.max(...result.times);
+    const lanes = $$("#track .lane");
+    raceOnTrack = view.round;
+    clearPlaces();
+    $("#race-banner").textContent = "";
+    $("#track").classList.add("running");
+    if (state.screen === "race") haptic.impact("medium");
+    return new Promise((resolve) => {
+      const frame = () => {
+        const elapsed = serverNow() - view.closes_at;
+        setRunners(view.race_horses, (index) => raceProgress(curves[index], elapsed));
+        result.order.slice(0, 3).forEach((no, place) => {
+          const runner = lanes[no - 1].querySelector(".runner");
+          if (elapsed >= result.times[no - 1] && !runner.dataset.medal) {
+            runner.dataset.medal = MEDALS[place];
+            if (place === 0 && state.screen === "race") haptic.impact("heavy");
+          }
+        });
+        if (elapsed < last + 0.3 && state.screen === "race") {
+          raceFrame = requestAnimationFrame(frame);
+        } else {
+          $("#track").classList.remove("running");
+          resolve();
+        }
+      };
+      raceFrame = requestAnimationFrame(frame);
+    });
+  }
+
+  function showRaceWinner(view) {
+    const net = myNet(view);
+    const banner = $("#race-banner");
+    banner.className = `race-banner ${net === null || net === 0 ? "" : net > 0 ? "win" : "lose"}`;
+    banner.textContent = `🏆 ${resultLine("race", view)}${net === null ? "" : ` · ${signedCoins(net)}`}`;
+  }
+
+  function renderHorseCards(lineup) {
+    if (!lineup.some((horse) => horse.no === state.raceHorse)) state.raceHorse = lineup[0].no;
+    $("#horses").replaceChildren(...lineup.map((horse) => {
+      const card = el("button", `horse-card${horse.no === state.raceHorse ? " active" : ""}`);
+      card.type = "button";
+      card.dataset.horse = horse.no;
+      const badge = el("span", "lane-no", String(horse.no));
+      badge.style.background = HORSE_COLORS[horse.no - 1];
+      card.append(badge, el("span", "horse-card-name", horse.name), el("b", "", odds(horse.odds)));
+      return card;
+    }));
+  }
+
+  function renderRace(view) {
+    if (raceOnTrack !== view.round && !(view.phase === "playing" && view.result)) {
+      // новый забег: лошади выходят на старт
+      cancelAnimationFrame(raceFrame);
+      $("#track").classList.remove("running");
+      clearPlaces();
+      raceOnTrack = view.round;
+      setRunners(view.race_horses, () => 0);
+    }
+    const history = view.history.filter((item) => !(unrevealed("race", view) && item.round === view.round));
+    renderStrip($("#race-history"), history.slice(0, 8), (item) => String(item.round), (item) => {
+      const badge = el("span", "", String(item.no));
+      badge.style.background = HORSE_COLORS[item.no - 1];
+      badge.title = item.name;
+      badge.append(el("small", "", odds(item.odds)));
+      return badge;
+    });
+    renderHorseCards(view.lineup);
+    renderTableBets($("#race-bets"), view, "race");
+    renderTableButton("race");
   }
 
   // ─── Слоты ─────────────────────────────────────────────────────────────────
@@ -1761,6 +2424,27 @@ body.dead::after {
   // ─── Монетка ───────────────────────────────────────────────────────────────
 
   let coinAngle = 0;
+  const COIN_ICONS = { heads: "🦅", tails: "👑", edge: "🪙", stolen: "🇺🇿" };
+  const COIN_WORDS = { heads: "орёл", tails: "решка", edge: "на ребре", stolen: "украли узбеки" };
+
+  function renderCoinHistory(items) {
+    renderStrip($("#coin-history"), items, (item) => String(item.id), (item) => {
+      const node = el("span", item.result === "edge" ? "edge" : item.net > 0 ? "win" : "lose", COIN_ICONS[item.result] || "?");
+      node.title = `${item.name}: ${COIN_WORDS[item.result]}`;
+      return node;
+    });
+    const list = $("#coin-feed");
+    list.replaceChildren();
+    if (!items.length) list.append(el("li", "empty", "Монетку ещё никто не бросал"));
+    items.slice(0, 5).forEach((item) => {
+      const row = el("li");
+      row.append(
+        el("span", "text", `${COIN_ICONS[item.result]} ${item.name} — ${COIN_WORDS[item.result]}`),
+        el("span", `net ${item.net > 0 ? "win" : item.net < 0 ? "lose" : ""}`, signedShort(item.net)),
+      );
+      list.append(row);
+    });
+  }
 
   async function playCoin() {
     if (state.busy) return;
@@ -1798,6 +2482,7 @@ body.dead::after {
         await wait(1750);
       }
       setBalance(result.balance);
+      renderCoinHistory(result.history);
       if (result.result === "edge") {
         message.className = "coin-message win";
         message.textContent = "🪙 Встала на ребро! Ставка вернулась";
@@ -1846,11 +2531,38 @@ body.dead::after {
     });
   }
 
+  const RR_STEPS = ["5%", "10%", "15%", "20%", "40%", "💀"]; // шестой выстрел игроки считают верной смертью
+
   function renderRussianInfo() {
-    $("#rr-left").textContent = state.rrLeft;
-    $("#rr-chance").textContent = `1/${state.rrLeft}`;
-    $("#rr-reward").textContent = `+${fmt(state.rrReward)}`;
+    const rr = state.rr;
+    if (rr) {
+      const fired = 6 - rr.chambers_left;
+      $("#rr-left").textContent = rr.chambers_left;
+      $("#rr-chance").textContent = `1/${rr.chambers_left}`;
+      $("#rr-reward").textContent = rr.reward === null ? "💀" : `+${fmt(rr.reward)}`;
+      $("#rr-reward-sub").textContent = rr.reward === null
+        ? "последнее гнездо"
+        : `${rr.reward_percent}% кошелька, мин. ${fmt(rr.reward_min)}`;
+      $("#rr-ladder").replaceChildren(...RR_STEPS.map((step, index) =>
+        el("span", index < fired ? "done" : index === fired ? "now" : index === 5 ? "last" : "", step)));
+    }
     updateRussianButton();
+  }
+
+  function renderRussianHistory(items) {
+    const list = $("#rr-history");
+    list.replaceChildren();
+    if (!items.length) list.append(el("li", "empty", "Здесь появятся отстрелянные барабаны"));
+    items.forEach((item) => {
+      const cylinder = el("span", `mini-cylinder${item.bullet ? "" : " empty"}`);
+      for (let chamber = 1; chamber <= 6; chamber += 1) {
+        cylinder.append(el("i", item.bullet && chamber === item.bullet ? "bullet" : item.bullet && chamber > item.bullet ? "after" : ""));
+      }
+      const text = item.bullet ? `💥 ${item.bullet}-й выстрел — ${item.name}` : `🍀 Пустой барабан! ${item.name} забирает 100%`;
+      const row = el("li");
+      row.append(cylinder, el("span", "text", text));
+      list.append(row);
+    });
   }
 
   function updateRussianButton() {
@@ -1909,16 +2621,26 @@ body.dead::after {
         syncRevolver(0, true);
         message.className = "rr-message";
         message.textContent = "Барабан перезаряжен. Кто следующий?";
+      } else if (result.survived_all) {
+        haptic.notify("success");
+        confetti.burst(220);
+        setTimeout(() => confetti.burst(160), 600);
+        message.className = "rr-message alive";
+        message.textContent = `🍀 Барабан был пустой! ${signedCoins(result.delta)}`;
+        setBalance(result.balance);
+        syncRevolver(6);
+        await wait(1600);
+        syncRevolver(0, true);
       } else {
         haptic.notify("success");
         message.className = "rr-message alive";
         message.textContent = `Щёлк… живой! ${signedCoins(result.delta)}`;
         setBalance(result.balance);
-        syncRevolver(6 - result.chambers_left);
+        syncRevolver(6 - result.rr.chambers_left);
       }
-      state.rrLeft = result.chambers_left;
-      state.rrReward = result.next_reward;
+      state.rr = result.rr;
       state.rrCooldownUntil = Date.now() + result.cooldown * 1000;
+      renderRussianHistory(result.rr.history);
     } catch (error) {
       stage.classList.remove("aiming");
       showError(error);
@@ -2129,6 +2851,174 @@ body.dead::after {
     }
   }
 
+  // ─── Банк ──────────────────────────────────────────────────────────────────
+
+  const bank = { data: null, offset: 0, sending: false, loading: false, confirmId: 0, confirmUntil: 0 };
+  const bankNow = () => Date.now() / 1000 + bank.offset;
+  const termIn = (term) => (term.label === "неделя" ? "неделю" : term.label);
+
+  async function loadBank() {
+    if (bank.loading) return;
+    bank.loading = true;
+    try {
+      applyBank(await api("bank"));
+    } catch (error) {
+      showError(error);
+    } finally {
+      bank.loading = false;
+    }
+  }
+
+  function applyBank(data) {
+    const before = bank.data ? new Set(bank.data.deposits.filter((d) => d.status === "active").map((d) => d.id)) : new Set();
+    bank.data = data;
+    bank.offset = data.now - Date.now() / 1000;
+    setBalance(data.balance, state.loaded);
+    if (!data.terms.some((term) => term.key === state.term)) state.term = data.terms[0].key;
+    renderBank();
+    const paid = data.deposits.filter((d) => d.status === "paid" && before.has(d.id));
+    if (paid.length && state.screen === "bank") {
+      haptic.notify("success");
+      confetti.burst(90);
+      toast(`💰 Вклад вернулся: ${signedCoins(paid.reduce((sum, d) => sum + d.amount + d.interest, 0))}`, "win");
+    }
+  }
+
+  function renderBank() {
+    const data = bank.data;
+    if (!data) return;
+    $("#bank-total").textContent = fmt(data.total);
+    $("#bank-terms").replaceChildren(...data.terms.map((term) => {
+      const button = el("button", `term${term.key === state.term ? " active" : ""}`);
+      button.type = "button";
+      button.dataset.term = term.key;
+      button.append(el("span", "", term.label), el("small", "", `+${term.percent}%`));
+      return button;
+    }));
+    renderBankPreview();
+    renderDeposits();
+  }
+
+  function renderBankPreview() {
+    const data = bank.data;
+    const button = $("#bank-deposit");
+    button.textContent = `Положить · ${fmt(state.bet)}`;
+    if (!data) {
+      button.disabled = true;
+      return;
+    }
+    const term = data.terms.find((item) => item.key === state.term);
+    const interest = Math.floor((state.bet * term.percent) / 100);
+    const preview = $("#bank-preview");
+    if (state.bet < data.min) {
+      preview.textContent = `Вклад — от ${coins(data.min)}`;
+    } else {
+      preview.replaceChildren(document.createTextNode(`Через ${termIn(term)} вернётся ${fmt(state.bet + interest)} `), el("b", "", `(+${fmt(interest)})`));
+    }
+    button.disabled = bank.sending || state.bet < data.min;
+  }
+
+  function timeLeft(seconds) {
+    if (seconds <= 0) return "срок вышел — сейчас вернётся";
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    if (days) return `осталось ${days} д ${hours} ч`;
+    if (hours) return `осталось ${hours} ч ${minutes} мин`;
+    if (minutes) return `осталось ${minutes} мин ${Math.floor(seconds % 60)} с`;
+    return `осталось ${Math.ceil(seconds)} с`;
+  }
+
+  function renderDeposits() {
+    const list = $("#deposits");
+    list.replaceChildren();
+    if (!bank.data.deposits.length) list.append(el("li", "empty", "Вкладов пока нет"));
+    bank.data.deposits.forEach((deposit) => {
+      if (deposit.status !== "active") {
+        list.append(el("li", "closed", deposit.status === "paid"
+          ? `✅ ${fmt(deposit.amount)} → ${fmt(deposit.amount + deposit.interest)} · ${deposit.label}`
+          : `↩️ ${fmt(deposit.amount)} · ${deposit.label} · снят досрочно, без процентов`));
+        return;
+      }
+      const row = el("li");
+      row.dataset.deposit = deposit.id;
+      const head = el("div", "deposit-head");
+      head.append(el("b", "", fmt(deposit.amount)), el("span", "", `${deposit.label} · +${deposit.percent}%`),
+        el("em", "", `→ ${fmt(deposit.amount + deposit.interest)}`));
+      const bar = el("div", "deposit-bar");
+      bar.append(el("i"));
+      const foot = el("div", "deposit-foot");
+      const confirming = bank.confirmId === deposit.id && Date.now() < bank.confirmUntil;
+      const button = el("button", confirming ? "confirm" : "", confirming ? "Точно? Проценты сгорят" : "Снять досрочно");
+      button.type = "button";
+      button.dataset.withdraw = deposit.id;
+      foot.append(el("span", "left"), button);
+      row.append(head, bar, foot);
+      list.append(row);
+    });
+    updateDepositTimers();
+  }
+
+  function updateDepositTimers() {
+    if (!bank.data) return;
+    const now = bankNow();
+    bank.data.deposits.forEach((deposit) => {
+      const row = $(`#deposits [data-deposit="${deposit.id}"]`);
+      if (!row) return;
+      const share = (now - deposit.opened_at) / (deposit.ends_at - deposit.opened_at);
+      row.querySelector(".deposit-bar i").style.width = `${Math.max(0, Math.min(1, share)) * 100}%`;
+      row.querySelector(".left").textContent = timeLeft(deposit.ends_at - now);
+    });
+  }
+
+  function tickBank() {
+    if (state.screen !== "bank" || !bank.data || document.visibilityState !== "visible") return;
+    updateDepositTimers();
+    const due = bank.data.deposits.some((deposit) => deposit.status === "active" && deposit.ends_at <= bankNow());
+    if (due) loadBank(); // срок вышел — сервер вернёт вклад в кошелёк
+    if (bank.confirmId && Date.now() > bank.confirmUntil) {
+      bank.confirmId = 0;
+      renderDeposits();
+    }
+  }
+
+  async function makeDeposit() {
+    if (bank.sending || !bank.data) return;
+    const amount = state.bet;
+    const term = bank.data.terms.find((item) => item.key === state.term);
+    bank.sending = true;
+    renderBankPreview();
+    try {
+      applyBank(await api("bank/deposit", { amount, term: term.key }));
+      haptic.notify("success");
+      toast(`🏦 Положил ${fmt(amount)} на ${termIn(term)} под ${term.percent}%`, "win");
+    } catch (error) {
+      showError(error);
+    } finally {
+      bank.sending = false;
+      renderBankPreview();
+    }
+  }
+
+  async function withdrawDeposit(id) {
+    if (bank.confirmId !== id || Date.now() > bank.confirmUntil) {
+      bank.confirmId = id; // первое нажатие — переспрашиваем
+      bank.confirmUntil = Date.now() + 3000;
+      haptic.tap();
+      renderDeposits();
+      return;
+    }
+    bank.confirmId = 0;
+    try {
+      const data = await api("bank/withdraw", { id });
+      applyBank(data);
+      toast(data.early ? `↩️ Вернул ${fmt(data.paid)} без процентов` : `💰 Вклад закрыт: ${fmt(data.paid)}`);
+    } catch (error) {
+      showError(error);
+      loadBank();
+    }
+  }
+
   // ─── Конфетти ──────────────────────────────────────────────────────────────
 
   const confetti = (() => {
@@ -2225,7 +3115,28 @@ body.dead::after {
       }
     });
     $("#bonus-btn").addEventListener("click", claimBonus);
-    $("#roulette-play").addEventListener("click", playRoulette);
+    $("#roulette-play").addEventListener("click", () => placeTableBet("roulette"));
+    $("#race-play").addEventListener("click", () => placeTableBet("race"));
+    $("#horses").addEventListener("click", (event) => {
+      const card = event.target.closest("[data-horse]");
+      if (!card || !tables.race.view) return;
+      state.raceHorse = Number(card.dataset.horse);
+      haptic.tap();
+      renderHorseCards(tables.race.view.lineup);
+      renderTableButton("race");
+    });
+    $("#bank-terms").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-term]");
+      if (!button) return;
+      state.term = button.dataset.term;
+      haptic.tap();
+      renderBank();
+    });
+    $("#bank-deposit").addEventListener("click", makeDeposit);
+    $("#deposits").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-withdraw]");
+      if (button) withdrawDeposit(Number(button.dataset.withdraw));
+    });
     $("#slots-play").addEventListener("click", playSlots);
     $("#coin-play").addEventListener("click", playCoin);
     $("#rr-play").addEventListener("click", playRussian);
@@ -2259,6 +3170,7 @@ body.dead::after {
   setupTelegram();
   buildWheel();
   buildRouletteControls();
+  buildTrack();
   buildReels();
   buildRevolver();
   syncRevolver(0);
@@ -2267,8 +3179,10 @@ body.dead::after {
   refresh();
 
   setInterval(updateRussianButton, 1000);
+  setInterval(tickTables, 250);
+  setInterval(tickBank, 1000);
   setInterval(() => {
-    if (!state.busy && document.visibilityState === "visible" && (state.screen === "lobby" || state.screen === "rr")) refresh();
+    if (!state.busy && document.visibilityState === "visible" && ["lobby", "rr", "coin"].includes(state.screen)) refresh();
   }, 20000);
 })();
   </script>

@@ -1,4 +1,6 @@
-"""Скрытая панель хозяина бота: /debug и /say. Для всех остальных этих команд как будто не существует."""
+"""Скрытые команды хозяина бота: /debug, /say и /debug_casino_dev (подкрутка казино).
+Для всех остальных этих команд как будто не существует. В мини-приложении подкрутки нет:
+там хозяин — такой же игрок, как все."""
 
 import platform
 import time
@@ -14,6 +16,9 @@ from aiogram.filters import Command, CommandObject
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
 import backup
+import casino_engine
+import casino_rig
+import casino_tables
 import limits
 import members
 import scheduler
@@ -147,6 +152,139 @@ async def on_debug_button(callback: CallbackQuery):
     if isinstance(callback.message, Message):
         with suppress(TelegramAPIError):  # «message is not modified», если ничего не поменялось
             await callback.message.edit_text(_panel_text(), reply_markup=_keyboard())
+
+
+# ── Подкрутка казино ──────────────────────────────────────────────────────────
+# Каждая срабатывает один раз в главной беседе, игроки ничего не видят. Положение патрона тут нарочно
+# не показываем: хозяин играет наравне со всеми.
+
+RIG_TITLES = {"slots": "🎰 Слоты", "blackjack": "🃏 Блэкджек", "coin": "🪙 Монетка", "roulette": "🎡 Рулетка",
+              "race": "🏇 Скачки"}
+COIN_BUTTONS = {"heads": "🦅 Орёл", "tails": "👑 Решка", "edge": "🪙 На ребро", "stolen": "🇺🇿 Украдут"}
+
+
+def _buttons(rows) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text=text, callback_data=data) for text, data in row] for row in rows
+    ])
+
+
+def _rig_line(item: dict, names: dict[int, str]) -> str:
+    value = item["value"]
+    what = {"slots": "джекпот 7️⃣7️⃣7️⃣", "blackjack": "сразу 21", "coin": casino_rig.COIN_RESULTS.get(value),
+            "roulette": f"выпадет {value}", "race": f"победит №{value}"}[item["game"]]
+    who = f" → {escape(names.get(item['user_id'], 'игроку'))}" if item["user_id"] else " → первому, кто сыграет"
+    return f"• {RIG_TITLES[item['game']]}: {what}{who if item['game'] in casino_rig.PERSONAL_GAMES else ''}"
+
+
+def _rig_menu(chat_id: int | None) -> tuple[str, InlineKeyboardMarkup]:
+    rigs = casino_rig.active(chat_id) if chat_id else []
+    names = {player["id"]: player["name"] for player in casino_engine.players(chat_id)} if rigs else {}
+    lines = ["🎰 <b>Подкрутка казино</b>", "Срабатывает один раз, игроки ничего не заметят.", ""]
+    lines += [_rig_line(item, names) for item in rigs] or ["Сейчас всё честно 😇"]
+    rows = [
+        [("🎰 Джекпот в слотах", "rig:slots"), ("🃏 Блэкджек 21", "rig:blackjack")],
+        [("🪙 Монетка", "rig:coin"), ("🎡 Число в рулетке", "rig:roulette")],
+        [("🏇 Победитель забега", "rig:race"), ("🔫 Пустой барабан", "rig:rr")],
+    ]
+    if rigs:
+        rows.append([("🧹 Сбросить подкрутки", "rig:clear")])
+    rows.append([("✖️ Закрыть", "rig:close")])
+    return "\n".join(lines), _buttons(rows)
+
+
+def _rig_targets(chat_id: int, game: str, value: str) -> tuple[str, InlineKeyboardMarkup]:
+    rows = [[("🎲 Первому, кто сыграет", f"rig:set:{game}:{value}:0")]]
+    players = casino_engine.players(chat_id)[:60]
+    for i in range(0, len(players), 2):
+        rows.append([(player["name"][:32], f"rig:set:{game}:{value}:{player['id']}") for player in players[i:i + 2]])
+    rows.append([("« Назад", "rig:menu")])
+    what = COIN_BUTTONS[value] if game == "coin" else {"slots": "джекпот", "blackjack": "сразу 21"}[game]
+    return f"{RIG_TITLES[game]}: {what}\nКого порадовать?", _buttons(rows)
+
+
+def _rig_numbers() -> tuple[str, InlineKeyboardMarkup]:
+    rows = [[("0 🟢", "rig:set:roulette:0:0")]]
+    for start in range(1, 37, 6):
+        rows.append([(f"{n}{'🔴' if n in casino_tables.RED_NUMBERS else '⚫'}", f"rig:set:roulette:{n}:0")
+                     for n in range(start, start + 6)])
+    rows.append([("« Назад", "rig:menu")])
+    return "🎡 Какое число выпадет в следующем спине?", _buttons(rows)
+
+
+def _rig_horses(chat_id: int) -> tuple[str, InlineKeyboardMarkup]:
+    rows = [[(f"№{horse['no']} {horse['name']} ×{horse['odds']:g}", f"rig:set:race:{horse['no']}:0")]
+            for horse in casino_tables.lineup_for_rig(chat_id)]
+    rows.append([("« Назад", "rig:menu")])
+    return "🏇 Кто победит в ближайшем забеге?", _buttons(rows)
+
+
+def _rig_coins() -> tuple[str, InlineKeyboardMarkup]:
+    items = [(label, f"rig:coin:{key}") for key, label in COIN_BUTTONS.items()]
+    return "🪙 Как упадёт монетка?", _buttons([items[:2], items[2:], [("« Назад", "rig:menu")]])
+
+
+async def _show(callback: CallbackQuery, note: str | None, text: str, markup: InlineKeyboardMarkup):
+    await callback.answer(note)
+    if isinstance(callback.message, Message):
+        with suppress(TelegramAPIError):  # «message is not modified», если ничего не поменялось
+            await callback.message.edit_text(text, reply_markup=markup)
+
+
+@router.message(Command("debug_casino_dev"))
+async def cmd_debug_casino(message: Message):
+    """Скрытая команда подкрутки. Меню приходит хозяину в личку, в беседе команда стирается."""
+    in_group = message.chat.type != "private"
+    if in_group:
+        with suppress(TelegramAPIError):
+            await message.delete()
+    try:
+        text, markup = _rig_menu(db.get_main_chat())
+        await bot.send_message(OWNER_ID, text, reply_markup=markup)
+    except TelegramAPIError:
+        if in_group:
+            await message.answer(texts.DEBUG_NO_DM)
+
+
+@router.callback_query(F.data.startswith("rig:"))
+async def on_rig_button(callback: CallbackQuery):
+    chat_id = db.get_main_chat()
+    if chat_id is None:
+        await callback.answer("Бот ещё не знает ни одной беседы")
+        return
+    parts = callback.data.split(":")
+    action, note = parts[1], None
+    if action == "close":
+        await callback.answer()
+        if isinstance(callback.message, Message):
+            with suppress(TelegramAPIError):
+                await callback.message.delete()
+        return
+    if action == "set" and len(parts) == 5:
+        _, _, game, value, target = parts
+        try:
+            casino_rig.set_rig(chat_id, game, value if game == "coin" else int(value), int(target) or None)
+        except ValueError as e:
+            await callback.answer(str(e))
+            return
+        view, note = _rig_menu(chat_id), "Подкручено 🤫"
+    elif action == "rr":
+        casino_engine.empty_cylinder(chat_id)
+        view, note = _rig_menu(chat_id), "🔫 Патрон вынут: до перезарядки барабан пустой"
+    elif action == "clear":
+        casino_rig.clear(chat_id)
+        view, note = _rig_menu(chat_id), "Всё снова честно"
+    elif action in ("slots", "blackjack"):
+        view = _rig_targets(chat_id, action, "1")
+    elif action == "coin":
+        view = _rig_targets(chat_id, "coin", parts[2]) if len(parts) > 2 and parts[2] in COIN_BUTTONS else _rig_coins()
+    elif action == "roulette":
+        view = _rig_numbers()
+    elif action == "race":
+        view = _rig_horses(chat_id)
+    else:
+        view = _rig_menu(chat_id)
+    await _show(callback, note, *view)
 
 
 @router.message(Command("say", "скажи"), F.chat.type == "private")
