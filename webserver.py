@@ -15,8 +15,10 @@ from aiogram.types import User
 from aiogram.utils.web_app import safe_parse_webapp_init_data
 
 import casino_bank as bank
+import casino_bum as bum
 import casino_engine as engine
 import casino_tables as tables
+import casino_work as work
 import donations
 import members
 from config import BASE_DIR, BOT_TOKEN, CASINO_APP_NAME, WEB_PORT, WEBAPP_DEV_USER_ID
@@ -122,7 +124,10 @@ async def api_state(request: web.Request) -> web.Response:
     chat_id, user_id = await _player(request)
     bank.pay_matured()
     return _json(engine.state(chat_id, user_id) | {
-        "donate": donations.payment_info(), "bank": bank.summary(chat_id, user_id),
+        "donate": donations.payment_info(),
+        "bank": bank.summary(chat_id, user_id),
+        "bum": bum.bum_state(chat_id, user_id),
+        "work": work.summary(chat_id, user_id),
     })
 
 
@@ -182,6 +187,47 @@ async def api_table_bet(request: web.Request) -> web.Response:
                                   body.get("round")))
 
 
+# Халтура: мини-игры, где зарабатывают руками
+
+
+async def api_work(request: web.Request) -> web.Response:
+    chat_id, user_id = await _player(request)
+    return _json(work.state(chat_id, user_id))
+
+
+async def api_work_start(request: web.Request) -> web.Response:
+    chat_id, user_id = await _player(request)
+    body = await _body(request)
+    return _json(work.start(chat_id, user_id, body.get("job")))
+
+
+async def api_work_step(request: web.Request) -> web.Response:
+    chat_id, user_id = await _player(request)
+    return _json(work.step(chat_id, user_id, await _body(request)))
+
+
+async def api_work_finish(request: web.Request) -> web.Response:
+    chat_id, user_id = await _player(request)
+    return _json(work.finish(chat_id, user_id, await _body(request)))
+
+
+# Бомж
+
+
+async def api_bum(request: web.Request) -> web.Response:
+    chat_id, user_id = await _player(request)
+    return _json(bum.bum_state(chat_id, user_id))
+
+
+async def api_bum_action(request: web.Request) -> web.Response:
+    chat_id, user_id = await _player(request)
+    actions = {"collect": bum.collect, "feed": bum.feed, "upgrade": bum.upgrade}
+    action = request.match_info["action"]
+    if action not in actions:
+        raise web.HTTPNotFound()
+    return _json(actions[action](chat_id, user_id))
+
+
 # Банк
 
 
@@ -232,6 +278,12 @@ def build_app() -> web.Application:
         app.router.add_post(f"{prefix}/api/donate", api_donate)
         app.router.add_post(f"{prefix}/api/table", api_table)
         app.router.add_post(f"{prefix}/api/table/bet", api_table_bet)
+        app.router.add_post(f"{prefix}/api/work", api_work)
+        app.router.add_post(f"{prefix}/api/work/start", api_work_start)
+        app.router.add_post(f"{prefix}/api/work/step", api_work_step)
+        app.router.add_post(f"{prefix}/api/work/finish", api_work_finish)
+        app.router.add_post(f"{prefix}/api/bum", api_bum)
+        app.router.add_post(f"{prefix}/api/bum/{{action}}", api_bum_action)
         app.router.add_post(f"{prefix}/api/bank", api_bank)
         app.router.add_post(f"{prefix}/api/bank/deposit", api_bank_deposit)
         app.router.add_post(f"{prefix}/api/bank/withdraw", api_bank_withdraw)

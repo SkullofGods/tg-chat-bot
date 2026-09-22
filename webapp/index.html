@@ -266,6 +266,8 @@ button:disabled { cursor: default; }
 .game-tile.rr { background: linear-gradient(145deg, #8f1d1d, #2b0808); }
 .game-tile.race { background: linear-gradient(145deg, #7a4a1c, #2a1606); }
 .game-tile.bank { background: linear-gradient(145deg, #1d4f7a, #08182b); }
+.game-tile.work { background: linear-gradient(145deg, #6b5a12, #2a2305); }
+.game-tile.bum { background: linear-gradient(145deg, #4a3a2c, #1b140e); }
 
 .top-list, .feed { margin: 0; padding: 6px 0; list-style: none; }
 .top-list li, .feed li {
@@ -988,6 +990,270 @@ button:disabled { cursor: default; }
 }
 .field input:focus, .field textarea:focus { outline: 2px solid rgba(245, 197, 66, 0.5); }
 
+/* ─── Халтура ─── */
+
+.work-hero {
+  margin-top: 4px;
+  padding: 16px;
+  background:
+    radial-gradient(90% 120% at 100% 0%, rgba(245, 197, 66, 0.2), rgba(245, 197, 66, 0) 60%),
+    linear-gradient(160deg, rgba(107, 90, 18, 0.5), rgba(255, 255, 255, 0.03));
+}
+.work-hero b { font-size: 17px; }
+.work-hero p { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
+.work-earned { margin-top: 8px; font-weight: 700; color: var(--gold-2); }
+
+.jobs { display: grid; gap: 8px; margin-top: 12px; }
+.job-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  text-align: left;
+  background: var(--card);
+  border: 1px solid var(--line);
+  transition: transform 0.12s;
+}
+.job-card:active:not(:disabled) { transform: scale(0.99); }
+.job-card:disabled { opacity: 0.55; }
+.job-icon { font-size: 30px; }
+.job-text { flex: 1; min-width: 0; }
+.job-text b { display: block; font-size: 15px; }
+.job-text small { display: block; color: var(--muted); font-size: 12px; }
+.job-pay { flex: none; font-weight: 800; color: var(--gold); font-variant-numeric: tabular-nums; text-align: right; }
+.job-pay small { display: block; color: var(--muted); font-weight: 600; font-size: 11px; }
+
+.job-head { display: flex; align-items: center; gap: 10px; margin: 6px 0 8px; }
+.job-head b { flex: 1; font-size: 16px; }
+.job-back { padding: 6px 10px; border-radius: 10px; font-weight: 700; background: var(--card-strong); }
+.job-clock { font-variant-numeric: tabular-nums; font-weight: 800; color: var(--gold); }
+.job-bar { height: 6px; border-radius: 6px; overflow: hidden; background: rgba(255, 255, 255, 0.08); }
+.job-bar i {
+  display: block;
+  height: 100%;
+  width: 100%;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--gold-deep), var(--gold-2));
+}
+.job-bar i.hot { background: linear-gradient(90deg, #7a1f1f, #ff6b6b); }
+.job-score { margin-top: 8px; text-align: center; font-weight: 800; }
+.job-note { margin: 8px 4px 0; color: var(--muted); font-size: 13px; text-align: center; }
+.job-result { margin-top: 10px; padding: 14px; text-align: center; }
+.job-result .sum { font-size: 30px; font-weight: 900; color: var(--win); font-variant-numeric: tabular-nums; }
+.job-result .sum.zero { color: var(--lose); }
+.job-result ul { margin: 8px 0 0; padding: 0; list-style: none; color: var(--muted); font-size: 13px; }
+.job-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.job-actions button {
+  padding: 13px 8px;
+  border-radius: 14px;
+  font-weight: 800;
+  font-size: 14px;
+  background: var(--card-strong);
+  border: 1px solid var(--line);
+}
+.job-actions button:disabled { opacity: 0.5; }
+
+/* двор для субботника */
+.yard {
+  position: relative;
+  height: 320px;
+  margin-top: 8px;
+  border-radius: 18px;
+  overflow: hidden;
+  background:
+    repeating-linear-gradient(135deg, rgba(0, 0, 0, 0.12) 0 14px, transparent 14px 28px),
+    linear-gradient(180deg, #3f6b33, #27431f);
+  border: 2px solid #5a4a22;
+}
+.junk {
+  position: absolute;
+  width: 46px;
+  height: 46px;
+  margin: -23px 0 0 -23px;
+  display: grid;
+  place-items: center;
+  font-size: 30px;
+  animation: pop-in 0.2s ease-out;
+  cursor: pointer;
+}
+.junk.rat { filter: drop-shadow(0 0 6px rgba(255, 80, 80, 0.8)); }
+.junk.wallet { filter: drop-shadow(0 0 8px rgba(245, 197, 66, 0.9)); }
+.junk.gone { animation: junk-gone 0.25s ease-out forwards; }
+@keyframes junk-gone { to { transform: scale(0.2) rotate(25deg); opacity: 0; } }
+.plus {
+  position: absolute;
+  margin: -40px 0 0 -14px;
+  font-weight: 900;
+  font-size: 15px;
+  color: var(--win);
+  pointer-events: none;
+  animation: plus-up 0.7s ease-out forwards;
+}
+.plus.minus { color: var(--lose); }
+@keyframes plus-up { to { transform: translateY(-34px); opacity: 0; } }
+
+/* почта */
+.post-stage { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-top: 10px; }
+.letter {
+  position: relative;
+  width: 210px;
+  padding: 16px 14px;
+  border-radius: 12px;
+  background: linear-gradient(160deg, #fffdf0, #e7e1cc);
+  color: #241600;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45);
+  text-align: center;
+  animation: pop-in 0.18s ease-out;
+}
+.letter::before, .letter::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 50%;
+  height: 34px;
+  background: rgba(0, 0, 0, 0.07);
+}
+.letter::before { left: 0; clip-path: polygon(0 0, 100% 0, 100% 40%, 0 100%); }
+.letter::after { right: 0; clip-path: polygon(0 0, 100% 0, 100% 100%, 0 40%); }
+.letter .to { position: relative; font-size: 13px; color: #6b5a3a; }
+.letter .city { position: relative; margin-top: 6px; font-size: 20px; font-weight: 900; }
+.letter.sent { animation: letter-away 0.22s ease-in forwards; }
+@keyframes letter-away { to { transform: translateY(70px) scale(0.5); opacity: 0; } }
+.boxes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; }
+.mailbox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 4px;
+  border-radius: 14px;
+  font-weight: 700;
+  font-size: 13px;
+  background: var(--card-strong);
+  border: 1px solid var(--line);
+}
+.mailbox span { font-size: 26px; }
+.mailbox.right { animation: box-right 0.4s ease-out; }
+.mailbox.wrong { animation: box-wrong 0.4s ease-out; }
+@keyframes box-right { 50% { background: rgba(84, 224, 138, 0.35); transform: translateY(-4px); } }
+@keyframes box-wrong { 25% { transform: translateX(-6px); background: rgba(255, 107, 107, 0.3); } 75% { transform: translateX(6px); } }
+
+/* цех самсы */
+.press-stage { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 10px; }
+.press {
+  width: 190px;
+  height: 190px;
+  border-radius: 50%;
+  font-size: 84px;
+  background: radial-gradient(circle at 35% 30%, #ffe9a8, #d9a32b 55%, #7a5310);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.5), inset 0 -8px 20px rgba(0, 0, 0, 0.35);
+  transition: transform 0.06s;
+}
+.press:active { transform: scale(0.94); }
+.press.golden { animation: golden-press 0.5s ease-out; }
+@keyframes golden-press { 50% { box-shadow: 0 0 40px 12px rgba(255, 215, 90, 0.9); transform: scale(1.05); } }
+.tray { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; min-height: 60px; font-size: 18px; }
+
+/* рыбалка */
+.pond {
+  position: relative;
+  height: 250px;
+  margin-top: 8px;
+  border-radius: 18px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #123b5c 0%, #0b2438 60%, #071a29 100%);
+  border: 2px solid #234d6b;
+}
+.pond::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 60%;
+  background: repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0 2px, transparent 2px 12px);
+}
+.float {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  margin-left: -16px;
+  font-size: 32px;
+  transition: transform 0.2s;
+}
+.float.bite { animation: bite 0.35s ease-in-out infinite; }
+@keyframes bite { 50% { transform: translateY(14px) scale(0.9); } }
+.pond-text {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 14px;
+  text-align: center;
+  font-weight: 800;
+  font-size: 17px;
+}
+.pond-text.bite { color: var(--gold-2); font-size: 22px; animation: pop-text 0.3s ease-out; }
+.catch-line { display: flex; justify-content: center; gap: 8px; margin-top: 10px; font-size: 22px; min-height: 28px; }
+
+/* фура */
+.truck-stage { margin-top: 8px; }
+.truck-scene {
+  position: relative;
+  height: 150px;
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  font-size: 80px;
+  background: linear-gradient(180deg, #2b3340, #171c24);
+  border: 2px solid #3d4757;
+}
+.truck-scene.shake { animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both; }
+.truck-boxes { display: flex; justify-content: center; gap: 4px; margin-top: 10px; font-size: 22px; min-height: 30px; }
+.truck-boxes span.lost { filter: grayscale(1); opacity: 0.4; }
+.truck-risk { margin-top: 8px; text-align: center; color: var(--muted); font-size: 13px; }
+
+/* ─── Бомж ─── */
+
+.bum-scene {
+  position: relative;
+  margin-top: 4px;
+  padding: 18px 14px 14px;
+  text-align: center;
+  overflow: hidden;
+  background:
+    radial-gradient(80% 100% at 50% 0%, rgba(245, 197, 66, 0.14), rgba(0, 0, 0, 0) 70%),
+    linear-gradient(180deg, #2a2119, #140f0a);
+}
+.bum-emoji { font-size: 72px; line-height: 1; filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.6)); }
+.bum-emoji.hungry { animation: wobble 2.4s ease-in-out infinite; }
+@keyframes wobble { 50% { transform: rotate(-4deg); } }
+.bum-name { margin-top: 6px; font-size: 20px; font-weight: 900; }
+.bum-level { color: var(--gold-2); font-weight: 700; }
+.bum-mood { margin-top: 4px; color: var(--muted); font-size: 13px; }
+.bum-income { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 10px; padding: 12px 6px; text-align: center; }
+.bum-income small { display: block; color: var(--muted); font-size: 12px; }
+.bum-income b { font-size: 17px; font-variant-numeric: tabular-nums; }
+.bum-bar { height: 8px; margin-top: 10px; border-radius: 8px; overflow: hidden; background: rgba(255, 255, 255, 0.08); }
+.bum-bar i { display: block; height: 100%; border-radius: 8px; background: linear-gradient(90deg, #8a6a12, var(--gold-2)); }
+.bum-story { min-height: 22px; margin-top: 10px; text-align: center; font-weight: 700; }
+.bum-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.bum-actions button {
+  padding: 13px 8px;
+  border-radius: 14px;
+  font-weight: 800;
+  font-size: 14px;
+  background: var(--card-strong);
+  border: 1px solid var(--line);
+}
+.bum-actions button:disabled { opacity: 0.5; }
+.bum-levels { margin: 0; padding: 4px 0; list-style: none; }
+.bum-levels li { display: flex; align-items: center; gap: 10px; padding: 8px 14px; font-size: 14px; }
+.bum-levels li + li { border-top: 1px solid rgba(255, 255, 255, 0.05); }
+.bum-levels li.done { color: var(--muted); }
+.bum-levels li.now { background: rgba(245, 197, 66, 0.1); font-weight: 700; }
+.bum-levels .what { flex: 1; }
+.bum-levels .rate { color: var(--gold); font-variant-numeric: tabular-nums; }
+
 /* ─── Банк ─── */
 
 .bank-hero {
@@ -1152,6 +1418,7 @@ body.dead::after {
         </div>
 
         <div class="card tajik-banner" id="tajik-banner" hidden></div>
+        <button class="card tajik-banner" id="bum-banner" type="button" data-go="bum" hidden></button>
 
         <button class="card bonus" id="bonus-btn" type="button" disabled>
           <span class="bonus-icon" aria-hidden="true">🎁</span>
@@ -1183,6 +1450,12 @@ body.dead::after {
           </button>
           <button class="game-tile bank" data-go="bank" type="button">
             <span class="tile-icon">🏦</span><b>Банк</b><small>вклады до +100%</small>
+          </button>
+          <button class="game-tile work" data-go="work" type="button">
+            <span class="tile-icon">🧰</span><b>Халтура</b><small>работа руками</small>
+          </button>
+          <button class="game-tile bum" data-go="bum" type="button">
+            <span class="tile-icon">🧔</span><b>Бомж</b><small>приносит, пока спишь</small>
           </button>
         </div>
 
@@ -1392,6 +1665,55 @@ body.dead::after {
         <ul class="card feed" id="rr-feed"></ul>
       </section>
 
+      <!-- ─── Халтура ─── -->
+      <section class="screen" data-screen="work">
+        <div class="card work-hero">
+          <b>🧰 Халтура</b>
+          <p>Работа руками между ставками: платят за то, что успел сделать. У каждой свой перекур.</p>
+          <div class="work-earned" id="work-earned"></div>
+        </div>
+        <div class="jobs" id="jobs"></div>
+
+        <div id="job-stage" hidden>
+          <div class="job-head">
+            <button class="job-back" id="job-back" type="button">‹ Работы</button>
+            <b id="job-title"></b>
+            <span class="job-clock" id="job-clock"></span>
+          </div>
+          <div class="job-bar"><i id="job-bar"></i></div>
+          <div id="job-area"></div>
+          <div class="job-score" id="job-score"></div>
+          <p class="job-note" id="job-note"></p>
+          <div id="job-foot"></div>
+        </div>
+      </section>
+
+      <!-- ─── Бомж ─── -->
+      <section class="screen" data-screen="bum">
+        <div class="card bum-scene">
+          <div class="bum-emoji" id="bum-emoji">🧔</div>
+          <div class="bum-name" id="bum-name">…</div>
+          <div class="bum-level" id="bum-level"></div>
+          <div class="bum-mood" id="bum-mood"></div>
+        </div>
+        <div class="card bum-income">
+          <div><small>Приносит</small><b id="bum-rate">—</b></div>
+          <div><small>Накопил</small><b id="bum-pending">—</b></div>
+          <div><small>Вложено</small><b id="bum-invested">—</b></div>
+        </div>
+        <div class="bum-bar"><i id="bum-bar"></i></div>
+        <div class="bum-story" id="bum-story"></div>
+        <button class="play-btn" id="bum-collect" type="button">Забрать</button>
+        <div class="bum-actions">
+          <button id="bum-feed" type="button">🍲 Покормить</button>
+          <button id="bum-upgrade" type="button">📦 Вложиться</button>
+        </div>
+        <p class="hint" id="bum-hint">Выручка копится, пока тебя нет, но не больше шести часов. Голодный работает вполсилы.</p>
+
+        <h2 class="section-title">📈 Куда он может вырасти</h2>
+        <ul class="card bum-levels" id="bum-levels"></ul>
+      </section>
+
       <!-- ─── Банк ─── -->
       <section class="screen" data-screen="bank">
         <div class="card bank-hero">
@@ -1417,6 +1739,8 @@ body.dead::after {
       <button type="button" data-tab="blackjack"><span>🃏</span><small>Блэкджек</small></button>
       <button type="button" data-tab="coin"><span>🪙</span><small>Монетка</small></button>
       <button type="button" data-tab="rr"><span>🔫</span><small>Русская</small></button>
+      <button type="button" data-tab="work"><span>🧰</span><small>Халтура</small></button>
+      <button type="button" data-tab="bum"><span>🧔</span><small>Бомж</small></button>
       <button type="button" data-tab="bank"><span>🏦</span><small>Банк</small></button>
     </nav>
   </div>
@@ -1634,7 +1958,10 @@ body.dead::after {
       if (screen === "lobby") tg.BackButton.hide();
       else tg.BackButton.show();
     } catch (error) { /* вне Telegram */ }
+    if (state.screen === "work" && screen !== "work" && work.job) closeJob(false); // смену бросили
     if (screen === "lobby" || screen === "rr" || screen === "coin") refresh();
+    if (screen === "work") loadWork();
+    if (screen === "bum") loadBum();
     if (screen in tables) pollTable(screen);
     if (screen === "bank") loadBank();
     const tab = $(`.tabbar [data-tab="${screen}"]`);
@@ -1761,6 +2088,14 @@ body.dead::after {
       box.append(el("small", "", label), el("b", "", value));
       stats.append(box);
     });
+
+    const bumBanner = $("#bum-banner");
+    const napping = data.bum;
+    bumBanner.hidden = !(napping.hungry || napping.pending >= 20);
+    bumBanner.textContent = napping.hungry
+      ? `🧔 ${napping.name} голодный — покорми, иначе работает вполсилы`
+      : `🧔 ${napping.name} накопил ${fmt(napping.pending)} 🪙 — забери`;
+    showWorkEarned(data.work);
 
     state.donate = data.donate;
     $("#donate-link").hidden = !data.donate;
@@ -2857,6 +3192,567 @@ body.dead::after {
     }
   }
 
+  // ─── Халтура ───────────────────────────────────────────────────────────────
+  // Задание присылает сервер, он же считает выплату. Приложение только красиво показывает работу
+  // и отправляет, что игрок успел сделать.
+
+  const work = { jobs: [], job: null, task: null, state: null, timer: 0, timers: [], sending: false };
+  const JUNK = { trash: ["🍌", "🥫", "📰", "🧃", "🍕"], bottle: ["🍾"], wallet: ["👛"], rat: ["🐀"] };
+  const FISH = {
+    junk: ["🥫", "консервная банка"], small: ["🐟", "мелочь"], big: ["🐠", "крупная!"],
+    golden: ["🐡", "ЗОЛОТАЯ РЫБКА!"], boot: ["👢", "сапог узбека"], miss: ["💨", "сорвалось"],
+  };
+
+  const later = (fn, ms) => work.timers.push(setTimeout(fn, ms));
+  const waitText = (seconds) => (seconds >= 60
+    ? `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`
+    : `${Math.ceil(seconds)} с`);
+
+  async function loadWork() {
+    try {
+      applyWork(await api("work"));
+    } catch (error) {
+      showError(error);
+    }
+  }
+
+  function applyWork(data) {
+    work.jobs = data.jobs;
+    if (typeof data.balance === "number") setBalance(data.balance, state.loaded);
+    if (data.summary) showWorkEarned(data.summary);
+    renderJobs();
+  }
+
+  function showWorkEarned(summary) {
+    $("#work-earned").textContent = summary.shifts
+      ? `Отработано смен: ${fmt(summary.shifts)} · заработано ${summary.money}`
+      : "Смен пока не было — попробуй хоть одну";
+  }
+
+  function renderJobs() {
+    $("#jobs").replaceChildren(...work.jobs.map((job) => {
+      const card = el("button", "job-card");
+      card.type = "button";
+      card.dataset.job = job.key;
+      card.disabled = job.cooldown > 0;
+      const text = el("div", "job-text");
+      text.append(el("b", "", job.title), el("small", "", job.about));
+      const pay = el("div", "job-pay", job.cooldown > 0 ? waitText(job.cooldown) : job.pay);
+      pay.append(el("small", "", job.cooldown > 0 ? "перекур" : "🪙 за смену"));
+      card.append(el("span", "job-icon", job.emoji), text, pay);
+      return card;
+    }));
+  }
+
+  function tickWork() {
+    if (state.screen !== "work" || work.job || !work.jobs.length) return;
+    let changed = false;
+    work.jobs.forEach((job) => {
+      if (job.cooldown > 0) {
+        job.cooldown = Math.max(0, job.cooldown - 1);
+        changed = true;
+      }
+    });
+    if (changed) renderJobs();
+  }
+
+  function stopJobTimers() {
+    work.timers.forEach(clearTimeout);
+    work.timers = [];
+    cancelAnimationFrame(work.timer);
+    work.timer = 0;
+  }
+
+  function runClock(seconds, onEnd) {
+    const ends = performance.now() + seconds * 1000;
+    const bar = $("#job-bar");
+    const tick = () => {
+      const left = Math.max(0, ends - performance.now()) / 1000;
+      bar.style.width = `${(left / seconds) * 100}%`;
+      bar.className = left <= 3 ? "hot" : "";
+      $("#job-clock").textContent = `${left.toFixed(1)} с`;
+      if (left > 0) {
+        work.timer = requestAnimationFrame(tick);
+      } else {
+        work.timer = 0;
+        onEnd();
+      }
+    };
+    work.timer = requestAnimationFrame(tick);
+  }
+
+  function countdown(onReady) {
+    let left = 3;
+    $("#job-clock").textContent = String(left);
+    const tick = () => {
+      left -= 1;
+      if (left > 0) {
+        $("#job-clock").textContent = String(left);
+        haptic.tap();
+        later(tick, 550);
+      } else {
+        $("#job-clock").textContent = "Поехали!";
+        haptic.impact("medium");
+        onReady();
+      }
+    };
+    later(tick, 550);
+  }
+
+  async function startJob(key) {
+    if (work.sending) return;
+    work.sending = true;
+    try {
+      const data = await api("work/start", { job: key });
+      openJob(key, data.task);
+    } catch (error) {
+      showError(error);
+      if (error.status === 429) loadWork();
+    } finally {
+      work.sending = false;
+    }
+  }
+
+  function openJob(key, task) {
+    const job = work.jobs.find((item) => item.key === key);
+    stopJobTimers();
+    work.job = key;
+    work.task = task;
+    $("#jobs").hidden = true;
+    $(".work-hero").hidden = true;
+    $("#job-stage").hidden = false;
+    $("#job-title").textContent = `${job.emoji} ${job.title}`;
+    $("#job-foot").replaceChildren();
+    $("#job-score").textContent = "";
+    $("#job-note").textContent = job.about;
+    $("#job-bar").style.width = "100%";
+    $("#job-bar").className = "";
+    JOB_GAMES[key](task);
+  }
+
+  function closeJob(reload = true) {
+    stopJobTimers();
+    work.job = null;
+    work.task = null;
+    work.state = null;
+    $("#job-area").replaceChildren();
+    $("#job-stage").hidden = true;
+    $("#jobs").hidden = false;
+    $(".work-hero").hidden = false;
+    if (reload) loadWork();
+  }
+
+  async function finishJob(answer) {
+    stopJobTimers();
+    if (work.sending) return;
+    work.sending = true;
+    try {
+      showJobResult(await api("work/finish", answer || {}));
+    } catch (error) {
+      showError(error);
+      closeJob();
+    } finally {
+      work.sending = false;
+    }
+  }
+
+  function showJobResult(done) {
+    work.jobs = done.jobs;
+    work.job = null;
+    setBalance(done.balance);
+    $("#job-area").replaceChildren();
+    $("#job-clock").textContent = "";
+    $("#job-bar").style.width = "0%";
+    $("#job-score").textContent = "";
+    $("#job-note").textContent = done.praise;
+    const card = el("div", "card job-result");
+    card.append(el("div", `sum ${done.pay ? "" : "zero"}`, signedShort(done.pay)));
+    if (done.detail.length) {
+      const list = el("ul");
+      done.detail.forEach((line) => list.append(el("li", "", line)));
+      card.append(list);
+    }
+    const actions = el("div", "job-actions");
+    const again = el("button", "", "↻ Ещё смену");
+    again.type = "button";
+    const job = work.jobs.find((item) => item.key === done.job);
+    again.disabled = job.cooldown > 0;
+    again.textContent = job.cooldown > 0 ? `Перекур ${waitText(job.cooldown)}` : "↻ Ещё смену";
+    again.addEventListener("click", () => startJob(done.job));
+    const back = el("button", "", "‹ К работам");
+    back.type = "button";
+    back.addEventListener("click", () => closeJob());
+    actions.append(again, back);
+    $("#job-foot").replaceChildren(card, actions);
+    if (done.pay > 0) {
+      haptic.notify("success");
+      if (done.pay >= 250) confetti.burst(90);
+      toast(`🧰 Смена закрыта: ${signedCoins(done.pay)}`, "win");
+    } else {
+      haptic.notify("warning");
+    }
+  }
+
+  // ── Субботник ──
+  function startCleanup(task) {
+    const yard = el("div", "yard");
+    $("#job-area").replaceChildren(yard);
+    work.state = { collected: [], score: 0 };
+    $("#job-score").textContent = "Собрано: 0 · +0";
+    $("#job-note").textContent = "Хватай мусор, пока не исчез. Крысу лучше не трогать.";
+    countdown(() => {
+      task.items.forEach((item) => {
+        later(() => {
+          const kinds = JUNK[item.kind] || JUNK.trash;
+          const node = el("div", `junk ${item.kind}`, kinds[item.id % kinds.length]);
+          node.style.left = `${item.x}%`;
+          node.style.top = `${item.y}%`;
+          node.addEventListener("click", () => grabJunk(node, item, task.values[item.kind]), { once: true });
+          yard.append(node);
+          later(() => node.remove(), task.lifetime * 1000);
+        }, item.at * 1000);
+      });
+      runClock(task.seconds, () => finishJob({ collected: work.state.collected }));
+    });
+  }
+
+  function grabJunk(node, item, value) {
+    const here = work.state;
+    here.collected.push(item.id);
+    here.score += value;
+    node.classList.add("gone");
+    later(() => node.remove(), 250);
+    haptic.impact(value < 0 ? "heavy" : "light");
+    const plus = el("div", `plus ${value < 0 ? "minus" : ""}`, signedShort(value));
+    plus.style.left = node.style.left;
+    plus.style.top = node.style.top;
+    node.parentElement.append(plus);
+    later(() => plus.remove(), 700);
+    $("#job-score").textContent = `Собрано: ${here.collected.length} · ${signedShort(here.score)}`;
+  }
+
+  // ── Почта ──
+  function startPost(task) {
+    const stage = el("div", "post-stage");
+    const letter = el("div", "letter");
+    const boxes = el("div", "boxes");
+    task.cities.forEach((city, index) => {
+      const box = el("button", "mailbox");
+      box.type = "button";
+      box.dataset.box = index;
+      box.append(el("span", "", "📮"), el("small", "", city));
+      boxes.append(box);
+    });
+    boxes.addEventListener("click", (event) => {
+      const box = event.target.closest("[data-box]");
+      if (box) sortLetter(Number(box.dataset.box), box);
+    });
+    stage.append(letter, boxes);
+    $("#job-area").replaceChildren(stage);
+    work.state = { index: 0, answers: [], right: 0, letter, busy: true };
+    $("#job-score").textContent = "Верно: 0 · +0";
+    $("#job-note").textContent = "Читай город в адресе и кидай письмо в нужный ящик.";
+    countdown(() => {
+      work.state.busy = false;
+      showLetter();
+      runClock(task.seconds, () => finishJob({ answers: work.state.answers }));
+    });
+  }
+
+  function showLetter() {
+    const here = work.state;
+    const item = work.task.letters[here.index];
+    if (!item) {
+      finishJob({ answers: here.answers });
+      return;
+    }
+    here.busy = false;
+    here.letter.className = "letter";
+    here.letter.replaceChildren(
+      el("div", "to", `${item.street}, д. ${1 + (item.id * 7) % 40}`),
+      el("div", "city", work.task.cities[item.city]),
+    );
+  }
+
+  function sortLetter(box, node) {
+    const here = work.state;
+    const item = work.task.letters[here.index];
+    if (!item || here.busy) return;
+    here.busy = true;
+    const right = item.city === box;
+    here.answers.push({ id: item.id, box });
+    if (right) here.right += 1;
+    node.classList.remove("right", "wrong");
+    reflow(node);
+    node.classList.add(right ? "right" : "wrong");
+    haptic.notify(right ? "success" : "warning");
+    here.letter.classList.add("sent");
+    here.index += 1;
+    $("#job-score").textContent = `Верно: ${here.right} · ${signedShort(here.right * work.task.pay)}`;
+    later(showLetter, 210);
+  }
+
+  // ── Цех самсы ──
+  function startSamsa(task) {
+    const stage = el("div", "press-stage");
+    const press = el("button", "press", "🥟");
+    press.type = "button";
+    const tray = el("div", "tray");
+    stage.append(press, tray);
+    $("#job-area").replaceChildren(stage);
+    work.state = { taps: 0, golden: 0, press, tray, bonus: new Set(task.bonus) };
+    $("#job-score").textContent = "Самсы: 0";
+    $("#job-note").textContent = "Жми на пресс как можно быстрее.";
+    press.addEventListener("click", tapPress);
+    countdown(() => runClock(task.seconds, () => finishJob({ taps: work.state.taps })));
+  }
+
+  function tapPress() {
+    const here = work.state;
+    if (!here || !work.timer) return; // ещё не начали или смена кончилась
+    here.taps += 1;
+    const golden = here.bonus.has(here.taps);
+    if (golden) {
+      here.golden += 1;
+      here.press.classList.remove("golden");
+      reflow(here.press);
+      here.press.classList.add("golden");
+    }
+    haptic.impact(golden ? "medium" : "light");
+    if (here.tray.children.length > 60) here.tray.firstElementChild.remove();
+    here.tray.append(el("span", "", golden ? "✨" : "🥟"));
+    $("#job-score").textContent = `Самсы: ${here.taps}${here.golden ? ` · золотых ${here.golden}` : ""}`;
+  }
+
+  // ── Рыбалка ──
+  function startFishing(task) {
+    const pond = el("div", "pond");
+    const float = el("div", "float", "🎣");
+    const text = el("div", "pond-text", "Забрасываем…");
+    pond.append(float, text);
+    const line = el("div", "catch-line");
+    $("#job-area").replaceChildren(pond, line);
+    work.state = { pond, float, text, line, cast: 0, total: 0, biteAt: 0, armed: false, casts: task.casts };
+    $("#job-score").textContent = "Улов: +0";
+    $("#job-note").textContent = "Дёрни удочку, как только клюнет. Раньше времени — распугаешь рыбу.";
+    pond.addEventListener("click", pullRod);
+    nextCast();
+  }
+
+  async function nextCast() {
+    const here = work.state;
+    if (!here) return;
+    here.armed = false;
+    here.float.classList.remove("bite");
+    here.text.className = "pond-text";
+    here.text.textContent = "Ждём поклёвку…";
+    $("#job-clock").textContent = `Заброс ${here.cast + 1}/${here.casts}`;
+    try {
+      const data = await api("work/step", {});
+      later(() => {
+        if (!work.state) return;
+        here.armed = true;
+        here.biteAt = Date.now();
+        here.float.classList.add("bite");
+        here.text.className = "pond-text bite";
+        here.text.textContent = "ТЯНИ!";
+        haptic.impact("heavy");
+        later(() => { if (here.armed) pullRod(); }, 1600); // зевнул — считаем промахом
+      }, data.bite_in * 1000);
+    } catch (error) {
+      showError(error);
+      closeJob();
+    }
+  }
+
+  async function pullRod() {
+    const here = work.state;
+    if (!here || work.sending) return;
+    const reaction = here.armed ? Date.now() - here.biteAt : 0;
+    here.armed = false;
+    here.float.classList.remove("bite");
+    work.sending = true;
+    try {
+      const data = await api("work/step", { reaction });
+      const [emoji, title] = FISH[data.catch] || FISH.miss;
+      here.cast = data.cast;
+      here.total += data.pay;
+      here.text.className = "pond-text";
+      here.text.textContent = `${emoji} ${title}${data.pay ? ` · ${signedShort(data.pay)}` : ""}`;
+      here.line.append(el("span", "", emoji));
+      $("#job-score").textContent = `Улов: ${signedShort(here.total)}`;
+      haptic.notify(data.pay ? "success" : "warning");
+      if (data.catch === "golden") confetti.burst(120);
+      later(data.left > 0 ? nextCast : () => finishJob({}), 1400);
+    } catch (error) {
+      showError(error);
+      closeJob();
+    } finally {
+      work.sending = false;
+    }
+  }
+
+  // ── Разгрузка фуры ──
+  function startTruck(task) {
+    const scene = el("div", "truck-scene", "🚚");
+    const boxes = el("div", "truck-boxes");
+    const risk = el("div", "truck-risk");
+    $("#job-area").replaceChildren(scene, boxes, risk);
+    work.state = { scene, boxes, risk, box: 0, pay: 0 };
+    $("#job-score").textContent = "В руках: +0";
+    $("#job-note").textContent = "Каждый следующий ящик дороже, но и уронить его легче.";
+    $("#job-clock").textContent = `0/${task.boxes}`;
+    $("#job-bar").style.width = "0%";
+    renderTruck();
+  }
+
+  function renderTruck() {
+    const here = work.state;
+    const task = work.task;
+    here.boxes.replaceChildren(...Array.from({ length: here.box }, () => el("span", "", "📦")));
+    const next = task.values[here.box];
+    here.risk.textContent = next
+      ? `Следующий ящик: +${fmt(next)} · шанс уронить ${Math.round(task.risks[here.box] * 100)}%`
+      : "Фура пустая — неси всё в кассу";
+    $("#job-clock").textContent = `${here.box}/${task.boxes}`;
+    $("#job-bar").style.width = `${(here.box / task.boxes) * 100}%`;
+    $("#job-score").textContent = `В руках: ${signedShort(here.pay)}`;
+    const actions = el("div", "job-actions");
+    const more = el("button", "", next ? `📦 Взять ящик · +${fmt(next)}` : "Ящиков больше нет");
+    more.type = "button";
+    more.disabled = !next;
+    more.addEventListener("click", takeBox);
+    const stop = el("button", "", here.pay ? `💰 В кассу · ${fmt(here.pay)}` : "💰 Уйти ни с чем");
+    stop.type = "button";
+    stop.addEventListener("click", () => finishJob({}));
+    actions.append(more, stop);
+    $("#job-foot").replaceChildren(actions);
+  }
+
+  async function takeBox() {
+    const here = work.state;
+    if (!here || work.sending) return;
+    work.sending = true;
+    $("#job-foot").replaceChildren();
+    try {
+      const data = await api("work/step", {});
+      if (data.dropped) {
+        here.scene.classList.add("shake");
+        here.boxes.replaceChildren(...Array.from({ length: here.box }, () => {
+          const box = el("span", "lost", "📦");
+          return box;
+        }));
+        here.risk.textContent = `💥 ${data.reason}`;
+        here.pay = 0;
+        $("#job-score").textContent = "В руках: +0";
+        haptic.notify("error");
+        later(() => finishJob({}), 1500);
+        return;
+      }
+      here.box = data.box;
+      here.pay = data.pay;
+      haptic.impact("medium");
+      renderTruck();
+      if (!data.left) later(() => finishJob({}), 600);
+    } catch (error) {
+      showError(error);
+      closeJob();
+    } finally {
+      work.sending = false;
+    }
+  }
+
+  const JOB_GAMES = {
+    cleanup: startCleanup, post: startPost, samsa: startSamsa, fishing: startFishing, truck: startTruck,
+  };
+
+  // ─── Бомж ──────────────────────────────────────────────────────────────────
+
+  const bum = { data: null, offset: 0, sending: false };
+
+  async function loadBum() {
+    try {
+      applyBum(await api("bum"));
+    } catch (error) {
+      showError(error);
+    }
+  }
+
+  function applyBum(data) {
+    bum.data = data;
+    bum.offset = data.now - Date.now() / 1000;
+    setBalance(data.balance, state.loaded);
+    renderBum();
+    if (data.story) $("#bum-story").textContent = data.story;
+  }
+
+  function bumPending() {
+    const data = bum.data;
+    if (!data) return 0;
+    const now = Date.now() / 1000 + bum.offset;
+    const until = Math.min(now, data.collected_at + data.cap_hours * 3600);
+    const hours = Math.max(0, until - data.collected_at) / 3600;
+    const fed = Math.max(0, Math.min(until, data.fed_until) - data.collected_at) / 3600;
+    return Math.floor(data.level.income * (fed + (hours - fed) * data.hungry_rate));
+  }
+
+  function renderBum() {
+    const data = bum.data;
+    if (!data) return;
+    const pending = bumPending();
+    $("#bum-emoji").textContent = data.level.emoji;
+    $("#bum-emoji").className = `bum-emoji${data.hungry ? " hungry" : ""}`;
+    $("#bum-name").textContent = data.name;
+    $("#bum-level").textContent = data.level.title;
+    $("#bum-mood").textContent = data.mood;
+    $("#bum-rate").textContent = `${fmt(data.level.income)}/ч`;
+    $("#bum-pending").textContent = fmt(pending);
+    $("#bum-invested").textContent = fmt(data.invested);
+    const hours = Math.min(data.cap_hours, Math.max(0, Date.now() / 1000 + bum.offset - data.collected_at) / 3600);
+    $("#bum-bar").style.width = `${(hours / data.cap_hours) * 100}%`;
+    const collect = $("#bum-collect");
+    collect.textContent = pending > 0 ? `Забрать · ${fmt(pending)}` : "Пока пусто";
+    collect.disabled = pending <= 0 || bum.sending;
+    $("#bum-feed").textContent = `🍲 Покормить · ${fmt(data.feed_cost)}`;
+    $("#bum-feed").disabled = bum.sending;
+    const next = data.next;
+    $("#bum-upgrade").textContent = next ? `${next.emoji} Вложить · ${fmt(next.cost)}` : "🏪 Выше некуда";
+    $("#bum-upgrade").disabled = !next || bum.sending;
+    $("#bum-levels").replaceChildren(...data.levels.map((level) => {
+      const row = el("li", level.level < data.level.level ? "done" : level.level === data.level.level ? "now" : "");
+      row.append(
+        el("span", "", level.emoji),
+        el("span", "what", level.title),
+        el("span", "rate", `${fmt(level.income)}/ч`),
+      );
+      return row;
+    }));
+  }
+
+  function tickBum() {
+    if (state.screen !== "bum" || !bum.data || document.visibilityState !== "visible") return;
+    renderBum();
+  }
+
+  async function bumAction(action) {
+    if (bum.sending || !bum.data) return;
+    bum.sending = true;
+    renderBum();
+    try {
+      const data = await api(`bum/${action}`);
+      const before = bum.data.level.level;
+      applyBum(data);
+      haptic.notify("success");
+      if (data.story) toast(data.story, data.story.startsWith("😔") ? "error" : "win");
+      if (data.level.level > before) confetti.burst(140);
+    } catch (error) {
+      showError(error);
+    } finally {
+      bum.sending = false;
+      renderBum();
+    }
+  }
+
   // ─── Банк ──────────────────────────────────────────────────────────────────
 
   const bank = { data: null, offset: 0, sending: false, loading: false, confirmId: 0, confirmUntil: 0 };
@@ -3138,6 +4034,14 @@ body.dead::after {
       haptic.tap();
       renderBank();
     });
+    $("#jobs").addEventListener("click", (event) => {
+      const card = event.target.closest("[data-job]");
+      if (card && !card.disabled) startJob(card.dataset.job);
+    });
+    $("#job-back").addEventListener("click", () => closeJob());
+    $("#bum-collect").addEventListener("click", () => bumAction("collect"));
+    $("#bum-feed").addEventListener("click", () => bumAction("feed"));
+    $("#bum-upgrade").addEventListener("click", () => bumAction("upgrade"));
     $("#bank-deposit").addEventListener("click", makeDeposit);
     $("#deposits").addEventListener("click", (event) => {
       const button = event.target.closest("[data-withdraw]");
@@ -3187,6 +4091,8 @@ body.dead::after {
   setInterval(updateRussianButton, 1000);
   setInterval(tickTables, 250);
   setInterval(tickBank, 1000);
+  setInterval(tickWork, 1000);
+  setInterval(tickBum, 1000);
   setInterval(() => {
     if (!state.busy && document.visibilityState === "visible" && ["lobby", "rr", "coin"].includes(state.screen)) refresh();
   }, 20000);

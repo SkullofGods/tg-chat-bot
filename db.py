@@ -187,6 +187,18 @@ _SCHEMA = [
         status    TEXT NOT NULL DEFAULT 'active',
         closed_at INTEGER
     )""",
+    # Бомж-тамагочи: у каждого свой. Время — unix-секунды
+    """CREATE TABLE IF NOT EXISTS bums (
+        chat_id      INTEGER NOT NULL,
+        user_id      INTEGER NOT NULL,
+        name         TEXT NOT NULL,
+        level        INTEGER NOT NULL DEFAULT 0,
+        invested     INTEGER NOT NULL DEFAULT 0,
+        earned       INTEGER NOT NULL DEFAULT 0,
+        fed_until    INTEGER NOT NULL DEFAULT 0,
+        collected_at INTEGER NOT NULL,
+        PRIMARY KEY (chat_id, user_id)
+    ) WITHOUT ROWID""",
     "CREATE INDEX IF NOT EXISTS bank_deposits_user ON bank_deposits (chat_id, user_id, status)",
     "CREATE INDEX IF NOT EXISTS bank_deposits_due ON bank_deposits (ends_at) WHERE status = 'active'",
 ]
@@ -1172,6 +1184,58 @@ class Database:
             self._ensure_wallet(c, row["chat_id"], row["user_id"])
             c.execute("UPDATE wallets SET balance = balance + ? WHERE chat_id = ? AND user_id = ?",
                       (pay, row["chat_id"], row["user_id"]))
+            return True
+
+    # ── Бомж ───────────────────────────────────────────────────────────────────
+
+    def get_bum(self, chat_id: int, user_id: int, name: str, now: int, fed_until: int) -> dict:
+        """Бомж игрока. Если его ещё нет, заводим — сытым и с нулевой выручкой."""
+        with self._tx() as c:
+            c.execute(
+                "INSERT OR IGNORE INTO bums (chat_id, user_id, name, fed_until, collected_at) VALUES (?, ?, ?, ?, ?)",
+                (chat_id, user_id, name, fed_until, now),
+            )
+            return dict(c.execute("SELECT * FROM bums WHERE chat_id = ? AND user_id = ?", (chat_id, user_id)).fetchone())
+
+    def collect_bum(self, chat_id: int, user_id: int, amount: int, now: int):
+        """Выручка бомжа — в кошелёк."""
+        with self._tx() as c:
+            self._ensure_wallet(c, chat_id, user_id)
+            c.execute("UPDATE wallets SET balance = balance + ? WHERE chat_id = ? AND user_id = ?",
+                      (amount, chat_id, user_id))
+            c.execute("UPDATE bums SET earned = earned + ?, collected_at = ? WHERE chat_id = ? AND user_id = ?",
+                      (amount, now, chat_id, user_id))
+
+    def feed_bum(self, chat_id: int, user_id: int, cost: int, fed_until: int) -> bool:
+        with self._tx() as c:
+            self._ensure_wallet(c, chat_id, user_id)
+            cursor = c.execute(
+                "UPDATE wallets SET balance = balance - ? WHERE chat_id = ? AND user_id = ? AND balance >= ?",
+                (cost, chat_id, user_id, cost),
+            )
+            if cursor.rowcount != 1:
+                return False
+            c.execute("UPDATE bums SET fed_until = ? WHERE chat_id = ? AND user_id = ?", (fed_until, chat_id, user_id))
+            return True
+
+    def upgrade_bum(self, chat_id: int, user_id: int, cost: int, pending: int, now: int) -> bool:
+        """Вложение в бомжа. Накопленная выручка при этом не сгорает, а падает в кошелёк."""
+        with self._tx(important=True) as c:
+            self._ensure_wallet(c, chat_id, user_id)
+            cursor = c.execute(
+                "UPDATE wallets SET balance = balance - ? WHERE chat_id = ? AND user_id = ? AND balance >= ?",
+                (cost, chat_id, user_id, cost),
+            )
+            if cursor.rowcount != 1:
+                return False
+            if pending > 0:
+                c.execute("UPDATE wallets SET balance = balance + ? WHERE chat_id = ? AND user_id = ?",
+                          (pending, chat_id, user_id))
+            c.execute(
+                "UPDATE bums SET level = level + 1, invested = invested + ?, earned = earned + ?, collected_at = ? "
+                "WHERE chat_id = ? AND user_id = ?",
+                (cost, pending, now, chat_id, user_id),
+            )
             return True
 
     def prune_deposits(self, before: int):
