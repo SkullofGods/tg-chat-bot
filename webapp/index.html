@@ -1811,6 +1811,7 @@ button:disabled { cursor: default; }
 .sea div.ship { background: #4a5764; }
 .sea div.miss { background: #1b2733; color: #6d7a88; }
 .sea div.hit { background: #8c3b34; }
+.sea div.sunk { background: #c0392b; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4); }
 .sea div.free:active { background: #1f4463; }
 .bg-board { display: grid; grid-template-columns: repeat(12, 1fr); gap: 2px; margin-top: 8px; }
 .bg-point { min-height: 64px; border-radius: 6px; background: rgba(255, 255, 255, 0.04); padding: 2px; font-size: 10px; text-align: center; }
@@ -1927,6 +1928,50 @@ button:disabled { cursor: default; }
 .award-toast small { display: block; color: var(--muted); font-size: 12px; }
 .award-toast .reward { color: var(--gold); font-weight: 800; white-space: nowrap; }
 
+/* ─── Звук ─── */
+
+.sound-btn {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin-left: auto;
+  margin-right: 8px;
+  border-radius: 12px;
+  font-size: 17px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--line);
+}
+.sound-btn.off { opacity: 0.5; }
+.sound-panel {
+  position: fixed;
+  right: 12px;
+  top: 58px;
+  z-index: 40;
+  width: 226px;
+  padding: 14px;
+  border-radius: 16px;
+  background: #151b17;                     /* панель поверх экрана — без просвечивания */
+  border: 1px solid var(--line);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+}
+.sound-panel[hidden] { display: none; }
+.sound-panel b { display: block; font-size: 14px; margin-bottom: 10px; }
+.sound-row { display: flex; align-items: center; justify-content: space-between; padding: 7px 0; font-size: 14px; }
+.sound-row button {
+  width: 52px;
+  height: 28px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+.sound-row button.on { background: linear-gradient(135deg, var(--gold-2), var(--gold)); color: #2a1c05; border-color: transparent; }
+.sound-panel input[type="range"] { width: 100%; margin-top: 6px; accent-color: var(--gold); }
+.sound-panel small { display: block; color: var(--muted); font-size: 11px; margin-top: 8px; }
+
 /* ─── Нижняя навигация ─── */
 
 .tabbar {
@@ -2032,8 +2077,17 @@ body.dead::after {
   <div class="app" id="app">
     <header class="topbar">
       <div class="brand"><span class="brand-icon" aria-hidden="true">🍲</span><span>Золотой казан</span></div>
+      <button class="sound-btn" id="sound-btn" type="button" aria-label="Звук">🔊</button>
       <div class="wallet" id="wallet" aria-label="Баланс"><span aria-hidden="true">🪙</span><span id="balance">—</span></div>
     </header>
+
+    <div class="sound-panel" id="sound-panel" hidden>
+      <b>🎵 Звук</b>
+      <div class="sound-row"><span>Музыка</span><button id="sound-music" type="button">вкл</button></div>
+      <div class="sound-row"><span>Звуки игр</span><button id="sound-sfx" type="button">вкл</button></div>
+      <input id="sound-volume" type="range" min="0" max="100" value="60" aria-label="Громкость">
+      <small>Всё звучит прямо в приложении — ничего не качается.</small>
+    </div>
 
     <div class="spam-banner" id="spam-banner" hidden>🔥 Спам-день! Русская рулетка перезаряжается за секунды — до 23:59</div>
 
@@ -2761,6 +2815,204 @@ body.dead::after {
       : "Звёзды и разовые награды за всё подряд";
   }
 
+  // ─── Звук ──────────────────────────────────────────────────────────────────
+  // Ни одного mp3: и музыка, и эффекты собираются из осцилляторов прямо в браузере.
+  // Фон — восточный луп (фригийский доминантный лад) с дарбукой из шума.
+
+  const audio = (() => {
+    const prefs = { sfx: true, music: true, volume: 0.6 };
+    let ctx = null;
+    let master = null;
+    let sfxBus = null;
+    let musicBus = null;
+    let clock = 0;
+    let beat = 0;
+    let nextAt = 0;
+
+    try {
+      const saved = JSON.parse(localStorage.getItem("kazan-sound") || "{}");
+      Object.assign(prefs, saved);
+    } catch (error) { /* приватный режим — играем со звуком по умолчанию */ }
+
+    const save = () => {
+      try { localStorage.setItem("kazan-sound", JSON.stringify(prefs)); } catch (error) { /* ничего */ }
+    };
+
+    function ready() {
+      if (ctx) {
+        if (ctx.state === "suspended") ctx.resume();
+        return true;
+      }
+      const Ctor = window.AudioContext || window.webkitAudioContext;
+      if (!Ctor) return false;
+      ctx = new Ctor();
+      master = ctx.createGain();
+      master.gain.value = prefs.volume;
+      master.connect(ctx.destination);
+      sfxBus = ctx.createGain();
+      sfxBus.gain.value = 0.9;
+      sfxBus.connect(master);
+      musicBus = ctx.createGain();
+      musicBus.gain.value = 0;
+      musicBus.connect(master);
+      return true;
+    }
+
+    function tone(opts) {
+      const { freq, at = 0, dur = 0.12, type = "triangle", gain = 0.18, to = null, bus = sfxBus } = opts;
+      const start = ctx.currentTime + at;
+      const osc = ctx.createOscillator();
+      const level = ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, start);
+      if (to) osc.frequency.exponentialRampToValueAtTime(to, start + dur);
+      level.gain.setValueAtTime(0.0001, start);
+      level.gain.exponentialRampToValueAtTime(gain, start + 0.012);
+      level.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+      osc.connect(level);
+      level.connect(bus);
+      osc.start(start);
+      osc.stop(start + dur + 0.05);
+    }
+
+    function noise(opts) {
+      const { at = 0, dur = 0.08, gain = 0.15, cut = 2400, type = "lowpass", bus = sfxBus } = opts;
+      const start = ctx.currentTime + at;
+      const frames = Math.max(1, Math.floor(ctx.sampleRate * dur));
+      const buffer = ctx.createBuffer(1, frames, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let index = 0; index < frames; index += 1) {
+        data[index] = (Math.random() * 2 - 1) * (1 - index / frames);
+      }
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      const filter = ctx.createBiquadFilter();
+      filter.type = type;
+      filter.frequency.value = cut;
+      const level = ctx.createGain();
+      level.gain.setValueAtTime(gain, start);
+      level.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+      source.connect(filter);
+      filter.connect(level);
+      level.connect(bus);
+      source.start(start);
+      source.stop(start + dur + 0.02);
+    }
+
+    const SFX = {
+      tap: () => tone({ freq: 620, dur: 0.06, type: "square", gain: 0.07 }),
+      pick: () => tone({ freq: 880, dur: 0.08, gain: 0.1 }),
+      coin: () => { tone({ freq: 1180, dur: 0.07, gain: 0.12 }); tone({ freq: 1580, at: 0.06, dur: 0.1, gain: 0.1 }); },
+      card: () => noise({ dur: 0.07, gain: 0.12, cut: 3200, type: "highpass" }),
+      chip: () => { noise({ dur: 0.05, gain: 0.1, cut: 5000, type: "highpass" }); tone({ freq: 420, dur: 0.05, gain: 0.06 }); },
+      win: () => [0, 4, 7, 12].forEach((step, index) =>
+        tone({ freq: 392 * Math.pow(2, step / 12), at: index * 0.07, dur: 0.16, gain: 0.13 })),
+      lose: () => { tone({ freq: 320, to: 140, dur: 0.32, type: "sawtooth", gain: 0.11 }); noise({ dur: 0.2, gain: 0.07, cut: 800 }); },
+      jackpot: () => [0, 4, 7, 12, 16, 19].forEach((step, index) =>
+        tone({ freq: 523 * Math.pow(2, step / 12), at: index * 0.08, dur: 0.3, gain: 0.14, type: "square" })),
+      star: () => [0, 5, 9, 12].forEach((step, index) =>
+        tone({ freq: 660 * Math.pow(2, step / 12), at: index * 0.06, dur: 0.22, gain: 0.12 })),
+      shot: () => noise({ dur: 0.04, gain: 0.16, cut: 6000, type: "highpass" }),
+      bang: () => { noise({ dur: 0.45, gain: 0.3, cut: 900 }); tone({ freq: 150, to: 40, dur: 0.4, type: "sawtooth", gain: 0.2 }); },
+      turn: () => { tone({ freq: 740, dur: 0.14, gain: 0.1 }); tone({ freq: 1108, at: 0.12, dur: 0.18, gain: 0.09 }); },
+      miss: () => tone({ freq: 220, to: 120, dur: 0.14, type: "square", gain: 0.09 }),
+      step: () => tone({ freq: 500, dur: 0.05, gain: 0.07, type: "square" }),
+    };
+
+    // ── Фоновый луп ──
+    const ROOT = 146.83;                       // ре малой октавы
+    const SCALE = [0, 1, 4, 5, 7, 8, 11, 12];  // фригийский доминантный: тот самый восточный привкус
+    const BASS = [0, 0, 5, 0, 7, 0, 5, 3];
+    const STEP = 0.26;                         // длительность восьмой
+
+    const note = (degree, octave = 0) => ROOT * Math.pow(2, (SCALE[degree % SCALE.length] + 12 * octave) / 12);
+
+    function schedule() {
+      if (!ctx || !prefs.music) return;
+      while (nextAt < ctx.currentTime + 0.4) {
+        const at = Math.max(0, nextAt - ctx.currentTime);
+        const inBar = beat % 8;
+        tone({ freq: note(BASS[inBar], -1), at, dur: STEP * 0.9, type: "sawtooth", gain: 0.05, bus: musicBus });
+        if (inBar % 2 === 0) {
+          const degree = [0, 4, 2, 5, 3, 6, 4, 2][(Math.floor(beat / 2) + beat) % 8];
+          tone({ freq: note(degree, 1), at, dur: STEP * 1.4, type: "triangle", gain: 0.035, bus: musicBus });
+        }
+        if (inBar === 0 || inBar === 3) noise({ at, dur: 0.12, gain: 0.05, cut: 320, bus: musicBus });   // дум
+        if (inBar === 2 || inBar === 6) noise({ at, dur: 0.05, gain: 0.035, cut: 5200, type: "highpass", bus: musicBus });
+        if (inBar === 7 && Math.random() < 0.5) {
+          noise({ at: at + STEP / 2, dur: 0.05, gain: 0.03, cut: 5200, type: "highpass", bus: musicBus });
+        }
+        beat += 1;
+        nextAt += STEP;
+      }
+    }
+
+    function music(on) {
+      if (!on) {
+        if (musicBus) musicBus.gain.setTargetAtTime(0, ctx.currentTime, 0.2);
+        clearInterval(clock);
+        clock = 0;
+        return;
+      }
+      if (!ready()) return;
+      musicBus.gain.setTargetAtTime(0.5, ctx.currentTime, 0.6);
+      if (clock) return;
+      nextAt = ctx.currentTime + 0.1;
+      clock = setInterval(schedule, 120);
+      schedule();
+    }
+
+    return {
+      prefs,
+      play(name) {
+        if (!prefs.sfx || !SFX[name] || !ready()) return;
+        try { SFX[name](); } catch (error) { /* звук — не повод падать */ }
+      },
+      wake() {                                  // первый тап включает музыку: браузеры иначе не дают
+        if (!ready()) return;
+        if (prefs.music) music(true);
+      },
+      setSfx(on) { prefs.sfx = on; save(); if (on) this.play("pick"); },
+      setMusic(on) { prefs.music = on; save(); music(on); },
+      pause() { music(false); },                // свернули приложение — просто тишина, настройку не трогаем
+      resume() { if (prefs.music) music(true); },
+      setVolume(value) {
+        prefs.volume = value;
+        save();
+        if (master) master.gain.setTargetAtTime(value, ctx.currentTime, 0.1);
+      },
+      get playing() { return Boolean(clock); },
+    };
+  })();
+
+  function renderSoundPanel() {
+    $("#sound-sfx").classList.toggle("on", audio.prefs.sfx);
+    $("#sound-sfx").textContent = audio.prefs.sfx ? "вкл" : "выкл";
+    $("#sound-music").classList.toggle("on", audio.prefs.music);
+    $("#sound-music").textContent = audio.prefs.music ? "вкл" : "выкл";
+    $("#sound-btn").textContent = audio.prefs.sfx || audio.prefs.music ? "🔊" : "🔇";
+    $("#sound-btn").classList.toggle("off", !audio.prefs.sfx && !audio.prefs.music);
+  }
+
+  function setupSound() {
+    const panel = $("#sound-panel");
+    $("#sound-btn").addEventListener("click", (event) => {
+      event.stopPropagation();
+      panel.hidden = !panel.hidden;
+      audio.wake();
+    });
+    document.addEventListener("click", (event) => {
+      if (!panel.hidden && !panel.contains(event.target) && event.target.id !== "sound-btn") panel.hidden = true;
+    });
+    $("#sound-sfx").addEventListener("click", () => { audio.setSfx(!audio.prefs.sfx); renderSoundPanel(); });
+    $("#sound-music").addEventListener("click", () => { audio.setMusic(!audio.prefs.music); renderSoundPanel(); });
+    const slider = $("#sound-volume");
+    slider.value = String(Math.round(audio.prefs.volume * 100));
+    slider.addEventListener("input", () => audio.setVolume(Number(slider.value) / 100));
+    document.addEventListener("pointerdown", () => audio.wake(), { once: true });
+    renderSoundPanel();
+  }
+
   // ─── Мультиплеер ───────────────────────────────────────────────────────────
 
   const multi = { data: null, table: null, sending: false, polled: 0,
@@ -2948,6 +3200,12 @@ body.dead::after {
   }
 
   function applyMpTable(view) {
+    const before = multi.view;
+    if (view.my_turn && (!before || !before.my_turn) && view.status === "playing") audio.play("turn");
+    if (view.over && (!before || !before.over)) {
+      const mine = (view.over.winners || []).some((id) => view.seats.some((seat) => seat.me && seat.id === id));
+      audio.play(mine ? "jackpot" : "lose");
+    }
     multi.view = view;
     multi.polled = Date.now();
     if (typeof view.balance === "number") setBalance(view.balance, state.loaded);
@@ -2959,7 +3217,9 @@ body.dead::after {
     multi.sending = true;
     try {
       applyMpTable(await api("mp/move", { table: multi.table, action }));
+      multi.polled = Date.now() - 600;          // соперник может ответить сразу — не ждём полный круг
       haptic.impact("light");
+      audio.play(action.type === "attack" || action.type === "beat" ? "card" : "pick");
     } catch (error) {
       showError(error);
       openTable(multi.table, false);
@@ -2996,8 +3256,10 @@ body.dead::after {
       const clock = $("#mp-clock");
       if (clock) clock.textContent = waitText(view.turn_left);
     }
-    const slow = view && view.play && view.status === "playing" && view.turn && !view.my_turn;
-    const every = view && view.status === "gathering" ? 3000 : slow ? 4000 : 2000;
+    const every = !view ? 2000
+      : view.status === "gathering" ? 2500
+      : view.status === "playing" ? 1100          // ход соперника должен появляться почти сразу
+      : 5000;
     if (Date.now() - multi.polled >= every) {
       multi.polled = Date.now();
       openTable(multi.table, false);
@@ -3254,24 +3516,29 @@ body.dead::after {
       if (game.check) area.append(el("p", "hint", "Шах!"));
     },
     seabattle: (game, view, area) => {
-      area.append(el("div", "mp-label", `Стреляем: у врага осталось ${game.enemy_left} палуб`));
+      const killed = new Set((game.my_sunk || []).flat());
+      const lost = new Set((game.lost || []).flat());
+      area.append(el("div", "mp-label", `Стреляем: потоплено ${(game.my_sunk || []).length} из ${game.fleet}, `
+        + `у врага осталось ${game.enemy_left} палуб`));
       const enemy = el("div", "sea");
-      const canShoot = ((view.moves || {}).cells || []);
-      const open = new Set(canShoot);
+      const open = new Set((view.moves || {}).cells || []);
       for (let cell = 0; cell < 100; cell += 1) {
         const mark = game.my_shots[cell];
-        const box = el("div", mark === 3 ? "hit" : mark === 2 ? "miss" : open.has(cell) ? "free" : "",
+        const box = el("div", mark === 3 ? (killed.has(cell) ? "hit sunk" : "hit")
+                       : mark === 2 ? "miss" : open.has(cell) ? "free" : "",
                        mark === 3 ? "✕" : mark === 2 ? "·" : "");
         if (open.has(cell)) box.addEventListener("click", () => multiMove({ type: "shot", cell }));
         enemy.append(box);
       }
       area.append(enemy);
-      area.append(el("div", "mp-label", `Твой флот: ${game.my_left} палуб цело`));
+      area.append(el("div", "mp-label", `Твой флот: ${game.my_left} палуб цело, `
+        + `потоплено ${(game.lost || []).length} из ${game.fleet}`));
       const mine = el("div", "sea");
       for (let cell = 0; cell < 100; cell += 1) {
         const own = game.my_board[cell];
         const shot = game.enemy_shots[cell];
-        mine.append(el("div", own === 3 ? "hit" : shot === 2 ? "miss" : own === 1 ? "ship" : "",
+        mine.append(el("div", own === 3 ? (lost.has(cell) ? "hit sunk" : "hit")
+                       : shot === 2 ? "miss" : own === 1 ? "ship" : "",
                        own === 3 ? "✕" : shot === 2 ? "·" : ""));
       }
       area.append(mine);
@@ -3469,6 +3736,7 @@ body.dead::after {
     box.append(body, el("span", "reward", `+${fmt(item.reward)}`));
     box.classList.add("show");
     haptic.notify("success");
+    audio.play("star");
     if (item.star >= item.stars) confetti.burst(90);
     clearTimeout(awards.timer);
     awards.timer = setTimeout(nextAward, 2600);
@@ -3794,6 +4062,7 @@ body.dead::after {
       const result = await api("bonus");
       haptic.notify("success");
       confetti.burst(90);
+      audio.play("coin");
       toast(`${result.source}: ${signedCoins(result.amount)}`, "win");
       setBalance(result.balance);
     } catch (error) {
@@ -4069,6 +4338,7 @@ body.dead::after {
       haptic.notify("success");
       const staked = view.bets.filter((bet) => bet.me).reduce((sum, bet) => sum + bet.amount, 0);
       confetti.burst(net >= staked * 4 ? 180 : 70);
+      audio.play("win");
       toast(`${game === "roulette" ? "🎡" : "🏇"} Выигрыш! ${signedCoins(net)}`, "win");
     } else {
       haptic.notify(net < 0 ? "warning" : "success");
@@ -4396,6 +4666,7 @@ body.dead::after {
     if (result.combo === "lose") {
       message.className = "machine-message lose";
       message.textContent = `Мимо… ${signedCoins(result.net)}`;
+      audio.play("lose");
       haptic.notify("warning");
       return;
     }
@@ -4414,6 +4685,7 @@ body.dead::after {
     if (result.combo === "jackpot") {
       message.className = "machine-message jackpot";
       message.textContent = `💎 ДЖЕКПОТ! ${signedCoins(result.net)}`;
+      audio.play("jackpot");
       confetti.burst(220);
       setTimeout(() => confetti.burst(160), 600);
     } else {
@@ -4450,6 +4722,7 @@ body.dead::after {
   }
 
   async function playCoin() {
+    audio.play("chip");
     if (state.busy) return;
     const bet = state.bet;
     const side = state.coinSide;
@@ -4608,6 +4881,7 @@ body.dead::after {
       message.textContent = "Палец на спусковом крючке…";
       stage.classList.add("aiming");
       haptic.impact("light");
+      audio.play("shot");
       await wait(1400);
       stage.classList.remove("aiming");
 
@@ -4615,6 +4889,7 @@ body.dead::after {
         const chamber = $("#chambers .chamber.next");
         if (chamber) chamber.style.fill = "#d32f2f";
         bang();
+        audio.play("bang");
         message.className = "rr-message dead";
         message.textContent = "💥 БАХ!";
         setBalance(result.balance);
@@ -4626,6 +4901,7 @@ body.dead::after {
         message.textContent = "Барабан перезаряжен. Кто следующий?";
       } else if (result.survived_all) {
         haptic.notify("success");
+        audio.play("jackpot");
         confetti.burst(220);
         setTimeout(() => confetti.burst(160), 600);
         message.className = "rr-message alive";
@@ -6016,9 +6292,11 @@ body.dead::after {
       const data = await api("walk/go", { choice });
       applyWalk(data);
       haptic.impact("light");
+      audio.play("step");
       if (data.finished && data.walk) {
         if (data.walk.pay > 0) {
           haptic.notify("success");
+          audio.play(data.walk.pay >= 300 ? "jackpot" : "win");
           confetti.burst(data.walk.pay >= 300 ? 160 : 70);
         } else if (data.walk.pay < 0) {
           haptic.notify("error");
@@ -6145,6 +6423,7 @@ body.dead::after {
     const key = arcade.game;
     const game = arcade.games.find((item) => item.key === key);
     haptic.notify("warning");
+    audio.play("lose");
     $("#arcade-area").replaceChildren();
     const card = el("div", "card arcade-over");
     card.append(el("div", "sum", fmt(score)), el("div", "what", plural(score, game.units)));
@@ -6170,6 +6449,7 @@ body.dead::after {
         line.textContent = `🏆 Новый рекорд беседы! Премия ${fmt(arcade.prize)} 🪙 в день — пока не побьют`;
         haptic.notify("success");
         confetti.burst(180);
+        audio.play("jackpot");
         toast("🏆 Рекорд беседы твой!", "win");
       } else if (score >= fresh.my_best && score > 0) {
         line.textContent = "Личный рекорд!";
@@ -7664,6 +7944,7 @@ body.dead::after {
   }
 
   setupTelegram();
+  setupSound();
   buildWheel();
   buildRouletteControls();
   buildTrack();
@@ -7684,6 +7965,10 @@ body.dead::after {
   setInterval(() => {
     if (!state.busy && document.visibilityState === "visible" && ["lobby", "rr", "coin"].includes(state.screen)) refresh();
   }, 20000);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") audio.resume();
+    else audio.pause();                        // свернули — тишина, но настройка остаётся
+  });
 })();
   </script>
 </body>

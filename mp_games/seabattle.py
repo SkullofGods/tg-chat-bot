@@ -57,7 +57,7 @@ def setup(players: list[int]) -> dict:
         "players": players,
         "boards": {str(player): _place() for player in players},
         "shots": {str(player): [EMPTY] * CELLS for player in players},
-        "side": 0, "winner": None, "shuffled": [], "feed": [],
+        "side": 0, "winner": None, "shuffled": [], "sunk": {}, "feed": [],
     }
     return feed(state, "Флоты в море")
 
@@ -71,6 +71,33 @@ def turn(state: dict):
 def _left(state: dict, player: int) -> int:
     board = state["boards"][str(player)]
     return sum(1 for cell in board if cell == SHIP)
+
+
+def _ship_at(board: list[int], cell: int) -> set[int]:
+    """Палубы корабля, которому принадлежит клетка. Корабли не касаются, поэтому достаточно
+    пройти от неё в четыре стороны, пока идут палубы."""
+    row, col = divmod(cell, SIDE)
+    cells = {cell}
+    for drow, dcol in ((0, 1), (0, -1), (1, 0), (-1, 0)):
+        r, c = row + drow, col + dcol
+        while 0 <= r < SIDE and 0 <= c < SIDE and board[r * SIDE + c] in (SHIP, HIT):
+            cells.add(r * SIDE + c)
+            r += drow
+            c += dcol
+    return cells
+
+
+def _around(cells: set[int]) -> set[int]:
+    """Клетки вокруг корабля: по правилам там пусто, так что после «убил» открываем их сразу."""
+    out = set()
+    for cell in cells:
+        row, col = divmod(cell, SIDE)
+        for drow in (-1, 0, 1):
+            for dcol in (-1, 0, 1):
+                r, c = row + drow, col + dcol
+                if 0 <= r < SIDE and 0 <= c < SIDE and r * SIDE + c not in cells:
+                    out.add(r * SIDE + c)
+    return out
 
 
 def move(state: dict, user_id: int, action: dict) -> dict:
@@ -101,9 +128,20 @@ def move(state: dict, user_id: int, action: dict) -> dict:
     shots[cell] = HIT if hit else MISS
     if hit:
         board[cell] = HIT
+    sunk = {key: list(value) for key, value in state.get("sunk", {}).items()}
+    killed = False
+    if hit:
+        ship = _ship_at(board, cell)
+        killed = all(board[deck] == HIT for deck in ship)
+        if killed:                            # убил — обводим корабль промахами, как на бумаге
+            for empty in _around(ship):
+                if shots[empty] == EMPTY:
+                    shots[empty] = MISS
+            sunk.setdefault(str(user_id), []).append(sorted(ship))
     state = state | {"shots": state["shots"] | {str(user_id): shots},
-                     "boards": state["boards"] | {str(enemy): board}}
-    state = feed(state, "Попал!" if hit else "Мимо")
+                     "boards": state["boards"] | {str(enemy): board},
+                     "sunk": sunk}
+    state = feed(state, "Убил!" if killed else "Попал!" if hit else "Мимо")
     if hit and not _left(state, enemy):
         return feed(state | {"winner": user_id}, "Флот потоплен")
     if not hit:
@@ -131,6 +169,9 @@ def view(state: dict, user_id: int) -> dict:
         "enemy_board": state["boards"].get(str(enemy), []) if over else None,
         "my_left": _left(state, user_id),
         "enemy_left": _left(state, enemy),
+        "my_sunk": state.get("sunk", {}).get(str(user_id), []),      # корабли, которые я убил
+        "lost": state.get("sunk", {}).get(str(enemy), []),           # мои утонувшие
+        "fleet": len(FLEET),
         "can_shuffle": user_id not in state["shuffled"] and not any(state["shots"][str(user_id)]),
         "turn_side": state["side"],
         "me": state["players"].index(user_id) if user_id in state["players"] else 0,
