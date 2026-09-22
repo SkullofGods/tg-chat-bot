@@ -1,4 +1,4 @@
-"""Бомж: тамагочи, в которого вкладывают таджикоины, а он приносит доход.
+"""Толян: тамагочи, в которого вкладывают таджикоины, а он приносит доход.
 
 Доход капает сам по себе и копится, пока его не заберут, но не больше CAP_HOURS часов — так что
 заходить приходится. Голодный работает вполсилы. Вложения поднимают уровень: от картонной коробки
@@ -43,8 +43,8 @@ def _now() -> int:
 
 
 def _bum(chat_id: int, user_id: int, now: int) -> dict:
-    """Бомж игрока. Новый достаётся сытым — чтобы сразу было видно, как он работает."""
-    return db.get_bum(chat_id, user_id, random.choice(texts.BUM_NAMES), now, now + FEED_HOURS * 3600)
+    """Толян игрока. Новый достаётся сытым — чтобы сразу было видно, как он работает."""
+    return db.get_bum(chat_id, user_id, texts.BUM_NAME, now, now + FEED_HOURS * 3600)
 
 
 def _pending(bum: dict, now: int) -> tuple[int, float]:
@@ -68,7 +68,7 @@ def _state(bum: dict, story: str | None = None) -> dict:
     pending, hours = _pending(bum, now)
     view = _level_view(bum["level"])
     return {
-        "name": bum["name"],
+        "name": texts.BUM_NAME,
         "now": now,
         "level": view,
         "levels": [_level_view(index) for index in range(len(LEVELS))],
@@ -110,9 +110,10 @@ def collect(chat_id: int, user_id: int) -> dict:
                                   + [random.randint(150, 300)] * 3
                                   + [random.randint(300, 500)])           # …и совсем редко настоящий кошелёк
             pending += bonus
-            story = f"🎁 {bum['name']} {random.choice(texts.BUM_FINDS)}: +{money(bonus)}"
+            luck = f"{random.choice(texts.BUM_FINDS)}: +{money(bonus)}"
+            story = f"🎁 {texts.BUM_NAME} {luck}"
             if bonus >= FEED_FROM:
-                engine.add_feed(chat_id, f"🧔 {bum['name']} {engine.player_name(user_id)} {story[2:]}")
+                engine.add_feed(chat_id, f"🧔 {texts.BUM_NAME} у {engine.player_name(user_id)} {luck}")
         elif roll < FIND_CHANCE + TROUBLE_CHANCE and pending > 0:
             lost = pending - int(pending * TROUBLE_SHARE)
             pending -= lost
@@ -143,5 +144,5 @@ def upgrade(chat_id: int, user_id: int) -> dict:
     if not db.upgrade_bum(chat_id, user_id, cost, pending, now):
         raise engine.not_enough_money(chat_id, user_id)
     if cost >= 10_000:
-        engine.add_feed(chat_id, f"{emoji} {bum['name']} у {engine.player_name(user_id)} дорос до «{title}»")
+        engine.add_feed(chat_id, f"{emoji} {texts.BUM_NAME} у {engine.player_name(user_id)} дорос до «{title}»")
     return _state(_bum(chat_id, user_id, now), f"{emoji} Теперь это {title.lower()}: {income} 🪙/час")

@@ -1212,7 +1212,7 @@ button:disabled { cursor: default; }
 .truck-boxes span.lost { filter: grayscale(1); opacity: 0.4; }
 .truck-risk { margin-top: 8px; text-align: center; color: var(--muted); font-size: 13px; }
 
-/* ─── Бомж ─── */
+/* ─── Толян ─── */
 
 .bum-scene {
   position: relative;
@@ -1455,7 +1455,7 @@ body.dead::after {
             <span class="tile-icon">🧰</span><b>Халтура</b><small>работа руками</small>
           </button>
           <button class="game-tile bum" data-go="bum" type="button">
-            <span class="tile-icon">🧔</span><b>Бомж</b><small>приносит, пока спишь</small>
+            <span class="tile-icon">🧔</span><b>Толян</b><small>приносит, пока спишь</small>
           </button>
         </div>
 
@@ -1688,7 +1688,7 @@ body.dead::after {
         </div>
       </section>
 
-      <!-- ─── Бомж ─── -->
+      <!-- ─── Толян ─── -->
       <section class="screen" data-screen="bum">
         <div class="card bum-scene">
           <div class="bum-emoji" id="bum-emoji">🧔</div>
@@ -1740,7 +1740,7 @@ body.dead::after {
       <button type="button" data-tab="coin"><span>🪙</span><small>Монетка</small></button>
       <button type="button" data-tab="rr"><span>🔫</span><small>Русская</small></button>
       <button type="button" data-tab="work"><span>🧰</span><small>Халтура</small></button>
-      <button type="button" data-tab="bum"><span>🧔</span><small>Бомж</small></button>
+      <button type="button" data-tab="bum"><span>🧔</span><small>Толян</small></button>
       <button type="button" data-tab="bank"><span>🏦</span><small>Банк</small></button>
     </nav>
   </div>
@@ -3666,7 +3666,7 @@ body.dead::after {
     cleanup: startCleanup, post: startPost, samsa: startSamsa, fishing: startFishing, truck: startTruck,
   };
 
-  // ─── Бомж ──────────────────────────────────────────────────────────────────
+  // ─── Толян ─────────────────────────────────────────────────────────────────
 
   const bum = { data: null, offset: 0, sending: false };
 
