@@ -4,6 +4,7 @@ from aiogram import F, Router
 from aiogram.types import Message
 
 import members
+import multiplayer
 import sglypa
 import texts
 from config import LOCAL_TZ
@@ -76,6 +77,11 @@ async def on_message(message: Message):
         db.save_anketa(user.id, text)
         db.clear_awaiting_anketa(user.id, message.chat.id)
         await message.reply(f"✅ Анкета сохранена, {members.mention(user.id)}!\n\n{texts.RULES_TEXT}")
+        return
+
+    guessed = multiplayer.chat_guess(message.chat.id, user.id, text)
+    if guessed:                       # крокодил: слово угадали прямо в беседе
+        await message.reply(guessed["text"])
         return
 
     await sglypa.on_group_message(message)

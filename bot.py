@@ -14,6 +14,7 @@ from aiogram.types import (
 import backup
 import casino_bank
 import casino_tables
+import multiplayer
 import members
 import scheduler
 import texts
@@ -91,7 +92,8 @@ async def on_startup():
     _background_tasks.append(asyncio.create_task(scheduler.spam_day_loop()))
     _background_tasks.append(asyncio.create_task(scheduler.arcade_prize_loop()))
     _background_tasks.append(asyncio.create_task(casino_tables.loop()))  # раунды рулетки и скачек со ставками
-    _background_tasks.append(asyncio.create_task(casino_bank.loop()))    # выплата вкладов, у которых вышел срок
+    _background_tasks.append(asyncio.create_task(casino_bank.loop()))
+    _background_tasks.append(asyncio.create_task(multiplayer.loop()))    # столы мультиплеера    # выплата вкладов, у которых вышел срок
 
 
 async def on_shutdown():

@@ -24,6 +24,7 @@ import casino_walk as walk
 import casino_work as work
 import donations
 import members
+import multiplayer
 from config import BASE_DIR, BOT_TOKEN, CASINO_APP_NAME, WEB_PORT, WEBAPP_DEV_USER_ID
 from loader import db
 
@@ -285,6 +286,43 @@ async def api_walk_go(request: web.Request) -> web.Response:
     return _json(walk.go(chat_id, user_id, body.get("choice")))
 
 
+# Мультиплеер
+
+
+async def api_mp(request: web.Request) -> web.Response:
+    chat_id, user_id = await _player(request)
+    return _json(multiplayer.lobby(chat_id, user_id))
+
+
+async def api_mp_create(request: web.Request) -> web.Response:
+    chat_id, user_id = await _player(request)
+    body = await _body(request)
+    return _json(multiplayer.create(chat_id, user_id, body.get("game"), body.get("stake"), body.get("seats")))
+
+
+async def api_mp_table(request: web.Request) -> web.Response:
+    chat_id, user_id = await _player(request)
+    body = await _body(request)
+    return _json(multiplayer.table_view(chat_id, user_id, body.get("table")))
+
+
+async def api_mp_seat(request: web.Request) -> web.Response:
+    """Сесть за стол, встать из-за него или начать партию, не дожидаясь всех."""
+    chat_id, user_id = await _player(request)
+    body = await _body(request)
+    action = request.match_info["action"]
+    doer = {"join": multiplayer.join, "leave": multiplayer.leave, "start": multiplayer.start}.get(action)
+    if doer is None:
+        raise engine.GameError("Не найдено", 404)
+    return _json(doer(chat_id, user_id, body.get("table")))
+
+
+async def api_mp_move(request: web.Request) -> web.Response:
+    chat_id, user_id = await _player(request)
+    body = await _body(request)
+    return _json(multiplayer.move(chat_id, user_id, body.get("table"), body.get("action")))
+
+
 async def api_achievements(request: web.Request) -> web.Response:
     chat_id, user_id = await _player(request)
     return _json(achievements.state(chat_id, user_id))
@@ -364,6 +402,11 @@ def build_app() -> web.Application:
         app.router.add_post(f"{prefix}/api/work/step", api_work_step)
         app.router.add_post(f"{prefix}/api/work/finish", api_work_finish)
         app.router.add_post(f"{prefix}/api/achievements", api_achievements)
+        app.router.add_post(f"{prefix}/api/mp", api_mp)
+        app.router.add_post(f"{prefix}/api/mp/create", api_mp_create)
+        app.router.add_post(f"{prefix}/api/mp/table", api_mp_table)
+        app.router.add_post(f"{prefix}/api/mp/move", api_mp_move)
+        app.router.add_post(f"{prefix}/api/mp/{{action}}", api_mp_seat)
         app.router.add_post(f"{prefix}/api/walk", api_walk)
         app.router.add_post(f"{prefix}/api/walk/start", api_walk_start)
         app.router.add_post(f"{prefix}/api/walk/go", api_walk_go)

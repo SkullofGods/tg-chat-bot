@@ -1,5 +1,6 @@
 import json
 import sqlite3
+import time
 from collections import Counter
 from contextlib import contextmanager
 from datetime import datetime, timezone
@@ -236,6 +237,26 @@ _SCHEMA = [
         updated_at TEXT NOT NULL,
         PRIMARY KEY (chat_id, user_id, key)
     ) WITHOUT ROWID""",
+    # Столы мультиплеера: одна строка — один стол. seats и state — JSON, поэтому правила игр
+    # могут меняться, не трогая схему. Стол переживает перезапуск бота и деплой
+    """CREATE TABLE IF NOT EXISTS mp_tables (
+        id         INTEGER PRIMARY KEY,
+        chat_id    INTEGER NOT NULL,
+        game       TEXT NOT NULL,
+        stake      INTEGER NOT NULL DEFAULT 0,
+        status     TEXT NOT NULL DEFAULT 'gathering',
+        owner_id   INTEGER NOT NULL,
+        seats      TEXT NOT NULL DEFAULT '[]',
+        state      TEXT NOT NULL DEFAULT '{}',
+        turn_id    INTEGER,
+        turn_until INTEGER,
+        pot        INTEGER NOT NULL DEFAULT 0,
+        message_id INTEGER,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+    )""",
+    "CREATE INDEX IF NOT EXISTS mp_tables_live ON mp_tables (chat_id, status)",
+    "CREATE INDEX IF NOT EXISTS mp_tables_turn ON mp_tables (turn_until) WHERE status = 'playing'",
     "CREATE INDEX IF NOT EXISTS bank_deposits_user ON bank_deposits (chat_id, user_id, status)",
     "CREATE INDEX IF NOT EXISTS bank_deposits_due ON bank_deposits (ends_at) WHERE status = 'active'",
 ]
@@ -1279,6 +1300,74 @@ class Database:
         rows = self.conn.execute(f"SELECT a.user_id, a.game, a.score {self._ARCADE_ALIVE}", (chat_id,)).fetchall()
         return [dict(r) for r in rows]
 
+    # ── Столы мультиплеера ─────────────────────────────────────────────────────
+
+    def mp_create(self, chat_id: int, user_id: int, game: str, stake: int, seats: list, state: dict) -> int:
+        now = int(time.time())
+        with self._tx() as c:
+            cursor = c.execute(
+                "INSERT INTO mp_tables (chat_id, game, stake, owner_id, seats, state, created_at, updated_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (chat_id, game, stake, user_id, json.dumps(seats, ensure_ascii=False),
+                 json.dumps(state, ensure_ascii=False), now, now),
+            )
+            return cursor.lastrowid
+
+    @staticmethod
+    def _mp_row(row) -> dict:
+        table = dict(row)
+        table["seats"] = json.loads(table["seats"])
+        table["state"] = json.loads(table["state"])
+        return table
+
+    def mp_get(self, table_id: int) -> Optional[dict]:
+        row = self.conn.execute("SELECT * FROM mp_tables WHERE id = ?", (table_id,)).fetchone()
+        return self._mp_row(row) if row else None
+
+    def mp_live(self, chat_id: int) -> list[dict]:
+        """Столы беседы, которые собираются или играют, — их немного."""
+        rows = self.conn.execute(
+            "SELECT * FROM mp_tables WHERE chat_id = ? AND status IN ('gathering', 'playing') ORDER BY id",
+            (chat_id,),
+        ).fetchall()
+        return [self._mp_row(row) for row in rows]
+
+    def mp_done(self, chat_id: int, limit: int = 5) -> list[dict]:
+        rows = self.conn.execute(
+            "SELECT * FROM mp_tables WHERE chat_id = ? AND status = 'done' ORDER BY id DESC LIMIT ?",
+            (chat_id, limit),
+        ).fetchall()
+        return [self._mp_row(row) for row in rows]
+
+    def mp_save(self, table_id: int, **fields) -> bool:
+        """Обновляет стол. seats и state кладём как JSON, остальное как есть."""
+        if not fields:
+            return False
+        for key in ("seats", "state"):
+            if key in fields:
+                fields[key] = json.dumps(fields[key], ensure_ascii=False)
+        fields["updated_at"] = int(time.time())
+        columns = ", ".join(f"{key} = ?" for key in fields)
+        with self._tx() as c:
+            cursor = c.execute(f"UPDATE mp_tables SET {columns} WHERE id = ?", (*fields.values(), table_id))
+            return cursor.rowcount == 1
+
+    def mp_due(self, now: int) -> list[dict]:
+        """Столы, у которых вышло время хода."""
+        rows = self.conn.execute(
+            "SELECT * FROM mp_tables WHERE status = 'playing' AND turn_until IS NOT NULL AND turn_until <= ?",
+            (now,),
+        ).fetchall()
+        return [self._mp_row(row) for row in rows]
+
+    def mp_gathering(self) -> list[dict]:
+        rows = self.conn.execute("SELECT * FROM mp_tables WHERE status = 'gathering'").fetchall()
+        return [self._mp_row(row) for row in rows]
+
+    def mp_prune(self, before: int):
+        with self._tx() as c:
+            c.execute("DELETE FROM mp_tables WHERE status = 'done' AND updated_at < ?", (before,))
+
     # ── Прогулки, счётчики и ачивки ────────────────────────────────────────────
 
     def get_walk(self, chat_id: int, user_id: int) -> Optional[dict]:
@@ -1336,6 +1425,14 @@ class Database:
                 "ON CONFLICT(chat_id, user_id, key) DO UPDATE SET value = excluded.value",
                 (chat_id, user_id, key, value),
             )
+
+    def counter_top(self, chat_id: int, key: str, limit: int = 5) -> list[dict]:
+        """Кто впереди по счётчику — для рейтингов."""
+        rows = self.conn.execute(
+            "SELECT user_id, value FROM counters WHERE chat_id = ? AND key = ? AND value > 0 "
+            "ORDER BY value DESC LIMIT ?", (chat_id, key, limit),
+        ).fetchall()
+        return [dict(row) for row in rows]
 
     def get_achievements(self, chat_id: int, user_id: int) -> dict[str, int]:
         rows = self.conn.execute(

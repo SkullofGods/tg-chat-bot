@@ -46,6 +46,9 @@ RR_FUNERAL_MIN = 100     # …но не меньше сотни
 GAME_NAMES = {
     "roulette": "рулетка", "race": "скачки", "slots": "слоты", "coin": "монетка", "blackjack": "блэкджек",
     "rr": "русская рулетка", "duel": "дуэли", "work": "халтура", "walk": "прогулки",
+    "durak": "дурак", "poker": "покер", "ochko": "очко", "roaches": "тараканьи бега",
+    "auction": "уникальное число", "reaction": "кто быстрее", "crocodile": "крокодил",
+    "checkers": "шашки", "seabattle": "морской бой", "chess": "шахматы", "backgammon": "нарды",
 }
 
 

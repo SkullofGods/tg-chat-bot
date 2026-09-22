@@ -1660,6 +1660,183 @@ button:disabled { cursor: default; }
 .soon-list b { font-size: 15px; }
 .soon-list small { color: var(--muted); font-size: 12px; }
 
+/* ─── Мультиплеер ─── */
+
+.mp-tables { display: grid; gap: 8px; margin-top: 10px; }
+.mp-table {
+  display: grid;
+  grid-template-columns: 42px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+  text-align: left;
+  border-radius: 16px;
+  background: var(--card-strong);
+  border: 1px solid var(--line);
+}
+.mp-table.mine { border-color: rgba(245, 197, 66, 0.5); }
+.mp-table .mp-icon { font-size: 26px; text-align: center; }
+.mp-table b { display: block; font-size: 15px; }
+.mp-table small { display: block; color: var(--muted); font-size: 12px; }
+.mp-table .mp-go { font-size: 13px; font-weight: 800; color: var(--gold); white-space: nowrap; }
+
+.mp-picker { display: grid; gap: 8px; margin-top: 10px; }
+.mp-game {
+  display: grid;
+  grid-template-columns: 40px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 11px 12px;
+  text-align: left;
+  border-radius: 14px;
+  background: var(--card);
+  border: 1px solid var(--line);
+}
+.mp-game.on { border-color: var(--gold); background: rgba(245, 197, 66, 0.1); }
+.mp-game span.ic { font-size: 24px; text-align: center; }
+.mp-game b { display: block; font-size: 14px; }
+.mp-game small { display: block; color: var(--muted); font-size: 11px; }
+.mp-game i { font-style: normal; color: var(--muted); font-size: 11px; white-space: nowrap; }
+.mp-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.mp-chip {
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  background: var(--card-strong);
+  border: 1px solid var(--line);
+}
+.mp-chip.on { background: linear-gradient(135deg, var(--gold-2), var(--gold)); color: #2a1c05; border-color: transparent; }
+
+.mp-head { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.mp-head b { flex: 1; font-size: 16px; }
+.mp-seats { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.mp-seat {
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--line);
+}
+.mp-seat.turn { border-color: var(--gold); color: var(--gold); box-shadow: 0 0 14px rgba(245, 197, 66, 0.2); }
+.mp-seat.me { font-weight: 800; }
+.mp-seat.out { opacity: 0.45; text-decoration: line-through; }
+.mp-pot { margin-top: 10px; font-size: 14px; color: var(--muted); }
+.mp-pot b { color: var(--gold); font-size: 16px; }
+.mp-feed { margin-top: 10px; padding: 8px 12px; border-radius: 12px; background: rgba(0, 0, 0, 0.25); }
+.mp-feed div { font-size: 12px; color: var(--muted); padding: 2px 0; }
+.mp-feed div:last-child { color: var(--text); }
+.mp-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.mp-actions button {
+  flex: 1 1 100px;
+  padding: 13px;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 800;
+  background: var(--card-strong);
+  border: 1px solid var(--line);
+}
+.mp-actions button.main { background: linear-gradient(135deg, var(--gold-2), var(--gold)); color: #2a1c05; border-color: transparent; }
+.mp-actions button:disabled { opacity: 0.45; }
+.mp-area { margin-top: 12px; }
+
+/* карты */
+.cards { display: flex; flex-wrap: wrap; gap: 6px; }
+.pcard {
+  width: 46px;
+  height: 64px;
+  border-radius: 8px;
+  background: linear-gradient(160deg, #fdfaf2, #ded6c4);
+  color: #1b1b1b;
+  display: grid;
+  place-items: center;
+  font-size: 17px;
+  font-weight: 800;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  border: 1px solid #b9b0a0;
+}
+.pcard.red { color: #c0392b; }
+.pcard.back { background: repeating-linear-gradient(45deg, #2a4a6a 0 6px, #1d3450 6px 12px); color: transparent; }
+.pcard.small { width: 34px; height: 48px; font-size: 13px; }
+.pcard.pick { cursor: pointer; transition: transform 0.1s; }
+.pcard.pick:active { transform: translateY(-4px); }
+.pcard.off { opacity: 0.4; }
+.pairs { display: flex; flex-wrap: wrap; gap: 10px; }
+.pair { position: relative; width: 56px; height: 76px; }
+.pair .pcard { position: absolute; left: 0; top: 0; }
+.pair .pcard + .pcard { left: 10px; top: 12px; }
+.mp-label { margin: 10px 0 4px; font-size: 12px; color: var(--muted); }
+
+/* доски */
+.board {
+  display: grid;
+  margin: 8px auto 0;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 2px solid #4a3826;
+  touch-action: manipulation;
+}
+.board div {
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  line-height: 1;
+}
+.board div.dark { background: #6b4a2a; }
+.board div.light { background: #d9c7a3; }
+.board div.on { box-shadow: inset 0 0 0 3px var(--gold); }
+.board div.piece-w { color: #fbf6e9; text-shadow: 0 0 2px #2b1d10, 0 1px 2px rgba(0, 0, 0, 0.6); }
+.board div.piece-b { color: #14100c; text-shadow: 0 0 2px rgba(255, 255, 255, 0.5); }
+.board div.hint { box-shadow: inset 0 0 0 3px rgba(76, 175, 80, 0.8); }
+.board .man { width: 68%; height: 68%; border-radius: 50%; }
+.board .man.w { background: radial-gradient(circle at 35% 30%, #fdf6e6, #b9ab90); }
+.board .man.b { background: radial-gradient(circle at 35% 30%, #5a5a5a, #171717); }
+.board .man.king::after { content: "♛"; display: grid; place-items: center; height: 100%; font-size: 14px; color: var(--gold); }
+.sea { display: grid; grid-template-columns: repeat(10, 1fr); gap: 1px; margin-top: 6px; }
+.sea div { aspect-ratio: 1; background: #16324a; border-radius: 2px; font-size: 11px; display: grid; place-items: center; }
+.sea div.ship { background: #4a5764; }
+.sea div.miss { background: #1b2733; color: #6d7a88; }
+.sea div.hit { background: #8c3b34; }
+.sea div.free:active { background: #1f4463; }
+.bg-board { display: grid; grid-template-columns: repeat(12, 1fr); gap: 2px; margin-top: 8px; }
+.bg-point { min-height: 64px; border-radius: 6px; background: rgba(255, 255, 255, 0.04); padding: 2px; font-size: 10px; text-align: center; }
+.bg-point.on { box-shadow: inset 0 0 0 2px var(--gold); }
+.bg-point b { display: block; font-size: 11px; }
+.bg-point.p0 { color: #f2e6cf; background: rgba(240, 230, 200, 0.14); }
+.bg-point.p1 { color: #d68b7a; background: rgba(180, 80, 60, 0.16); }
+.dice { display: flex; gap: 6px; margin-top: 8px; }
+.dice span { width: 34px; height: 34px; border-radius: 8px; background: #f2ead8; color: #1b1b1b; display: grid; place-items: center; font-weight: 900; }
+.dice span.used { opacity: 0.3; }
+
+/* бега, числа, реакция, крокодил */
+.track { display: grid; gap: 6px; margin-top: 8px; }
+.lane { position: relative; height: 34px; border-radius: 10px; background: rgba(255, 255, 255, 0.05); overflow: hidden; }
+.lane b { position: absolute; left: 8px; top: 8px; font-size: 12px; color: var(--muted); }
+.lane i { position: absolute; top: 4px; font-size: 22px; transition: left 0.4s; }
+.lane.mine { box-shadow: inset 0 0 0 2px var(--gold); }
+.numbers { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; margin-top: 8px; }
+.numbers button { aspect-ratio: 1; border-radius: 8px; font-size: 12px; background: var(--card-strong); border: 1px solid var(--line); }
+.numbers button.on { background: var(--gold); color: #2a1c05; }
+.bigtap {
+  width: 100%;
+  height: 190px;
+  border-radius: 20px;
+  font-size: 22px;
+  font-weight: 900;
+  margin-top: 10px;
+  border: none;
+  color: #fff;
+  background: linear-gradient(160deg, #8c3b34, #55201c);
+}
+.bigtap.go { background: linear-gradient(160deg, #3fa34d, #1d6b2c); }
+.bigtap:disabled { opacity: 0.5; }
+.croc-word { margin-top: 10px; padding: 16px; border-radius: 16px; text-align: center; background: rgba(245, 197, 66, 0.12); border: 1px dashed rgba(245, 197, 66, 0.5); }
+.croc-word b { font-size: 24px; color: var(--gold-2); }
+.croc-word small { display: block; color: var(--muted); font-size: 12px; margin-top: 4px; }
+.scores { margin-top: 10px; }
+.scores div { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+
 /* ─── Ачивки ─── */
 
 .awards-hero { text-align: center; }
@@ -2367,18 +2544,11 @@ body.dead::after {
 
       <!-- ─── Мультиплеер ─── -->
       <section class="screen" data-screen="multi">
-        <div class="card hub-hero soon">
+        <div class="card hub-hero">
           <b>👥 Мультиплеер</b>
           <p>Столы на несколько человек: играем друг с другом, а не с казино.</p>
-          <span class="soon-badge">в разработке</span>
         </div>
-        <div class="card soon-list">
-          <div><span>🃏</span><b>Дурак</b><small>2–6 игроков, можно подсесть к идущей партии</small></div>
-          <div><span>♠️</span><b>Покер</b><small>sit-n-go столы, сбор игроков объявляется в беседе</small></div>
-          <div><span>⛃</span><b>Шашки</b><small>один на один, на ставку или просто так</small></div>
-          <div><span>♟</span><b>Шахматы</b><small>один на один, партия ждёт хода хоть до завтра</small></div>
-        </div>
-        <p class="hint">Пока делаем — играйте в остальное. Как будет готово, бот напишет в беседу.</p>
+        <div id="multi-body"></div>
       </section>
 
       <!-- ─── Ачивки ─── -->
@@ -2578,6 +2748,682 @@ body.dead::after {
       : "Звёзды и разовые награды за всё подряд";
   }
 
+  // ─── Мультиплеер ───────────────────────────────────────────────────────────
+
+  const multi = { data: null, table: null, sending: false, polled: 0,
+                  game: null, stake: 0, seats: 0, pickCard: null, pickFrom: null };
+  const MP_SUITS = ["♠", "♥", "♦", "♣"];
+  const MP_RANKS = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "В", "Д", "К", "Т"];
+  const CHESS_GLYPHS = ["", "♟", "♞", "♝", "♜", "♛", "♚"];   // белых и чёрных красим стилем, не символом
+
+  function boardCell(index, me, side = 8) {
+    // свои фигуры всегда снизу: первый игрок смотрит на доску «перевёрнутой», второй — как есть
+    const row = Math.floor(index / side);
+    const col = index % side;
+    return me === 0 ? (side - 1 - row) * side + col : row * side + (side - 1 - col);
+  }
+
+  function cardEl(code, extra = "") {
+    if (code === -1 || code === null || code === undefined) return el("div", `pcard back ${extra}`, "?");
+    const suit = Math.floor(code / 13);
+    const node = el("div", `pcard ${suit === 1 || suit === 2 ? "red" : ""} ${extra}`.trim(),
+                    `${MP_RANKS[code % 13]}${MP_SUITS[suit]}`);
+    node.dataset.card = code;
+    return node;
+  }
+
+  async function loadMulti() {
+    try {
+      if (multi.table) {
+        await openTable(multi.table, false);
+        return;
+      }
+      multi.data = await api("mp");
+      if (multi.data.mine) {
+        await openTable(multi.data.mine, false);
+        return;
+      }
+      renderMultiLobby();
+    } catch (error) {
+      showError(error);
+    }
+  }
+
+  function renderMultiLobby() {
+    const data = multi.data;
+    if (!data) return;
+    const root = $("#multi-body");
+    root.replaceChildren();
+    if (typeof data.balance === "number") setBalance(data.balance, state.loaded);
+
+    const live = data.tables.filter((table) => table.status !== "done");
+    root.append(el("h2", "section-title", "🪑 Столы"));
+    const list = el("div", "mp-tables");
+    if (!live.length) list.append(el("div", "hint", "Пока никто не собрал стол. Собери первым — бот позовёт остальных в беседу."));
+    live.forEach((table) => {
+      const card = el("button", `mp-table${table.mine ? " mine" : ""}`);
+      card.type = "button";
+      const body = el("div", "");
+      const who = table.seats.map((seat) => seat.name).join(", ") || "пока никого";
+      body.append(el("b", "", `${table.title}${table.stake ? ` · ${fmt(table.stake)} 🪙` : " · за респект"}`),
+                  el("small", "", `${table.seats.length} из ${table.max_seats} · ${who}`));
+      card.append(el("span", "mp-icon", table.emoji), body,
+                  el("span", "mp-go", table.mine ? "за стол ›" : table.status === "gathering" ? "сесть ›" : "идёт"));
+      card.addEventListener("click", () => (table.mine || table.status === "gathering"
+        ? joinTable(table) : toast("За этим столом уже играют", "error")));
+      list.append(card);
+    });
+    root.append(list);
+
+    root.append(el("h2", "section-title", "➕ Собрать свой стол"));
+    const picker = el("div", "mp-picker");
+    data.games.forEach((game) => {
+      const card = el("button", `mp-game${multi.game === game.key ? " on" : ""}`);
+      card.type = "button";
+      const body = el("div", "");
+      body.append(el("b", "", game.title), el("small", "", game.about));
+      card.append(el("span", "ic", game.emoji), body,
+                  el("i", "", `${game.min}–${game.max}`));
+      card.addEventListener("click", () => {
+        multi.game = game.key;
+        multi.seats = Math.min(Math.max(game.min, 2), game.max);
+        renderMultiLobby();
+      });
+      picker.append(card);
+    });
+    root.append(picker);
+
+    const game = data.games.find((item) => item.key === multi.game);
+    if (game) {
+      root.append(el("div", "mp-label", "Ставка с каждого"));
+      const stakes = el("div", "mp-row");
+      data.stakes.forEach((stake) => {
+        const chip = el("button", `mp-chip${multi.stake === stake ? " on" : ""}`,
+                        stake ? `${fmt(stake)} 🪙` : "за респект");
+        chip.type = "button";
+        chip.addEventListener("click", () => { multi.stake = stake; renderMultiLobby(); });
+        stakes.append(chip);
+      });
+      root.append(stakes);
+      root.append(el("div", "mp-label", "Мест за столом"));
+      const seats = el("div", "mp-row");
+      for (let count = game.min; count <= game.max; count += 1) {
+        const chip = el("button", `mp-chip${multi.seats === count ? " on" : ""}`, `${count}`);
+        chip.type = "button";
+        chip.addEventListener("click", () => { multi.seats = count; renderMultiLobby(); });
+        seats.append(chip);
+      }
+      root.append(seats);
+      const actions = el("div", "mp-actions");
+      const make = el("button", "main", `Собрать стол${multi.stake ? ` за ${fmt(multi.stake)}` : ""}`);
+      make.type = "button";
+      make.disabled = multi.sending;
+      make.addEventListener("click", createTable);
+      actions.append(make);
+      root.append(actions);
+      root.append(el("p", "hint", game.pace === "slow"
+        ? `Спокойная игра: на ход даётся ${Math.round(game.turn / 3600)} ч, можно закрыть приложение и вернуться`
+        : `Живая игра: на ход ${game.turn} секунд, просрочил — походят за тебя`));
+    }
+
+    if (data.leaders && data.leaders.length) {
+      root.append(el("h2", "section-title", "🏆 Кто чаще выигрывает"));
+      const rows = el("div", "card scores");
+      data.leaders.forEach((row, index) => {
+        const line = el("div", "");
+        line.append(el("span", "", `${["🥇", "🥈", "🥉"][index] || index + 1} ${row.name}`),
+                    el("span", "", `${fmt(row.wins)}`));
+        if (row.me) line.style.color = "var(--gold)";
+        rows.append(line);
+      });
+      root.append(rows);
+    }
+
+    if (data.history.length) {
+      root.append(el("h2", "section-title", "🕘 Последние партии"));
+      const past = el("div", "mp-feed");
+      data.history.forEach((row) => past.append(el("div", "", `${row.title}: ${row.text}`)));
+      root.append(past);
+    }
+  }
+
+  async function createTable() {
+    if (multi.sending || !multi.game) return;
+    multi.sending = true;
+    try {
+      const table = await api("mp/create", { game: multi.game, stake: multi.stake, seats: multi.seats });
+      multi.table = table.id;
+      applyMpTable(table);
+      haptic.impact("medium");
+    } catch (error) {
+      showError(error);
+      loadMulti();
+    } finally {
+      multi.sending = false;
+    }
+  }
+
+  async function joinTable(table) {
+    if (multi.sending) return;
+    multi.sending = true;
+    try {
+      const view = table.mine
+        ? await api("mp/table", { table: table.id })
+        : await api("mp/join", { table: table.id });
+      multi.table = view.id;
+      applyMpTable(view);
+      haptic.impact("light");
+    } catch (error) {
+      showError(error);
+      multi.table = null;
+      loadMulti();
+    } finally {
+      multi.sending = false;
+    }
+  }
+
+  async function openTable(id, loud = true) {
+    try {
+      const view = await api("mp/table", { table: id });
+      multi.table = id;
+      applyMpTable(view);
+    } catch (error) {
+      multi.table = null;
+      if (loud) showError(error);
+      loadMulti();
+    }
+  }
+
+  function applyMpTable(view) {
+    multi.view = view;
+    multi.polled = Date.now();
+    if (typeof view.balance === "number") setBalance(view.balance, state.loaded);
+    renderMpTable();
+  }
+
+  async function multiMove(action) {
+    if (multi.sending || !multi.table) return;
+    multi.sending = true;
+    try {
+      applyMpTable(await api("mp/move", { table: multi.table, action }));
+      haptic.impact("light");
+    } catch (error) {
+      showError(error);
+      openTable(multi.table, false);
+    } finally {
+      multi.sending = false;
+      multi.pickCard = null;
+      multi.pickFrom = null;
+    }
+  }
+
+  async function leaveTable() {
+    if (multi.sending || !multi.table) return;
+    const view = multi.view;
+    if (view && view.status === "playing" && !view.over
+        && !window.confirm("Встать из-за стола? Это засчитается как поражение.")) return;
+    multi.sending = true;
+    try {
+      await api("mp/leave", { table: multi.table });
+    } catch (error) {
+      showError(error);
+    } finally {
+      multi.sending = false;
+      multi.table = null;
+      multi.view = null;
+      loadMulti();
+    }
+  }
+
+  function tickMulti() {
+    if (state.screen !== "multi" || !multi.table || multi.sending) return;
+    const view = multi.view;
+    if (view && view.turn_left > 0) {
+      view.turn_left -= 1;
+      const clock = $("#mp-clock");
+      if (clock) clock.textContent = waitText(view.turn_left);
+    }
+    const slow = view && view.play && view.status === "playing" && view.turn && !view.my_turn;
+    const every = view && view.status === "gathering" ? 3000 : slow ? 4000 : 2000;
+    if (Date.now() - multi.polled >= every) {
+      multi.polled = Date.now();
+      openTable(multi.table, false);
+    }
+  }
+
+  function renderMpTable() {
+    const view = multi.view;
+    const root = $("#multi-body");
+    if (!view) return;
+    root.replaceChildren();
+
+    const head = el("div", "mp-head");
+    head.append(el("span", "mp-icon", view.emoji), el("b", "", view.title));
+    if (view.status === "playing" && view.turn) {
+      const clock = el("span", "mp-go", waitText(view.turn_left));
+      clock.id = "mp-clock";
+      head.append(clock);
+    }
+    root.append(head);
+
+    const seats = el("div", "mp-seats");
+    view.seats.forEach((seat) => {
+      const chip = el("div", `mp-seat${seat.id === view.turn ? " turn" : ""}${seat.me ? " me" : ""}`
+        + `${seat.out ? " out" : ""}`, seat.name);
+      seats.append(chip);
+    });
+    root.append(seats);
+
+    const pot = el("div", "mp-pot");
+    if (view.pot) pot.append(document.createTextNode("В банке "), el("b", "", `${fmt(view.pot)} 🪙`));
+    else pot.textContent = view.stake ? "Ставки собираются" : "Играем за респект";
+    if (view.status === "gathering") {
+      pot.append(document.createTextNode(` · ждём игроков ${waitText(view.waits)}`));
+    }
+    root.append(pot);
+
+    if (view.over) {
+      const done = el("div", "card arcade-over");
+      done.append(el("div", "what", view.over.text || "Партия окончена"));
+      const mine = (view.over.winners || []).some((id) => view.seats.some((seat) => seat.me && seat.id === id));
+      done.append(el("div", "record", mine ? "🏆 Ты выиграл!" : (view.over.winners || []).length
+        ? "Выиграл не ты — бывает" : "Никто не выиграл"));
+      root.append(done);
+    }
+
+    const area = el("div", "mp-area");
+    root.append(area);
+    if (view.play) drawGame(view, area);
+
+    const actions = el("div", "mp-actions");
+    if (view.status === "gathering") {
+      if (view.owner && view.seats.length >= 2) {
+        const go = el("button", "main", "Начать, все в сборе");
+        go.type = "button";
+        go.addEventListener("click", () => multiStart());
+        actions.append(go);
+      }
+      const out = el("button", "", "Уйти и забрать ставку");
+      out.type = "button";
+      out.addEventListener("click", leaveTable);
+      actions.append(out);
+    } else if (view.over) {
+      const back = el("button", "main", "‹ К столам");
+      back.type = "button";
+      back.addEventListener("click", () => { multi.table = null; multi.view = null; loadMulti(); });
+      actions.append(back);
+    } else {
+      gameActions(view, actions);
+      const out = el("button", "", "Встать из-за стола");
+      out.type = "button";
+      out.addEventListener("click", leaveTable);
+      actions.append(out);
+    }
+    root.append(actions);
+
+    if (view.feed && view.feed.length) {
+      const feed = el("div", "mp-feed");
+      view.feed.slice(-5).forEach((line) => feed.append(el("div", "", line)));
+      root.append(feed);
+    }
+  }
+
+  async function multiStart() {
+    if (multi.sending) return;
+    multi.sending = true;
+    try {
+      applyMpTable(await api("mp/start", { table: multi.table }));
+    } catch (error) {
+      showError(error);
+    } finally {
+      multi.sending = false;
+    }
+  }
+
+  // ── Отрисовка конкретных игр ──
+  function drawGame(view, area) {
+    const draw = GAME_DRAW[view.game];
+    if (draw && view.play) draw(view.play, view, area);
+  }
+
+  function gameActions(view, actions) {
+    const make = GAME_ACTIONS[view.game];
+    if (make && view.play) make(view.play, view, actions);
+  }
+
+  function actionButton(actions, label, action, main = false) {
+    const button = el("button", main ? "main" : "", label);
+    button.type = "button";
+    button.disabled = multi.sending;
+    button.addEventListener("click", () => multiMove(action));
+    actions.append(button);
+    return button;
+  }
+
+  const GAME_DRAW = {
+    durak: (game, view, area) => {
+      area.append(el("div", "mp-label", `Козырь ${MP_RANKS[game.trump_card % 13]}${MP_SUITS[game.trump]}`
+        + ` · в колоде ${game.talon}`));
+      const pairs = el("div", "pairs");
+      game.table.forEach((pair) => {
+        const box = el("div", "pair");
+        box.append(cardEl(pair.a, "small"));
+        if (pair.d !== null && pair.d !== undefined) box.append(cardEl(pair.d, "small"));
+        pairs.append(box);
+      });
+      if (!game.table.length) pairs.append(el("div", "hint", "Стол пуст"));
+      area.append(pairs);
+      area.append(el("div", "mp-label", "Твои карты"));
+      const hand = el("div", "cards");
+      const moves = view.moves || {};
+      const canAttack = new Set(moves.attack || []);
+      const canBeat = new Set((moves.beat || []).flatMap((slot) => slot.cards));
+      game.hand.forEach((code) => {
+        const playable = canAttack.has(code) || canBeat.has(code);
+        const node = cardEl(code, playable ? "pick" : "off");
+        if (playable) {
+          node.addEventListener("click", () => {
+            if (canAttack.has(code)) multiMove({ type: "attack", card: code });
+            else {
+              const slot = (moves.beat || []).find((item) => item.cards.includes(code));
+              multiMove({ type: "beat", card: code, slot: slot ? slot.slot : null });
+            }
+          });
+        }
+        hand.append(node);
+      });
+      area.append(hand);
+    },
+    poker: (game, view, area) => {
+      area.append(el("div", "mp-label", `Раздача ${game.hand_no} · блайнды ${game.blinds.join("/")}`));
+      const board = el("div", "cards");
+      (game.board || []).forEach((code) => board.append(cardEl(code)));
+      if (!game.board.length) board.append(el("div", "hint", "Карт на столе пока нет"));
+      area.append(board);
+      area.append(el("div", "mp-label", `Банк ${fmt(game.pot)} · твои фишки ${fmt(game.chips[String(state.userId)] || 0)}`));
+      const mine = el("div", "cards");
+      (game.my_cards || []).forEach((code) => mine.append(cardEl(code)));
+      area.append(mine);
+      if (game.my_combo) area.append(el("div", "mp-label", `У тебя ${game.my_combo}`));
+      const stacks = el("div", "scores");
+      view.seats.forEach((seat) => {
+        const row = el("div", "");
+        const bet = game.bets[String(seat.id)] || 0;
+        row.append(el("span", "", seat.name + (game.live.includes(seat.id) ? "" : " · пас")),
+                   el("span", "", `${fmt(game.chips[String(seat.id)] || 0)}${bet ? ` (+${fmt(bet)})` : ""}`));
+        stacks.append(row);
+      });
+      area.append(stacks);
+      if (game.showdown && game.showdown.length) {
+        area.append(el("div", "mp-label", "Вскрытие"));
+        const rows = el("div", "scores");
+        game.showdown.forEach((row) => {
+          const name = (view.seats.find((seat) => seat.id === row.id) || {}).name || "?";
+          const line = el("div", "");
+          line.append(el("span", "", `${name}: ${row.cards.map((code) => `${MP_RANKS[code % 13]}${MP_SUITS[Math.floor(code / 13)]}`).join(" ")}`),
+                      el("span", "", row.combo));
+          rows.append(line);
+        });
+        area.append(rows);
+      }
+    },
+    ochko: (game, view, area) => {
+      area.append(el("div", "mp-label", `Твои карты — ${game.my_points} очков`));
+      const mine = el("div", "cards");
+      game.my_cards.forEach((code) => mine.append(cardEl(code)));
+      area.append(mine);
+      game.players.filter((player) => !view.seats.find((seat) => seat.me && seat.id === player.id))
+        .forEach((player) => {
+          const name = (view.seats.find((seat) => seat.id === player.id) || {}).name || "?";
+          area.append(el("div", "mp-label", `${name}${player.points !== null ? ` — ${player.points}` : ""}`
+            + `${player.busted ? " · перебор" : player.done ? " · хватит" : ""}`));
+          const row = el("div", "cards");
+          player.cards.forEach((code) => row.append(cardEl(code, "small")));
+          area.append(row);
+        });
+    },
+    checkers: (game, view, area) => {
+      const board = el("div", "board");
+      board.style.gridTemplateColumns = `repeat(${game.side}, 1fr)`;
+      board.style.maxWidth = "340px";
+      const steps = (view.moves || {}).steps || [];
+      const from = multi.pickFrom;
+      const targets = new Set(steps.filter((step) => step.from === from).map((step) => step.to));
+      const sources = new Set(steps.map((step) => step.from));
+      for (let index = 0; index < game.side * game.side; index += 1) {
+        const cell = boardCell(index, game.me, game.side);
+        const row = Math.floor(cell / game.side);
+        const dark = (row + (cell % game.side)) % 2 === 1;
+        const box = el("div", dark ? "dark" : "light");
+        if (cell === from) box.classList.add("on");
+        if (targets.has(cell)) box.classList.add("hint");
+        const piece = game.board[cell];
+        if (piece) {
+          const man = el("div", `man ${piece <= 2 ? "w" : "b"}${piece === 2 || piece === 4 ? " king" : ""}`);
+          box.append(man);
+        }
+        box.addEventListener("click", () => {
+          if (targets.has(cell)) { multiMove({ type: "step", from, to: cell }); return; }
+          multi.pickFrom = sources.has(cell) ? cell : null;
+          renderMpTable();
+        });
+        board.append(box);
+      }
+      area.append(board);
+      area.append(el("p", "hint", game.chain !== null && game.chain !== undefined
+        ? "Бей дальше той же шашкой" : "Бой обязателен: если можно съесть — только съесть"));
+    },
+    chess: (game, view, area) => {
+      const board = el("div", "board");
+      board.style.gridTemplateColumns = `repeat(${game.size}, 1fr)`;
+      board.style.maxWidth = "340px";
+      const steps = (view.moves || {}).steps || [];
+      const from = multi.pickFrom;
+      const targets = new Set(steps.filter((step) => step.from === from).map((step) => step.to));
+      const sources = new Set(steps.map((step) => step.from));
+      for (let index = 0; index < 64; index += 1) {
+        const cell = boardCell(index, game.me);
+        const row = Math.floor(cell / 8);
+        const piece = game.board[cell];
+        const kind = piece > 6 ? piece - 6 : piece;
+        const box = el("div", `${(row + (cell % 8)) % 2 === 1 ? "light" : "dark"}`
+          + `${piece ? (piece > 6 ? " piece-b" : " piece-w") : ""}`, CHESS_GLYPHS[kind] || "");
+        if (cell === from) box.classList.add("on");
+        if (targets.has(cell)) box.classList.add("hint");
+        box.addEventListener("click", () => {
+          if (targets.has(cell)) { multiMove({ type: "move", from, to: cell, promo: "q" }); return; }
+          multi.pickFrom = sources.has(cell) ? cell : null;
+          renderMpTable();
+        });
+        board.append(box);
+      }
+      area.append(board);
+      if (game.check) area.append(el("p", "hint", "Шах!"));
+    },
+    seabattle: (game, view, area) => {
+      area.append(el("div", "mp-label", `Стреляем: у врага осталось ${game.enemy_left} палуб`));
+      const enemy = el("div", "sea");
+      const canShoot = ((view.moves || {}).cells || []);
+      const open = new Set(canShoot);
+      for (let cell = 0; cell < 100; cell += 1) {
+        const mark = game.my_shots[cell];
+        const box = el("div", mark === 3 ? "hit" : mark === 2 ? "miss" : open.has(cell) ? "free" : "",
+                       mark === 3 ? "✕" : mark === 2 ? "·" : "");
+        if (open.has(cell)) box.addEventListener("click", () => multiMove({ type: "shot", cell }));
+        enemy.append(box);
+      }
+      area.append(enemy);
+      area.append(el("div", "mp-label", `Твой флот: ${game.my_left} палуб цело`));
+      const mine = el("div", "sea");
+      for (let cell = 0; cell < 100; cell += 1) {
+        const own = game.my_board[cell];
+        const shot = game.enemy_shots[cell];
+        mine.append(el("div", own === 3 ? "hit" : shot === 2 ? "miss" : own === 1 ? "ship" : "",
+                       own === 3 ? "✕" : shot === 2 ? "·" : ""));
+      }
+      area.append(mine);
+    },
+    backgammon: (game, view, area) => {
+      const dice = el("div", "dice");
+      (game.dice || []).forEach((value) => dice.append(el("span", "", `${value}`)));
+      if (!game.dice.length) dice.append(el("span", "used", "—"));
+      area.append(dice);
+      const steps = (view.moves || {}).steps || [];
+      const from = multi.pickFrom;
+      const targets = new Set(steps.filter((step) => step.from === from).map((step) => step.to));
+      const sources = new Set(steps.map((step) => step.from));
+      const board = el("div", "bg-board");
+      const drawPoint = (point) => {
+        const count = game.board[point];
+        const box = el("div", `bg-point${count > 0 ? " p0" : count < 0 ? " p1" : ""}`
+          + `${point === from ? " on" : ""}${targets.has(point) ? " hint" : ""}`);
+        box.append(el("b", "", `${point + 1}`), document.createTextNode(count ? `${Math.abs(count)}●` : ""));
+        box.addEventListener("click", () => {
+          if (targets.has(point)) { multiMove({ type: "move", from, to: point }); return; }
+          multi.pickFrom = sources.has(point) ? point : null;
+          renderMpTable();
+        });
+        return box;
+      };
+      for (let point = 12; point < 24; point += 1) board.append(drawPoint(point));
+      for (let point = 11; point >= 0; point -= 1) board.append(drawPoint(point));
+      area.append(board);
+      const extra = el("div", "mp-row");
+      if (game.bar[game.me]) {
+        const chip = el("button", `mp-chip${from === -1 ? " on" : ""}`, `На баре: ${game.bar[game.me]}`);
+        chip.type = "button";
+        chip.addEventListener("click", () => { multi.pickFrom = -1; renderMpTable(); });
+        extra.append(chip);
+      }
+      const offTarget = steps.find((step) => step.from === from && (step.to === 24 || step.to === -1));
+      if (offTarget) {
+        const chip = el("button", "mp-chip on", "Выбросить фишку");
+        chip.type = "button";
+        chip.addEventListener("click", () => multiMove({ type: "move", from, to: offTarget.to }));
+        extra.append(chip);
+      }
+      extra.append(el("span", "mp-chip", `Вышло: ${game.off[game.me]} из 15`));
+      area.append(extra);
+    },
+    roaches: (game, view, area) => {
+      area.append(el("div", "mp-label", game.phase === "pick"
+        ? `Выбирай таракана · ${game.left} с` : game.phase === "run" ? "Бегут!" : "Финиш"));
+      const track = el("div", "track");
+      game.roaches.forEach((name, index) => {
+        const lane = el("div", `lane${game.my_pick === index ? " mine" : ""}`);
+        lane.append(el("b", "", name));
+        const roach = el("i", "", "🪳");
+        roach.style.left = `${Math.min(92, (game.spots[index] / game.track) * 92)}%`;
+        lane.append(roach);
+        if (game.phase === "pick") lane.addEventListener("click", () => multiMove({ type: "pick", roach: index }));
+        track.append(lane);
+      });
+      area.append(track);
+      if (game.champion !== null && game.champion !== undefined) {
+        area.append(el("div", "mp-label", `Победил ${game.roaches[game.champion]}`));
+      }
+    },
+    auction: (game, view, area) => {
+      area.append(el("div", "mp-label", game.phase === "pick"
+        ? `Загадали ${game.ready} из ${game.total} · осталось ${game.left} с`
+        : "Числа открыты"));
+      if (game.phase === "pick") {
+        const grid = el("div", "numbers");
+        for (let number = 1; number <= game.top; number += 1) {
+          const button = el("button", game.my_pick === number ? "on" : "", `${number}`);
+          button.type = "button";
+          button.addEventListener("click", () => multiMove({ type: "pick", number }));
+          grid.append(button);
+        }
+        area.append(grid);
+        if (game.my_pick) area.append(el("p", "hint", `Ты загадал ${game.my_pick}. Можно передумать, пока не открыли.`));
+      } else {
+        const rows = el("div", "scores");
+        Object.entries(game.picks).forEach(([id, number]) => {
+          const name = (view.seats.find((seat) => String(seat.id) === id) || {}).name || "?";
+          const row = el("div", "");
+          row.append(el("span", "", name), el("span", "", `${number}${number === game.best ? " 🏆" : ""}`));
+          rows.append(row);
+        });
+        area.append(rows);
+      }
+    },
+    reaction: (game, view, area) => {
+      const button = el("button", `bigtap${game.phase === "go" ? " go" : ""}`,
+                        game.mine_out ? "Фальстарт" : game.phase === "wait" ? "Ждём зелёного…"
+                        : game.phase === "go" ? "ЖМИ!" : "Всё");
+      button.type = "button";
+      button.disabled = multi.sending || game.mine_out || game.phase === "over";
+      button.addEventListener("click", () => multiMove({ type: "tap" }));
+      area.append(button);
+      const rows = el("div", "scores");
+      Object.entries(game.taps || {}).forEach(([id, seconds]) => {
+        const name = (view.seats.find((seat) => String(seat.id) === id) || {}).name || "?";
+        const row = el("div", "");
+        row.append(el("span", "", name), el("span", "", `${seconds} с`));
+        rows.append(row);
+      });
+      area.append(rows);
+    },
+    crocodile: (game, view, area) => {
+      if (game.am_host) {
+        const box = el("div", "croc-word");
+        box.append(el("b", "", game.word || "—"),
+                   el("small", "", "Объясняй это в беседе словами. Само слово называть нельзя!"));
+        area.append(box);
+      } else {
+        area.append(el("div", "croc-word", "Слово знает ведущий — угадывай прямо в беседе"));
+      }
+      area.append(el("div", "mp-label", `Раунд ${game.round} · до победы ${game.target} слова · осталось ${waitText(game.left)}`));
+      const rows = el("div", "scores");
+      view.seats.forEach((seat) => {
+        const row = el("div", "");
+        row.append(el("span", "", `${seat.name}${seat.id === game.host ? " 🐊" : ""}`),
+                   el("span", "", `${game.scores[String(seat.id)] || 0}`));
+        rows.append(row);
+      });
+      area.append(rows);
+    },
+  };
+
+  const GAME_ACTIONS = {
+    durak: (game, view, actions) => {
+      const moves = view.moves || {};
+      if (moves.done) actionButton(actions, "Бито", { type: "done" }, true);
+      if (moves.take && game.phase === "defend" && game.defender === state.userId) {
+        actionButton(actions, "Беру", { type: "take" });
+      }
+      if (!moves.done && !(moves.attack || []).length && !(moves.beat || []).length) {
+        actions.append(el("button", "", view.my_turn ? "Ходить нечем" : "Ждём соперника"));
+        actions.lastChild.disabled = true;
+      }
+    },
+    poker: (game, view, actions) => {
+      const moves = view.moves || {};
+      if (!view.my_turn) return;
+      if (moves.check) actionButton(actions, "Чек", { type: "check" }, true);
+      if (moves.call) actionButton(actions, `Уравнять ${fmt(moves.call)}`, { type: "call" }, true);
+      if (moves.max_raise > moves.min_raise) {
+        actionButton(actions, `Поднять ${fmt(moves.min_raise)}`, { type: "raise", amount: moves.min_raise });
+        actionButton(actions, "Ва-банк", { type: "raise", amount: moves.max_raise });
+      } else if (moves.max_raise) {
+        actionButton(actions, "Ва-банк", { type: "raise", amount: moves.max_raise });
+      }
+      actionButton(actions, "Пас", { type: "fold" });
+    },
+    ochko: (game, view, actions) => {
+      if (!view.my_turn) return;
+      actionButton(actions, "Ещё", { type: "hit" }, true);
+      actionButton(actions, "Хватит", { type: "stand" });
+    },
+    seabattle: (game, view, actions) => {
+      if ((view.moves || {}).shuffle) actionButton(actions, "Перемешать флот", { type: "shuffle" });
+    },
+    crocodile: (game, view, actions) => {
+      if ((view.moves || {}).skip) actionButton(actions, "Другое слово", { type: "skip" });
+    },
+  };
+
   // ─── Ачивки ────────────────────────────────────────────────────────────────
 
   const awards = { data: null, queue: [], showing: false, timer: 0 };
@@ -2767,6 +3613,7 @@ body.dead::after {
     if (screen === "arcade") loadArcade();
     if (screen === "walk") loadWalk();
     if (screen === "awards") loadAwards();
+    if (screen === "multi") loadMulti();
     if (screen === "bum") loadBum();
     if (screen in tables) pollTable(screen);
     if (screen === "bank") loadBank();
@@ -2851,6 +3698,7 @@ body.dead::after {
     state.loaded = true;
     setBalance(data.balance, !firstLoad);
 
+    state.userId = data.user.id;
     $("#hello").textContent = `Привет, ${data.user.name}!`;
     $("#hero-place").textContent = `${data.place}-е место в Форбсе`;
     $("#spam-banner").hidden = !data.spam_day;
@@ -4005,9 +4853,17 @@ body.dead::after {
   };
 
   const later = (fn, ms) => work.timers.push(setTimeout(fn, ms));
-  const waitText = (seconds) => (seconds >= 60
-    ? `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`
-    : `${Math.ceil(seconds)} с`);
+  const waitText = (seconds) => {
+    if (seconds >= 3600) {                       // сутки на ход в медленных играх — минуты тут не нужны
+      const hours = Math.floor(seconds / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      return minutes ? `${hours} ч ${minutes} мин` : `${hours} ч`;
+    }
+    if (seconds >= 60) {
+      return `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
+    }
+    return `${Math.ceil(seconds)} с`;
+  };
 
   async function loadWork() {
     try {
@@ -6746,6 +7602,7 @@ body.dead::after {
   setInterval(tickWork, 1000);
   setInterval(tickBum, 1000);
   setInterval(tickWalk, 1000);
+  setInterval(tickMulti, 1000);
   setInterval(() => {
     if (!state.busy && document.visibilityState === "visible" && ["lobby", "rr", "coin"].includes(state.screen)) refresh();
   }, 20000);
