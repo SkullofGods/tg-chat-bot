@@ -268,6 +268,8 @@ button:disabled { cursor: default; }
 .game-tile.bank { background: linear-gradient(145deg, #1d4f7a, #08182b); }
 .game-tile.work { background: linear-gradient(145deg, #6b5a12, #2a2305); }
 .game-tile.bum { background: linear-gradient(145deg, #4a3a2c, #1b140e); }
+.game-tile.arcade { background: linear-gradient(145deg, #5a2878, #200a2e); }
+.game-tile.walk { background: linear-gradient(145deg, #1d5f5a, #07201e); }
 
 .top-list, .feed { margin: 0; padding: 6px 0; list-style: none; }
 .top-list li, .feed li {
@@ -1212,6 +1214,127 @@ button:disabled { cursor: default; }
 .truck-boxes span.lost { filter: grayscale(1); opacity: 0.4; }
 .truck-risk { margin-top: 8px; text-align: center; color: var(--muted); font-size: 13px; }
 
+/* ─── Выйти погулять ─── */
+
+.walk-card { margin-top: 4px; padding: 0; overflow: hidden; }
+.walk-scene svg { display: block; width: 100%; height: auto; }
+.walk-title { margin: 12px 14px 0; font-size: 17px; font-weight: 800; color: var(--gold-2); }
+.walk-text { margin: 8px 14px 14px; font-size: 15px; line-height: 1.5; }
+.walk-pay { margin: 0 14px 14px; font-size: 22px; font-weight: 900; font-variant-numeric: tabular-nums; }
+.walk-pay.win { color: var(--win); }
+.walk-pay.lose { color: var(--lose); }
+.walk-pay.zero { color: var(--muted); }
+.walk-choices { display: grid; gap: 8px; margin-top: 12px; }
+.walk-choice {
+  width: 100%;
+  padding: 14px;
+  border-radius: 14px;
+  text-align: left;
+  font-size: 15px;
+  font-weight: 600;
+  background: var(--card-strong);
+  border: 1px solid var(--line);
+  transition: transform 0.1s;
+}
+.walk-choice:active:not(:disabled) { transform: scale(0.99); }
+.walk-choice:disabled { opacity: 0.55; }
+.walk-choice b { color: var(--gold); margin-right: 6px; }
+
+/* ─── Поиграть ─── */
+
+.arcade-hero {
+  margin-top: 4px;
+  padding: 16px;
+  background:
+    radial-gradient(90% 120% at 0% 0%, rgba(179, 102, 255, 0.25), rgba(0, 0, 0, 0) 60%),
+    linear-gradient(160deg, rgba(90, 40, 120, 0.5), rgba(255, 255, 255, 0.03));
+}
+.arcade-hero b { font-size: 17px; }
+.arcade-hero p { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
+.job-card .job-pay.record { color: var(--gold-2); font-size: 13px; }
+.lives { display: flex; justify-content: center; gap: 4px; min-height: 22px; margin-top: 6px; font-size: 16px; }
+.lives span.gone { filter: grayscale(1); opacity: 0.35; }
+.arcade-over { margin-top: 10px; padding: 16px; text-align: center; }
+.arcade-over .sum { font-size: 34px; font-weight: 900; color: var(--gold-2); font-variant-numeric: tabular-nums; }
+.arcade-over .what { color: var(--muted); }
+.arcade-over .record { margin-top: 6px; font-weight: 800; color: var(--win); }
+.arcade-top { margin: 0; padding: 4px 0; list-style: none; }
+.arcade-top li { display: flex; gap: 10px; padding: 7px 14px; font-size: 14px; }
+.arcade-top li + li { border-top: 1px solid rgba(255, 255, 255, 0.05); }
+.arcade-top .place { width: 22px; color: var(--muted); font-weight: 800; }
+.arcade-top .who { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.arcade-top .score { font-weight: 800; font-variant-numeric: tabular-nums; }
+.arcade-top li.mine { background: rgba(245, 197, 66, 0.08); }
+.arcade-top li.mine .who { color: var(--gold); font-weight: 700; }
+.arcade-top .empty { justify-content: center; color: var(--muted); }
+
+/* конвейер самсы */
+.belt {
+  position: relative;
+  height: 230px;
+  margin-top: 8px;
+  border-radius: 18px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #2a1c33, #160d1c);
+  border: 2px solid #4a3357;
+}
+.belt-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 54px;
+  background: repeating-linear-gradient(90deg, #3a3f46 0 18px, #2f343a 18px 36px);
+  border-top: 2px solid #565c64;
+  border-bottom: 2px solid #22262b;
+}
+.belt-item {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  font-size: 30px;
+  will-change: transform;
+}
+.belt-item.done { animation: junk-gone 0.25s ease-out forwards; }
+
+/* башня */
+.tower {
+  position: relative;
+  height: 300px;
+  margin-top: 8px;
+  border-radius: 18px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #0f2030, #142a1c 70%, #1c2a16);
+  border: 2px solid #35506b;
+}
+.tower-stack { position: absolute; left: 0; right: 0; bottom: 0; transition: transform 0.25s ease-out; }
+.block {
+  position: absolute;
+  height: 22px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #d9a32b, #8a5d12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+.block.cut { transition: transform 0.6s ease-in, opacity 0.6s; }
+.block.moving { background: linear-gradient(180deg, #ffe08a, #d9a32b); }
+
+/* память */
+.pads { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+.pad {
+  height: 110px;
+  border-radius: 18px;
+  font-size: 34px;
+  opacity: 0.55;
+  transition: opacity 0.12s, transform 0.12s;
+}
+.pad.on { opacity: 1; transform: scale(1.04); box-shadow: 0 0 26px rgba(255, 255, 255, 0.35); }
+.pad:disabled { cursor: default; }
+.pad.p0 { background: linear-gradient(160deg, #e2483c, #8f1f18); }
+.pad.p1 { background: linear-gradient(160deg, #3aa7e2, #14567a); }
+.pad.p2 { background: linear-gradient(160deg, #54e08a, #1c7a45); }
+.pad.p3 { background: linear-gradient(160deg, #f5c542, #9a7314); }
+
 /* ─── Толян ─── */
 
 .bum-scene {
@@ -1224,9 +1347,41 @@ button:disabled { cursor: default; }
     radial-gradient(80% 100% at 50% 0%, rgba(245, 197, 66, 0.14), rgba(0, 0, 0, 0) 70%),
     linear-gradient(180deg, #2a2119, #140f0a);
 }
-.bum-emoji { font-size: 72px; line-height: 1; filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.6)); }
-.bum-emoji.hungry { animation: wobble 2.4s ease-in-out infinite; }
-@keyframes wobble { 50% { transform: rotate(-4deg); } }
+.bum-art {
+  display: block;
+  width: 100%;
+  max-width: 300px;
+  margin: 0 auto;
+  border-radius: 14px;
+  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.5));
+}
+.bum-art .skin { fill: #e7b08a; }
+.bum-art .hair { fill: #4a3524; }
+.bum-art .beard { fill: #5b412c; }
+.bum-art .pants { fill: #4a4033; }
+.bum-art .shoe { fill: #2f3338; }
+.bum-art .coat { fill: #6b5433; }
+.bum-art .arm { fill: #6b5433; }
+.bum-art .coat-dark { stroke: rgba(0, 0, 0, 0.25); }
+/* чем выше уровень, тем чище и дороже одет */
+.bum-art[data-stage="ok"] .coat, .bum-art[data-stage="ok"] .arm { fill: #4f6b4a; }
+.bum-art[data-stage="ok"] .pants { fill: #3d4a5a; }
+.bum-art[data-stage="ok"] .shoe { fill: #e8e8e8; }
+.bum-art[data-stage="ok"] .beard { fill: #4a3524; }
+.bum-art[data-stage="good"] .coat, .bum-art[data-stage="good"] .arm { fill: #2f5d7a; }
+.bum-art[data-stage="good"] .pants { fill: #33383f; }
+.bum-art[data-stage="good"] .shoe { fill: #f2f2f2; }
+.bum-art[data-stage="good"] .hair { fill: #3a2a1c; }
+.bum-art[data-stage="good"] .beard { fill: #3a2a1c; }
+.bum-art[data-stage="rich"] .coat, .bum-art[data-stage="rich"] .arm { fill: #1f2a44; }
+.bum-art[data-stage="rich"] .pants { fill: #1a2236; }
+.bum-art[data-stage="rich"] .shoe { fill: #14161a; }
+.bum-art[data-stage="rich"] .hair { fill: #241a12; }
+.bum-art[data-stage="rich"] .beard { fill: #241a12; }
+.bum-art.hungry .bum-guy { animation: wobble 2.4s ease-in-out infinite; transform-origin: 120px 160px; }
+.bum-art .smoke { animation: smoke 3s ease-in-out infinite; }
+@keyframes smoke { 50% { opacity: 0.15; transform: translateY(-4px); } }
+@keyframes wobble { 50% { transform: rotate(-3deg); } }
 .bum-name { margin-top: 6px; font-size: 20px; font-weight: 900; }
 .bum-level { color: var(--gold-2); font-weight: 700; }
 .bum-mood { margin-top: 4px; color: var(--muted); font-size: 13px; }
@@ -1453,6 +1608,12 @@ body.dead::after {
           </button>
           <button class="game-tile work" data-go="work" type="button">
             <span class="tile-icon">🧰</span><b>Халтура</b><small>работа руками</small>
+          </button>
+          <button class="game-tile arcade" data-go="arcade" type="button">
+            <span class="tile-icon">🎮</span><b>Поиграть</b><small>бесконечно, на рекорд</small>
+          </button>
+          <button class="game-tile walk wide" data-go="walk" type="button">
+            <span class="tile-icon">🚶</span><b>Выйти погулять</b><small>случайная история с развилками</small>
           </button>
           <button class="game-tile bum" data-go="bum" type="button">
             <span class="tile-icon">🧔</span><b>Толян</b><small>приносит, пока спишь</small>
@@ -1688,10 +1849,191 @@ body.dead::after {
         </div>
       </section>
 
+      <!-- ─── Выйти погулять ─── -->
+      <section class="screen" data-screen="walk">
+        <div class="card walk-card">
+          <div class="walk-scene" id="walk-scene"></div>
+          <div class="walk-title" id="walk-title"></div>
+          <p class="walk-text" id="walk-text"></p>
+          <div class="walk-pay" id="walk-pay" hidden></div>
+        </div>
+        <div class="walk-choices" id="walk-choices"></div>
+        <p class="hint" id="walk-hint"></p>
+      </section>
+
+      <!-- ─── Поиграть ─── -->
+      <section class="screen" data-screen="arcade">
+        <div class="card arcade-hero">
+          <b>🎮 Поиграть</b>
+          <p id="arcade-about">Те же руки, только без ставок: играем на рекорд.</p>
+        </div>
+        <div class="jobs" id="arcade-list"></div>
+
+        <div id="arcade-stage" hidden>
+          <div class="job-head">
+            <button class="job-back" id="arcade-back" type="button">‹ Игры</button>
+            <b id="arcade-title"></b>
+            <span class="job-clock" id="arcade-score"></span>
+          </div>
+          <div class="lives" id="arcade-lives"></div>
+          <div id="arcade-area"></div>
+          <p class="job-note" id="arcade-note"></p>
+          <div id="arcade-foot"></div>
+          <h2 class="section-title">🏆 Рекорды</h2>
+          <ul class="card arcade-top" id="arcade-board"></ul>
+        </div>
+      </section>
+
       <!-- ─── Толян ─── -->
       <section class="screen" data-screen="bum">
         <div class="card bum-scene">
-          <div class="bum-emoji" id="bum-emoji">🧔</div>
+          <svg class="bum-art" id="bum-art" viewBox="0 0 240 200" role="img" aria-label="Толян">
+            <defs>
+              <linearGradient id="bum-sky" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#1b2a3a"/>
+                <stop offset="100%" stop-color="#2e2415"/>
+              </linearGradient>
+              <linearGradient id="bum-rich-sky" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#2b1a46"/>
+                <stop offset="100%" stop-color="#7a4a12"/>
+              </linearGradient>
+            </defs>
+
+            <!-- небо и земля -->
+            <rect class="sky" x="0" y="0" width="240" height="200" fill="url(#bum-sky)"/>
+            <rect class="sky rich" x="0" y="0" width="240" height="200" fill="url(#bum-rich-sky)" data-from="9"/>
+            <rect x="0" y="163" width="240" height="37" fill="#20262c"/>
+            <rect x="0" y="163" width="240" height="3" fill="#39424b"/>
+
+            <!-- стена подъезда, пока он бомж -->
+            <g data-until="5" opacity="0.85">
+              <rect x="0" y="52" width="76" height="111" fill="#2f3740"/>
+              <rect x="12" y="66" width="22" height="26" rx="2" fill="#4a5560"/>
+              <rect x="44" y="66" width="22" height="26" rx="2" fill="#3c454e"/>
+              <rect x="12" y="104" width="22" height="26" rx="2" fill="#3c454e"/>
+              <rect x="44" y="104" width="22" height="26" rx="2" fill="#4a5560"/>
+              <rect x="20" y="138" width="38" height="25" rx="3" fill="#57402a"/>
+            </g>
+
+            <!-- палатка -->
+            <g data-from="6" data-until="8">
+              <path d="M6 163 L44 96 L82 163 Z" fill="#2e6b4a"/>
+              <path d="M44 96 L60 163 L44 163 Z" fill="#245a3c"/>
+              <path d="M34 163 L44 126 L54 163 Z" fill="#12261c"/>
+            </g>
+
+            <!-- ящик со стеклотарой -->
+            <g data-from="7">
+              <rect x="6" y="136" width="46" height="27" rx="3" fill="#4a3a24"/>
+              <path d="M6 148 h46" stroke="#33261a" stroke-width="2"/>
+              <rect x="10" y="126" width="8" height="12" rx="2" fill="#5b8f4a"/>
+              <rect x="22" y="123" width="8" height="15" rx="2" fill="#7a9a3a"/>
+              <rect x="34" y="127" width="8" height="11" rx="2" fill="#4a7f6a"/>
+            </g>
+
+            <!-- шаурмичная -->
+            <g data-from="9">
+              <rect x="150" y="74" width="86" height="89" rx="4" fill="#3a2a1c"/>
+              <rect x="150" y="74" width="86" height="16" fill="#c0392b"/>
+              <rect x="158" y="96" width="70" height="34" rx="3" fill="#f5e7c8"/>
+              <rect x="158" y="136" width="70" height="27" rx="3" fill="#57402a"/>
+              <circle cx="193" cy="113" r="11" fill="#b5651d"/>
+              <rect x="190" y="98" width="6" height="30" fill="#8a4a12"/>
+            </g>
+            <g data-from="10">
+              <rect x="86" y="104" width="52" height="59" rx="3" fill="#33251a" opacity="0.9"/>
+              <rect x="86" y="104" width="52" height="11" fill="#a33227" opacity="0.9"/>
+              <rect x="12" y="112" width="48" height="51" rx="3" fill="#2d2118" opacity="0.8"/>
+              <rect x="12" y="112" width="48" height="10" fill="#8f2c22" opacity="0.8"/>
+            </g>
+
+            <!-- мангал -->
+            <g data-from="8">
+              <rect x="166" y="138" width="54" height="10" rx="2" fill="#4c5055"/>
+              <rect x="170" y="148" width="5" height="15" fill="#3a3e43"/>
+              <rect x="211" y="148" width="5" height="15" fill="#3a3e43"/>
+              <rect x="170" y="132" width="46" height="7" rx="3" fill="#8a3b12"/>
+              <path class="smoke" d="M182 130 q6 -12 0 -22 q-6 -10 2 -18" fill="none" stroke="#c9c2b6" stroke-width="3"
+                    stroke-linecap="round" opacity="0.5"/>
+            </g>
+
+            <!-- картонная коробка -->
+            <g data-from="1" data-until="8">
+              <rect x="12" y="128" width="52" height="35" rx="3" fill="#a97a43"/>
+              <path d="M12 128 L38 140 L64 128" fill="none" stroke="#7d5628" stroke-width="3"/>
+              <rect x="34" y="140" width="8" height="23" fill="#7d5628" opacity="0.5"/>
+            </g>
+
+            <!-- тележка -->
+            <g data-from="2">
+              <path d="M170 120 L226 120 L218 148 L178 148 Z" fill="none" stroke="#9aa2ab" stroke-width="4"/>
+              <path d="M176 128 L220 128 M182 138 L214 138 M190 120 L194 148 M204 120 L206 148"
+                    stroke="#78828c" stroke-width="2"/>
+              <circle cx="182" cy="157" r="6" fill="#2b3036" stroke="#9aa2ab" stroke-width="2"/>
+              <circle cx="214" cy="157" r="6" fill="#2b3036" stroke="#9aa2ab" stroke-width="2"/>
+              <path d="M170 120 L162 104" stroke="#9aa2ab" stroke-width="4" stroke-linecap="round"/>
+            </g>
+
+            <!-- зонт -->
+            <g data-from="4" data-until="9">
+              <path d="M96 30 q44 -36 88 0 z" fill="#c0392b"/>
+              <path d="M96 30 q22 -13 44 0 q22 -13 44 0" fill="none" stroke="#8c261a" stroke-width="2"/>
+              <path d="M140 30 L140 94" stroke="#6b4a2a" stroke-width="3"/>
+              <path d="M140 94 q7 7 11 0" fill="none" stroke="#6b4a2a" stroke-width="3"/>
+            </g>
+
+            <!-- Толян -->
+            <g class="bum-guy" transform="translate(-18 -25) scale(1.15)">
+              <!-- ноги -->
+              <rect class="pants" x="106" y="128" width="12" height="34" rx="4"/>
+              <rect class="pants" x="122" y="128" width="12" height="34" rx="4"/>
+              <rect class="shoe" x="100" y="156" width="20" height="10" rx="4"/>
+              <rect class="shoe" x="120" y="156" width="20" height="10" rx="4"/>
+              <!-- пальто -->
+              <path class="coat" d="M100 96 q20 -12 40 0 l6 44 q-26 10 -52 0 z"/>
+              <path class="coat-dark" d="M120 90 l0 54" stroke-width="2" fill="none"/>
+              <rect class="arm" x="90" y="96" width="12" height="42" rx="6"/>
+              <rect class="arm" x="138" y="96" width="12" height="42" rx="6"/>
+              <!-- грязь на пальто, пока он бомж -->
+              <g class="dirt" data-until="3" opacity="0.5">
+                <ellipse cx="110" cy="118" rx="7" ry="5" fill="#4a3a20"/>
+                <ellipse cx="132" cy="132" rx="6" ry="4" fill="#4a3a20"/>
+                <path d="M104 106 l8 6" stroke="#4a3a20" stroke-width="2"/>
+              </g>
+              <!-- галстук и цепь на вершине карьеры -->
+              <g data-from="10">
+                <path d="M120 92 l-5 6 l5 26 l5 -26 z" fill="#c0392b"/>
+                <path d="M108 94 q12 14 24 0" fill="none" stroke="#f5c542" stroke-width="3"/>
+              </g>
+              <!-- голова -->
+              <circle class="skin" cx="120" cy="72" r="20"/>
+              <path class="beard" d="M104 84 q16 20 32 0 q-2 19 -16 19 q-14 0 -16 -19 z"/>
+              <path class="hair" d="M100 66 q3 -28 20 -28 q17 0 20 28 q-9 -13 -20 -9 q-11 -4 -20 9 z"/>
+              <circle class="eye" cx="113" cy="69" r="2.6" fill="#1b1b1f"/>
+              <circle class="eye" cx="127" cy="69" r="2.6" fill="#1b1b1f"/>
+              <path class="nose" d="M120 70 l-2 7 h5" fill="none" stroke="#c98a63" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round"/>
+              <path class="mouth" d="M112 82 q8 6 16 0" fill="none" stroke="#7a3b2a" stroke-width="2.4"
+                    stroke-linecap="round"/>
+              <!-- очки директора -->
+              <g data-from="10">
+                <rect x="105" y="65" width="13" height="9" rx="2" fill="#15171b"/>
+                <rect x="122" y="65" width="13" height="9" rx="2" fill="#15171b"/>
+                <path d="M118 69 h4" stroke="#15171b" stroke-width="2"/>
+              </g>
+            </g>
+
+            <!-- собака Шарик -->
+            <g data-from="5">
+              <ellipse cx="168" cy="152" rx="17" ry="10" fill="#b98a4b"/>
+              <circle cx="184" cy="143" r="9" fill="#c99a5b"/>
+              <circle cx="187" cy="142" r="1.8" fill="#1b1b1f"/>
+              <path d="M180 136 l4 -7 l5 6" fill="#a87a3b"/>
+              <path d="M152 148 q-10 -6 -6 -14" fill="none" stroke="#b98a4b" stroke-width="4" stroke-linecap="round"/>
+              <rect x="160" y="160" width="5" height="6" fill="#a87a3b"/>
+              <rect x="174" y="160" width="5" height="6" fill="#a87a3b"/>
+            </g>
+          </svg>
           <div class="bum-name" id="bum-name">…</div>
           <div class="bum-level" id="bum-level"></div>
           <div class="bum-mood" id="bum-mood"></div>
@@ -1740,6 +2082,8 @@ body.dead::after {
       <button type="button" data-tab="coin"><span>🪙</span><small>Монетка</small></button>
       <button type="button" data-tab="rr"><span>🔫</span><small>Русская</small></button>
       <button type="button" data-tab="work"><span>🧰</span><small>Халтура</small></button>
+      <button type="button" data-tab="arcade"><span>🎮</span><small>Поиграть</small></button>
+      <button type="button" data-tab="walk"><span>🚶</span><small>Погулять</small></button>
       <button type="button" data-tab="bum"><span>🧔</span><small>Толян</small></button>
       <button type="button" data-tab="bank"><span>🏦</span><small>Банк</small></button>
     </nav>
@@ -1960,7 +2304,10 @@ body.dead::after {
     } catch (error) { /* вне Telegram */ }
     if (state.screen === "work" && screen !== "work" && work.job) closeJob(false); // смену бросили
     if (screen === "lobby" || screen === "rr" || screen === "coin") refresh();
+    if (state.screen === "arcade" && screen !== "arcade" && arcade.game) closeArcade(false);
     if (screen === "work") loadWork();
+    if (screen === "arcade") loadArcade();
+    if (screen === "walk") loadWalk();
     if (screen === "bum") loadBum();
     if (screen in tables) pollTable(screen);
     if (screen === "bank") loadBank();
@@ -3666,6 +4013,813 @@ body.dead::after {
     cleanup: startCleanup, post: startPost, samsa: startSamsa, fishing: startFishing, truck: startTruck,
   };
 
+  // ─── Выйти погулять ────────────────────────────────────────────────────────
+  // Текст и развилки присылает сервер, приложение рисует к ним сцену.
+
+  const SCENES = {
+    entrance: `
+      <rect width="300" height="150" fill="#131a22"/>
+      <rect x="0" y="10" width="300" height="118" fill="#2c3540"/>
+      <rect x="18" y="26" width="34" height="30" rx="2" fill="#4a5764"/>
+      <rect x="66" y="26" width="34" height="30" rx="2" fill="#38424e"/>
+      <rect x="200" y="26" width="34" height="30" rx="2" fill="#4a5764"/>
+      <rect x="248" y="26" width="34" height="30" rx="2" fill="#38424e"/>
+      <rect x="116" y="44" width="68" height="84" rx="3" fill="#57402a"/>
+      <rect x="146" y="44" width="4" height="84" fill="#3a2a1a"/>
+      <circle cx="150" cy="36" r="9" fill="#f5c542" opacity="0.85"/>
+      <path d="M124 36 h52 l-8 -10 h-36 z" fill="#2b3239"/>
+      <rect x="0" y="128" width="300" height="22" fill="#1b2128"/>
+      <rect x="196" y="104" width="76" height="8" rx="3" fill="#6b4a2a"/>
+      <rect x="200" y="112" width="6" height="16" fill="#3f3320"/>
+      <rect x="262" y="112" width="6" height="16" fill="#3f3320"/>`,
+    yard: `
+      <rect width="300" height="150" fill="#16202a"/>
+      <rect x="0" y="0" width="300" height="70" fill="#1d2a36"/>
+      <rect x="10" y="14" width="46" height="56" fill="#2b3742"/>
+      <rect x="62" y="24" width="38" height="46" fill="#25313c"/>
+      <rect x="240" y="18" width="52" height="52" fill="#2b3742"/>
+      <rect x="0" y="70" width="300" height="80" fill="#2f4a2a"/>
+      <ellipse cx="150" cy="128" rx="120" ry="18" fill="#3a5a32" opacity="0.6"/>
+      <path d="M96 118 q10 -26 34 0 z" fill="#5a4a2a"/>
+      <ellipse cx="113" cy="112" rx="26" ry="16" fill="#3a3f45"/>
+      <ellipse cx="113" cy="108" rx="26" ry="10" fill="#4c5157"/>
+      <path d="M104 96 q6 -12 0 -20" stroke="#c9c2b6" stroke-width="3" fill="none" opacity="0.5"/>
+      <path d="M120 96 q6 -14 0 -24" stroke="#c9c2b6" stroke-width="3" fill="none" opacity="0.4"/>
+      <path d="M196 120 l0 -30" stroke="#5b4326" stroke-width="7"/>
+      <circle cx="196" cy="74" r="26" fill="#3f6b36"/>
+      <circle cx="176" cy="84" r="16" fill="#375f30"/>
+      <circle cx="216" cy="84" r="16" fill="#375f30"/>`,
+    shop: `
+      <rect width="300" height="150" fill="#1b1f26"/>
+      <rect x="0" y="0" width="300" height="34" fill="#c0392b"/>
+      <rect x="112" y="8" width="76" height="18" rx="3" fill="#f5e7c8"/>
+      <rect x="12" y="46" width="112" height="82" rx="3" fill="#2b323a"/>
+      <rect x="18" y="54" width="100" height="6" fill="#4a5764"/>
+      <rect x="18" y="76" width="100" height="6" fill="#4a5764"/>
+      <rect x="18" y="98" width="100" height="6" fill="#4a5764"/>
+      <rect x="24" y="62" width="16" height="14" rx="3" fill="#c98a3b"/>
+      <rect x="46" y="62" width="16" height="14" rx="3" fill="#b5651d"/>
+      <rect x="70" y="84" width="16" height="14" rx="3" fill="#c98a3b"/>
+      <rect x="94" y="84" width="16" height="14" rx="3" fill="#8a5d12"/>
+      <rect x="150" y="86" width="132" height="42" rx="4" fill="#57402a"/>
+      <rect x="150" y="80" width="132" height="8" rx="3" fill="#6b4a2a"/>
+      <rect x="236" y="56" width="34" height="26" rx="3" fill="#2b323a"/>
+      <circle cx="253" cy="69" r="7" fill="#4a5764"/>
+      <rect x="0" y="128" width="300" height="22" fill="#141920"/>`,
+    street: `
+      <rect width="300" height="150" fill="#101823"/>
+      <rect x="0" y="0" width="300" height="96" fill="#16202e"/>
+      <rect x="8" y="20" width="56" height="76" fill="#222e3d"/>
+      <rect x="74" y="36" width="44" height="60" fill="#1d2836"/>
+      <rect x="196" y="28" width="50" height="68" fill="#222e3d"/>
+      <rect x="256" y="46" width="38" height="50" fill="#1d2836"/>
+      <rect x="18" y="30" width="10" height="10" fill="#f5c542" opacity="0.7"/>
+      <rect x="40" y="52" width="10" height="10" fill="#f5c542" opacity="0.5"/>
+      <rect x="208" y="40" width="10" height="10" fill="#f5c542" opacity="0.6"/>
+      <rect x="0" y="96" width="300" height="54" fill="#22272e"/>
+      <rect x="0" y="96" width="300" height="4" fill="#39424b"/>
+      <rect x="10" y="118" width="40" height="6" fill="#4d555e"/>
+      <rect x="70" y="118" width="40" height="6" fill="#4d555e"/>
+      <rect x="130" y="118" width="40" height="6" fill="#4d555e"/>
+      <rect x="190" y="118" width="40" height="6" fill="#4d555e"/>
+      <rect x="250" y="118" width="40" height="6" fill="#4d555e"/>
+      <rect x="150" y="40" width="4" height="56" fill="#3a4450"/>
+      <circle cx="152" cy="38" r="8" fill="#ffe08a" opacity="0.9"/>
+      <path d="M134 96 q18 -46 36 0 z" fill="#f5c542" opacity="0.12"/>`,
+    garages: `
+      <rect width="300" height="150" fill="#0d1117"/>
+      <rect x="0" y="24" width="300" height="94" fill="#232a33"/>
+      <rect x="6" y="40" width="62" height="78" rx="2" fill="#37414d"/>
+      <rect x="76" y="40" width="62" height="78" rx="2" fill="#2f3945"/>
+      <rect x="146" y="40" width="62" height="78" rx="2" fill="#1a1f26"/>
+      <rect x="216" y="40" width="62" height="78" rx="2" fill="#37414d"/>
+      <path d="M146 40 h62 v78 h-62 z" fill="#0b0e12"/>
+      <rect x="152" y="56" width="50" height="62" fill="#f5c542" opacity="0.18"/>
+      <rect x="160" y="84" width="34" height="24" rx="2" fill="#a97a43"/>
+      <circle cx="210" cy="34" r="7" fill="#ffe08a" opacity="0.8"/>
+      <path d="M196 60 q14 -32 28 0 z" fill="#ffe08a" opacity="0.1"/>
+      <rect x="0" y="118" width="300" height="32" fill="#191e25"/>
+      <rect x="8" y="46" width="52" height="4" fill="#48545f"/>
+      <rect x="78" y="46" width="52" height="4" fill="#48545f"/>
+      <rect x="218" y="46" width="52" height="4" fill="#48545f"/>`,
+    basement: `
+      <rect width="300" height="150" fill="#0b0e12"/>
+      <rect x="0" y="0" width="300" height="150" fill="#141a20"/>
+      <rect x="36" y="14" width="46" height="22" rx="2" fill="#2b3a49"/>
+      <path d="M36 36 l46 0 l36 92 l-92 0 z" fill="#f5c542" opacity="0.07"/>
+      <rect x="0" y="126" width="300" height="24" fill="#0d1116"/>
+      <rect x="160" y="88" width="66" height="38" rx="3" fill="#8a6435"/>
+      <path d="M160 88 l33 14 l33 -14" fill="none" stroke="#6b4a24" stroke-width="3"/>
+      <circle cx="182" cy="112" r="7" fill="#c9a06a"/>
+      <circle cx="202" cy="112" r="7" fill="#b98a4b"/>
+      <rect x="248" y="104" width="34" height="22" rx="3" fill="#2f3945"/>
+      <path d="M20 126 q22 -10 44 0" stroke="#22303c" stroke-width="4" fill="none"/>`,
+    river: `
+      <rect width="300" height="150" fill="#16283a"/>
+      <rect x="0" y="0" width="300" height="62" fill="#1d3550"/>
+      <path d="M0 62 q40 -30 80 -4 q46 -34 92 -2 q40 -26 74 4 q30 -18 54 2 v6 H0 z" fill="#26482f"/>
+      <rect x="0" y="62" width="300" height="60" fill="#1f4f6b"/>
+      <path d="M0 74 q40 8 80 0 q40 -8 80 0 q40 8 80 0 q30 -6 60 0" stroke="#2f6b8c" stroke-width="3" fill="none"/>
+      <path d="M0 92 q50 10 100 0 q50 -10 100 0 q40 8 100 0" stroke="#2a5f7d" stroke-width="3" fill="none"/>
+      <rect x="0" y="122" width="300" height="28" fill="#4a4230"/>
+      <path d="M196 122 q26 -14 54 0 z" fill="#3a3524"/>
+      <path d="M30 122 l0 -26" stroke="#6b5a34" stroke-width="3"/>
+      <path d="M46 122 l0 -34" stroke="#6b5a34" stroke-width="3"/>
+      <path d="M62 122 l0 -22" stroke="#6b5a34" stroke-width="3"/>
+      <path d="M120 96 l40 -26" stroke="#8a6435" stroke-width="3"/>
+      <path d="M160 70 l2 26" stroke="#d9d2c4" stroke-width="1.5"/>
+      <circle cx="162" cy="96" r="4" fill="#e23c3c"/>`,
+    wedding: `
+      <rect width="300" height="150" fill="#1a1426"/>
+      <rect x="0" y="0" width="300" height="86" fill="#211a30"/>
+      <path d="M0 16 q75 26 150 6 q75 -20 150 6" stroke="#4a3a5a" stroke-width="2" fill="none"/>
+      <circle cx="40" cy="26" r="5" fill="#f5c542"/>
+      <circle cx="90" cy="33" r="5" fill="#54e08a"/>
+      <circle cx="140" cy="30" r="5" fill="#e23c3c"/>
+      <circle cx="190" cy="24" r="5" fill="#3aa7e2"/>
+      <circle cx="240" cy="22" r="5" fill="#f5c542"/>
+      <rect x="0" y="86" width="300" height="64" fill="#2a2036"/>
+      <rect x="30" y="92" width="240" height="12" rx="3" fill="#e7dfc8"/>
+      <rect x="44" y="104" width="10" height="30" fill="#8a7a5a"/>
+      <rect x="246" y="104" width="10" height="30" fill="#8a7a5a"/>
+      <rect x="120" y="70" width="60" height="22" rx="3" fill="#f5e7c8"/>
+      <rect x="132" y="58" width="36" height="14" rx="3" fill="#fff6d6"/>
+      <circle cx="150" cy="54" r="4" fill="#e23c3c"/>
+      <ellipse cx="70" cy="88" rx="16" ry="6" fill="#c98a3b"/>
+      <ellipse cx="228" cy="88" rx="16" ry="6" fill="#c98a3b"/>`,
+    bus: `
+      <rect width="300" height="150" fill="#181c22"/>
+      <rect x="20" y="10" width="260" height="70" rx="8" fill="#0f2233"/>
+      <rect x="28" y="18" width="244" height="54" rx="6" fill="#26506e"/>
+      <rect x="40" y="26" width="60" height="38" rx="3" fill="#33627f" opacity="0.8"/>
+      <rect x="120" y="30" width="44" height="34" rx="3" fill="#2d5772" opacity="0.8"/>
+      <rect x="186" y="24" width="70" height="40" rx="3" fill="#33627f" opacity="0.8"/>
+      <rect x="0" y="80" width="300" height="70" fill="#2b3139"/>
+      <rect x="14" y="92" width="74" height="16" rx="4" fill="#5b4a3a"/>
+      <rect x="14" y="108" width="74" height="30" rx="4" fill="#6b5a46"/>
+      <rect x="106" y="92" width="74" height="16" rx="4" fill="#5b4a3a"/>
+      <rect x="106" y="108" width="74" height="30" rx="4" fill="#6b5a46"/>
+      <rect x="198" y="92" width="74" height="16" rx="4" fill="#5b4a3a"/>
+      <rect x="198" y="108" width="74" height="30" rx="4" fill="#6b5a46"/>
+      <circle cx="150" cy="86" r="4" fill="#f5c542" opacity="0.8"/>`,
+  };
+
+  const walk = { data: null, sending: false };
+
+  function drawScene(key) {
+    const art = SCENES[key] || SCENES.street;
+    $("#walk-scene").innerHTML = `<svg viewBox="0 0 300 150" preserveAspectRatio="xMidYMid slice" aria-hidden="true">${art}</svg>`;
+  }
+
+  async function loadWalk() {
+    try {
+      applyWalk(await api("walk"));
+    } catch (error) {
+      showError(error);
+    }
+  }
+
+  function applyWalk(data) {
+    walk.data = data;
+    if (typeof data.balance === "number") setBalance(data.balance, state.loaded);
+    renderWalk();
+  }
+
+  function renderWalk() {
+    const data = walk.data;
+    if (!data) return;
+    const node = data.walk;
+    const choices = $("#walk-choices");
+    const pay = $("#walk-pay");
+    choices.replaceChildren();
+    if (!node) {
+      drawScene("street");
+      $("#walk-title").textContent = "🚶 Выйти погулять";
+      $("#walk-text").textContent = "Свежий воздух, случайная история и, может быть, деньги. "
+        + "Куда занесёт — решаешь ты сам.";
+      pay.hidden = true;
+      const button = el("button", "walk-choice", data.cooldown > 0
+        ? `Ты уже нагулялся · ${waitText(data.cooldown)}`
+        : "Выйти во двор");
+      button.type = "button";
+      button.disabled = data.cooldown > 0 || walk.sending;
+      button.addEventListener("click", walkStart);
+      choices.append(button);
+      $("#walk-hint").textContent = "Прогулка раз в 15 минут. Иногда с неё приносят деньги, иногда — опыт.";
+      return;
+    }
+    drawScene(node.scene);
+    $("#walk-title").textContent = node.title;
+    $("#walk-text").textContent = node.text;
+    if (node.end) {
+      pay.hidden = false;
+      pay.className = `walk-pay ${node.pay > 0 ? "win" : node.pay < 0 ? "lose" : "zero"}`;
+      pay.textContent = node.pay ? signedCoins(node.pay) : "Ни туда, ни сюда: 0";
+      const home = el("button", "walk-choice", "🏠 Вернуться домой");
+      home.type = "button";
+      home.addEventListener("click", () => loadWalk());
+      choices.append(home);
+      $("#walk-hint").textContent = "Следующая прогулка — через 15 минут.";
+      return;
+    }
+    pay.hidden = true;
+    node.choices.forEach((choice) => {
+      const button = el("button", "walk-choice");
+      button.type = "button";
+      button.disabled = walk.sending;
+      button.append(el("b", "", `${choice.i + 1}.`), document.createTextNode(choice.text));
+      button.addEventListener("click", () => walkGo(choice.i));
+      choices.append(button);
+    });
+    $("#walk-hint").textContent = "Выбор за тобой. Обратной дороги нет.";
+  }
+
+  async function walkStart() {
+    if (walk.sending) return;
+    walk.sending = true;
+    renderWalk();
+    try {
+      applyWalk(await api("walk/start"));
+      haptic.impact("medium");
+    } catch (error) {
+      showError(error);
+      loadWalk();
+    } finally {
+      walk.sending = false;
+      renderWalk();
+    }
+  }
+
+  async function walkGo(choice) {
+    if (walk.sending) return;
+    walk.sending = true;
+    renderWalk();
+    try {
+      const data = await api("walk/go", { choice });
+      applyWalk(data);
+      haptic.impact("light");
+      if (data.finished && data.walk) {
+        if (data.walk.pay > 0) {
+          haptic.notify("success");
+          confetti.burst(data.walk.pay >= 300 ? 160 : 70);
+        } else if (data.walk.pay < 0) {
+          haptic.notify("error");
+        }
+      }
+    } catch (error) {
+      showError(error);
+      if (error.status === 409) loadWalk();
+    } finally {
+      walk.sending = false;
+      renderWalk();
+    }
+  }
+
+  function tickWalk() {
+    if (state.screen !== "walk" || !walk.data || walk.data.walk || walk.data.cooldown <= 0) return;
+    walk.data.cooldown = Math.max(0, walk.data.cooldown - 1);
+    renderWalk();
+  }
+
+  // ─── Поиграть ──────────────────────────────────────────────────────────────
+  // Бесконечные игры без ставок. Сервер хранит рекорды и раз в день платит тем, кто их держит.
+
+  const arcade = { games: [], prize: 0, game: null, state: null, timers: [], raf: 0, sending: false };
+  const aLater = (fn, ms) => arcade.timers.push(setTimeout(fn, ms));
+
+  function stopArcade() {
+    arcade.timers.forEach(clearTimeout);
+    arcade.timers = [];
+    cancelAnimationFrame(arcade.raf);
+    arcade.raf = 0;
+  }
+
+  async function loadArcade() {
+    try {
+      applyArcade(await api("arcade"));
+    } catch (error) {
+      showError(error);
+    }
+  }
+
+  function applyArcade(data) {
+    arcade.games = data.games;
+    arcade.prize = data.prize;
+    if (typeof data.balance === "number") setBalance(data.balance, state.loaded);
+    $("#arcade-about").textContent = `Те же руки, только без ставок: играем на рекорд. Кто держит рекорд, `
+      + `каждый день получает ${fmt(data.prize)} 🪙 — пока рекорд не побили.`;
+    renderArcadeList();
+    if (arcade.game) renderBoard(arcade.game);
+  }
+
+  function renderArcadeList() {
+    $("#arcade-list").replaceChildren(...arcade.games.map((game) => {
+      const card = el("button", "job-card");
+      card.type = "button";
+      card.dataset.arcade = game.key;
+      const text = el("div", "job-text");
+      text.append(el("b", "", game.title), el("small", "", game.about));
+      const right = el("div", "job-pay record", game.record ? `${fmt(game.record.score)}` : "—");
+      right.append(el("small", "", game.record ? `рекорд: ${game.record.name}` : "рекорда нет"));
+      card.append(el("span", "job-icon", game.emoji), text, right);
+      return card;
+    }));
+  }
+
+  function renderBoard(key) {
+    const game = arcade.games.find((item) => item.key === key);
+    const board = $("#arcade-board");
+    board.replaceChildren();
+    if (!game || !game.top.length) {
+      board.append(el("li", "empty", "Рекордов ещё нет — поставь первый"));
+      return;
+    }
+    game.top.forEach((row, index) => {
+      const line = el("li", row.mine ? "mine" : "");
+      line.append(
+        el("span", "place", ["🥇", "🥈", "🥉"][index] || `${index + 1}`),
+        el("span", "who", row.name),
+        el("span", "score", `${fmt(row.score)} ${plural(row.score, game.units)}`),
+      );
+      board.append(line);
+    });
+  }
+
+  function openArcade(key) {
+    const game = arcade.games.find((item) => item.key === key);
+    stopArcade();
+    arcade.game = key;
+    $("#arcade-list").hidden = true;
+    $(".arcade-hero").hidden = true;
+    $("#arcade-stage").hidden = false;
+    $("#arcade-title").textContent = `${game.emoji} ${game.title}`;
+    $("#arcade-note").textContent = game.about;
+    $("#arcade-foot").replaceChildren();
+    $("#arcade-area").replaceChildren();
+    $("#arcade-lives").replaceChildren();
+    $("#arcade-score").textContent = "";
+    renderBoard(key);
+    ARCADE_GAMES[key]();
+  }
+
+  function closeArcade(reload = true) {
+    stopArcade();
+    arcade.game = null;
+    arcade.state = null;
+    $("#arcade-area").replaceChildren();
+    $("#arcade-stage").hidden = true;
+    $("#arcade-list").hidden = false;
+    $(".arcade-hero").hidden = false;
+    if (reload) loadArcade();
+  }
+
+  function arcadeScore(points, lives) {
+    const game = arcade.games.find((item) => item.key === arcade.game);
+    $("#arcade-score").textContent = game ? `${fmt(points)} ${plural(points, game.units)}` : fmt(points);
+    if (typeof lives === "number") {
+      $("#arcade-lives").replaceChildren(...Array.from({ length: arcade.state.maxLives }, (unused, index) =>
+        el("span", index < lives ? "" : "gone", "❤️")));
+    }
+  }
+
+  async function arcadeOver(score) {
+    stopArcade();
+    const key = arcade.game;
+    const game = arcade.games.find((item) => item.key === key);
+    haptic.notify("warning");
+    $("#arcade-area").replaceChildren();
+    const card = el("div", "card arcade-over");
+    card.append(el("div", "sum", fmt(score)), el("div", "what", plural(score, game.units)));
+    const line = el("div", "record", "");
+    card.append(line);
+    const actions = el("div", "job-actions");
+    const again = el("button", "", "↻ Ещё раз");
+    again.type = "button";
+    again.addEventListener("click", () => openArcade(key));
+    const back = el("button", "", "‹ К играм");
+    back.type = "button";
+    back.addEventListener("click", () => closeArcade());
+    actions.append(again, back);
+    $("#arcade-foot").replaceChildren(card, actions);
+    if (arcade.sending) return;
+    arcade.sending = true;
+    try {
+      const data = await api("arcade/score", { game: key, score });
+      applyArcade(data);
+      renderBoard(key);
+      const fresh = arcade.games.find((item) => item.key === key);
+      if (data.beaten) {
+        line.textContent = `🏆 Новый рекорд беседы! Премия ${fmt(arcade.prize)} 🪙 в день — пока не побьют`;
+        haptic.notify("success");
+        confetti.burst(180);
+        toast("🏆 Рекорд беседы твой!", "win");
+      } else if (score >= fresh.my_best && score > 0) {
+        line.textContent = "Личный рекорд!";
+      } else {
+        line.textContent = `Твой рекорд: ${fmt(fresh.my_best)} ${plural(fresh.my_best, fresh.units)}`;
+      }
+    } catch (error) {
+      showError(error);
+    } finally {
+      arcade.sending = false;
+    }
+  }
+
+  // ── Бесконечный двор ──
+  function arcadeYard() {
+    const yard = el("div", "yard");
+    $("#arcade-area").replaceChildren(yard);
+    arcade.state = { yard, points: 0, lives: 5, maxLives: 5, gap: 900, life: 2200, alive: true };
+    $("#arcade-note").textContent = "Хватай мусор. Крысу не трогай, пропустишь пять — конец.";
+    arcadeScore(0, 5);
+    aLater(yardSpawn, 600);
+  }
+
+  function yardSpawn() {
+    const here = arcade.state;
+    if (!here || !here.alive) return;
+    const kinds = [["trash", 1, JUNK.trash], ["trash", 1, JUNK.trash], ["bottle", 2, JUNK.bottle],
+                   ["rat", 0, JUNK.rat], ["wallet", 5, JUNK.wallet]];
+    const weights = [34, 30, 22, 10, 4];
+    let roll = Math.random() * weights.reduce((sum, value) => sum + value, 0);
+    let index = 0;
+    while (roll > weights[index]) { roll -= weights[index]; index += 1; }
+    const [kind, value, icons] = kinds[index];
+    const node = el("div", `junk ${kind}`, icons[Math.floor(Math.random() * icons.length)]);
+    node.style.left = `${7 + Math.random() * 86}%`;
+    node.style.top = `${12 + Math.random() * 76}%`;
+    node.addEventListener("click", () => {
+      if (!here.alive || node.classList.contains("gone")) return;
+      node.classList.add("gone");
+      if (kind === "rat") {
+        here.lives -= 1;
+        haptic.impact("heavy");
+        flyText(here.yard, node, "-1", true);
+      } else {
+        here.points += value;
+        haptic.impact("light");
+        flyText(here.yard, node, `+${value}`, false);
+      }
+      arcadeScore(here.points, here.lives);
+      if (here.lives <= 0) yardOver();
+    }, { once: true });
+    here.yard.append(node);
+    aLater(() => {
+      if (!node.isConnected) return;
+      const missed = !node.classList.contains("gone") && kind !== "rat";
+      node.remove();
+      if (missed && here.alive) {
+        here.lives -= 1;
+        arcadeScore(here.points, here.lives);
+        haptic.notify("warning");
+        if (here.lives <= 0) yardOver();
+      }
+    }, here.life);
+    here.gap = Math.max(200, here.gap * 0.97);    // мусор сыплется всё чаще…
+    here.life = Math.max(620, here.life * 0.98);  // …и лежит всё меньше
+    aLater(yardSpawn, here.gap);
+  }
+
+  function flyText(area, node, text, bad) {
+    const plus = el("div", `plus ${bad ? "minus" : ""}`, text);
+    plus.style.left = node.style.left;
+    plus.style.top = node.style.top;
+    area.append(plus);
+    aLater(() => plus.remove(), 700);
+  }
+
+  function yardOver() {
+    arcade.state.alive = false;
+    arcadeOver(arcade.state.points);
+  }
+
+  // ── Ночная почта ──
+  const ARCADE_CITIES = ["Душанбе", "Худжанд", "Куляб", "Бохтар", "Истаравшан", "Пенджикент", "Турсунзаде",
+                         "Канибадам", "Хорог", "Вахдат"];
+  const POST_ROUND = 8;   // писем в раунде: дальше ящиков больше, а времени меньше
+  const ARCADE_STREETS = ["ул. Плова", "пр. Казана", "пер. Ламинатный", "ул. Трусыгава", "туп. Планктона"];
+
+  function arcadePost() {
+    const stage = el("div", "post-stage");
+    const letter = el("div", "letter");
+    const boxes = el("div", "boxes");
+    boxes.addEventListener("click", (event) => {
+      const box = event.target.closest("[data-box]");
+      if (box) postAnswer(Number(box.dataset.box), box);
+    });
+    stage.append(letter, boxes);
+    const bar = el("div", "job-bar");
+    bar.append(el("i"));
+    $("#arcade-area").replaceChildren(stage, bar);
+    arcade.state = { cities: [], letter, boxes, bar: bar.firstElementChild, points: 0, lives: 3, maxLives: 3,
+                     span: 2600, city: 0, busy: true, ends: 0, round: 0 };
+    arcadeScore(0, 3);
+    postRound();
+    aLater(postNext, 700);
+  }
+
+  function postRound() {
+    const here = arcade.state;
+    here.round += 1;
+    const count = Math.min(6, 2 + here.round);          // 3 ящика, потом 4, 5 и 6
+    here.span = Math.max(550, 2700 - here.round * 260); // и всё меньше времени на письмо
+    here.cities = [...ARCADE_CITIES].sort(() => Math.random() - 0.5).slice(0, count);
+    here.boxes.replaceChildren(...here.cities.map((city, index) => {
+      const box = el("button", "mailbox");
+      box.type = "button";
+      box.dataset.box = index;
+      box.append(el("span", "", "📮"), el("small", "", city));
+      return box;
+    }));
+    $("#arcade-note").textContent = `Раунд ${here.round} · ящиков ${count} · ${(here.span / 1000).toFixed(1)} с на письмо`;
+    if (here.round > 1) {
+      haptic.notify("success");
+      toast(`📮 Раунд ${here.round}: ящиков ${count}`, "win");
+    }
+  }
+
+  function postNext() {
+    const here = arcade.state;
+    if (!here) return;
+    if (here.points && here.points % POST_ROUND === 0 && here.points / POST_ROUND >= here.round) postRound();
+    here.city = Math.floor(Math.random() * here.cities.length);
+    here.busy = false;
+    here.letter.className = "letter";
+    here.letter.replaceChildren(
+      el("div", "to", `${ARCADE_STREETS[Math.floor(Math.random() * ARCADE_STREETS.length)]}, д. ${1 + Math.floor(Math.random() * 60)}`),
+      el("div", "city", here.cities[here.city]),
+    );
+    here.ends = performance.now() + here.span;
+    const tick = () => {
+      if (!arcade.state || arcade.state !== here || here.busy) return;
+      const left = Math.max(0, here.ends - performance.now());
+      here.bar.style.width = `${(left / here.span) * 100}%`;
+      if (left > 0) arcade.raf = requestAnimationFrame(tick);
+      else postAnswer(-1, null);
+    };
+    arcade.raf = requestAnimationFrame(tick);
+  }
+
+  function postAnswer(box, node) {
+    const here = arcade.state;
+    if (!here || here.busy) return;
+    here.busy = true;
+    cancelAnimationFrame(arcade.raf);
+    const right = box === here.city;
+    if (node) {
+      node.classList.remove("right", "wrong");
+      reflow(node);
+      node.classList.add(right ? "right" : "wrong");
+    }
+    if (right) {
+      here.points += 1;
+      here.span = Math.max(550, here.span * 0.985);
+      haptic.impact("light");
+      here.letter.classList.add("sent");
+    } else {
+      here.lives -= 1;
+      haptic.notify("error");
+    }
+    arcadeScore(here.points, here.lives);
+    if (here.lives <= 0) {
+      arcadeOver(here.points);
+      return;
+    }
+    aLater(postNext, 220);
+  }
+
+  // ── Конвейер самсы ──
+  function arcadeBelt() {
+    const belt = el("div", "belt");
+    const line = el("div", "belt-line");
+    line.style.top = "88px";
+    belt.append(line);
+    $("#arcade-area").replaceChildren(belt);
+    arcade.state = { belt, items: [], points: 0, lives: 3, maxLives: 3, speed: 70, gap: 1100, last: 0, alive: true };
+    $("#arcade-note").textContent = "Жми самсу, пока она не уехала с ленты. Лента разгоняется.";
+    arcadeScore(0, 3);
+    aLater(beltSpawn, 500);
+    beltFrame();
+  }
+
+  function beltSpawn() {
+    const here = arcade.state;
+    if (!here || !here.alive) return;
+    const node = el("div", "belt-item", Math.random() < 0.12 ? "✨" : "🥟");
+    node.style.top = "93px";
+    node.style.left = "-46px";
+    node.dataset.x = "0";
+    node.dataset.golden = Math.random() < 0.12 ? "1" : "";
+    node.addEventListener("click", () => {
+      if (!here.alive || node.classList.contains("done")) return;
+      node.classList.add("done");
+      here.points += node.dataset.golden ? 3 : 1;
+      haptic.impact(node.dataset.golden ? "medium" : "light");
+      arcadeScore(here.points, here.lives);
+      aLater(() => node.remove(), 250);
+    }, { once: true });
+    here.belt.append(node);
+    here.items.push(node);
+    here.gap = Math.max(230, here.gap * 0.965);  // лента подаёт чаще…
+    here.speed = Math.min(520, here.speed * 1.03); // …и едет быстрее
+    aLater(beltSpawn, here.gap);
+  }
+
+  function beltFrame() {
+    const here = arcade.state;
+    if (!here || !here.alive) return;
+    const now = performance.now();
+    const step = here.last ? (now - here.last) / 1000 : 0;
+    here.last = now;
+    const width = here.belt.clientWidth;
+    here.items = here.items.filter((node) => {
+      if (!node.isConnected) return false;
+      const x = Number(node.dataset.x) + here.speed * step;
+      node.dataset.x = String(x);
+      node.style.transform = `translateX(${x}px)`;
+      if (x > width + 50) {
+        node.remove();
+        if (!node.classList.contains("done")) {
+          here.lives -= 1;
+          haptic.notify("warning");
+          arcadeScore(here.points, here.lives);
+          if (here.lives <= 0) {
+            here.alive = false;
+            arcadeOver(here.points);
+          }
+        }
+        return false;
+      }
+      return true;
+    });
+    if (here.alive) arcade.raf = requestAnimationFrame(beltFrame);
+  }
+
+  // ── Башня ──
+  function arcadeStack() {
+    const tower = el("div", "tower");
+    const stack = el("div", "tower-stack");
+    tower.append(stack);
+    tower.addEventListener("click", stackDrop);
+    $("#arcade-area").replaceChildren(tower);
+    const base = el("div", "block");
+    base.style.width = "150px";
+    base.style.left = "calc(50% - 75px)";
+    base.style.bottom = "0px";
+    stack.append(base);
+    arcade.state = { tower, stack, width: 150, left: 0, points: 0, maxLives: 0, speed: 130, dir: 1,
+                     moving: null, x: 0, last: 0, alive: true };
+    arcade.state.left = (tower.clientWidth - 150) / 2;
+    $("#arcade-note").textContent = "Тапни, когда ящик над башней. Что торчит — отваливается.";
+    arcadeScore(0);
+    stackNext();
+  }
+
+  function stackNext() {
+    const here = arcade.state;
+    if (!here || !here.alive) return;
+    const node = el("div", "block moving");
+    node.style.width = `${here.width}px`;
+    node.style.bottom = `${here.points * 22 + 22}px`;
+    node.style.left = "0px";
+    here.stack.append(node);
+    here.moving = node;
+    here.x = Math.random() < 0.5 ? 0 : here.tower.clientWidth - here.width;
+    here.dir = here.x === 0 ? 1 : -1;
+    here.last = 0;
+    here.stack.style.transform = `translateY(${Math.max(0, (here.points + 2) * 22 - 240)}px)`;
+    arcade.raf = requestAnimationFrame(stackFrame);
+  }
+
+  function stackFrame() {
+    const here = arcade.state;
+    if (!here || !here.alive || !here.moving) return;
+    const now = performance.now();
+    const step = here.last ? (now - here.last) / 1000 : 0;
+    here.last = now;
+    here.x += here.dir * here.speed * step;
+    const max = here.tower.clientWidth - here.width;
+    if (here.x <= 0) { here.x = 0; here.dir = 1; }
+    if (here.x >= max) { here.x = max; here.dir = -1; }
+    here.moving.style.left = `${here.x}px`;
+    arcade.raf = requestAnimationFrame(stackFrame);
+  }
+
+  function stackDrop() {
+    const here = arcade.state;
+    if (!here || !here.alive || !here.moving) return;
+    cancelAnimationFrame(arcade.raf);
+    const overlapLeft = Math.max(here.x, here.left);
+    const overlapRight = Math.min(here.x + here.width, here.left + here.width);
+    const overlap = overlapRight - overlapLeft;
+    if (overlap <= 6) {
+      here.alive = false;
+      here.moving.classList.add("cut");
+      here.moving.style.transform = "translateY(320px) rotate(20deg)";
+      here.moving.style.opacity = "0";
+      haptic.notify("error");
+      aLater(() => arcadeOver(here.points), 500);
+      return;
+    }
+    const cut = here.width - overlap;
+    if (cut > 1) {  // обрезок падает вниз
+      const piece = el("div", "block cut");
+      piece.style.width = `${cut}px`;
+      piece.style.bottom = here.moving.style.bottom;
+      piece.style.left = `${here.x < here.left ? here.x : overlapRight}px`;
+      here.stack.append(piece);
+      reflow(piece);
+      piece.style.transform = "translateY(300px) rotate(15deg)";
+      piece.style.opacity = "0";
+      aLater(() => piece.remove(), 700);
+    }
+    here.moving.classList.remove("moving");
+    here.moving.style.left = `${overlapLeft}px`;
+    here.moving.style.width = `${overlap}px`;
+    here.left = overlapLeft;
+    here.width = overlap;
+    here.points += 1;
+    here.speed = Math.min(420, here.speed * 1.05);
+    haptic.impact(cut < 4 ? "medium" : "light");
+    if (cut < 4) toast("Идеально! 🎯");
+    arcadeScore(here.points);
+    stackNext();
+  }
+
+  // ── Память ──
+  const PAD_ICONS = ["🍚", "🥟", "🍾", "🧃"];
+
+  function arcadeMemory() {
+    const pads = el("div", "pads");
+    PAD_ICONS.forEach((icon, index) => {
+      const pad = el("button", `pad p${index}`, icon);
+      pad.type = "button";
+      pad.dataset.pad = index;
+      pads.append(pad);
+    });
+    pads.addEventListener("click", (event) => {
+      const pad = event.target.closest("[data-pad]");
+      if (pad) memoryTap(Number(pad.dataset.pad));
+    });
+    $("#arcade-area").replaceChildren(pads);
+    arcade.state = { pads, order: [], step: 0, points: 0, maxLives: 0, busy: true };
+    $("#arcade-note").textContent = "Смотри и повторяй. С каждым разом последовательность длиннее.";
+    arcadeScore(0);
+    aLater(memoryGrow, 600);
+  }
+
+  function memoryGrow() {
+    const here = arcade.state;
+    if (!here) return;
+    here.order.push(Math.floor(Math.random() * 4));
+    here.step = 0;
+    here.busy = true;
+    $("#arcade-note").textContent = "Смотри…";
+    here.order.forEach((pad, index) => {
+      aLater(() => memoryFlash(pad), 300 + index * 620);
+    });
+    aLater(() => {
+      here.busy = false;
+      $("#arcade-note").textContent = "Повторяй!";
+    }, 300 + here.order.length * 620);
+  }
+
+  function memoryFlash(index) {
+    const here = arcade.state;
+    if (!here) return;
+    const pad = here.pads.children[index];
+    pad.classList.add("on");
+    haptic.impact("light");
+    aLater(() => pad.classList.remove("on"), 330);
+  }
+
+  function memoryTap(index) {
+    const here = arcade.state;
+    if (!here || here.busy) return;
+    const pad = here.pads.children[index];
+    pad.classList.add("on");
+    aLater(() => pad.classList.remove("on"), 180);
+    if (here.order[here.step] !== index) {
+      here.busy = true;
+      haptic.notify("error");
+      arcadeOver(here.points);
+      return;
+    }
+    haptic.impact("light");
+    here.step += 1;
+    if (here.step === here.order.length) {
+      here.busy = true;
+      here.points += 1;
+      arcadeScore(here.points);
+      haptic.notify("success");
+      aLater(memoryGrow, 700);
+    }
+  }
+
+  const ARCADE_GAMES = {
+    yard: arcadeYard, post: arcadePost, belt: arcadeBelt, stack: arcadeStack, memory: arcadeMemory,
+  };
+
   // ─── Толян ─────────────────────────────────────────────────────────────────
 
   const bum = { data: null, offset: 0, sending: false };
@@ -3696,12 +4850,24 @@ body.dead::after {
     return Math.floor(data.level.income * (fed + (hours - fed) * data.hungry_rate));
   }
 
+  function drawBum(level, hungry) {
+    const art = $("#bum-art");
+    art.dataset.stage = level >= 9 ? "rich" : level >= 6 ? "good" : level >= 3 ? "ok" : "poor";
+    art.classList.toggle("hungry", hungry);
+    // пока он бомж — рот грустный, с деньгами появляется улыбка
+    $("#bum-art .mouth").setAttribute("d", level >= 3 ? "M112 82 q8 6 16 0" : "M112 85 q8 -6 16 0");
+    $$("#bum-art [data-from], #bum-art [data-until]").forEach((node) => {
+      const from = Number(node.dataset.from || 0);
+      const until = node.dataset.until === undefined ? 99 : Number(node.dataset.until);
+      node.style.display = level >= from && level <= until ? "" : "none";
+    });
+  }
+
   function renderBum() {
     const data = bum.data;
     if (!data) return;
     const pending = bumPending();
-    $("#bum-emoji").textContent = data.level.emoji;
-    $("#bum-emoji").className = `bum-emoji${data.hungry ? " hungry" : ""}`;
+    drawBum(data.level.level, data.hungry);
     $("#bum-name").textContent = data.name;
     $("#bum-level").textContent = data.level.title;
     $("#bum-mood").textContent = data.mood;
@@ -4039,6 +5205,11 @@ body.dead::after {
       if (card && !card.disabled) startJob(card.dataset.job);
     });
     $("#job-back").addEventListener("click", () => closeJob());
+    $("#arcade-list").addEventListener("click", (event) => {
+      const card = event.target.closest("[data-arcade]");
+      if (card) openArcade(card.dataset.arcade);
+    });
+    $("#arcade-back").addEventListener("click", () => closeArcade());
     $("#bum-collect").addEventListener("click", () => bumAction("collect"));
     $("#bum-feed").addEventListener("click", () => bumAction("feed"));
     $("#bum-upgrade").addEventListener("click", () => bumAction("upgrade"));
@@ -4093,6 +5264,7 @@ body.dead::after {
   setInterval(tickBank, 1000);
   setInterval(tickWork, 1000);
   setInterval(tickBum, 1000);
+  setInterval(tickWalk, 1000);
   setInterval(() => {
     if (!state.busy && document.visibilityState === "visible" && ["lobby", "rr", "coin"].includes(state.screen)) refresh();
   }, 20000);

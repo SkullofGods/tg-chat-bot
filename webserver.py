@@ -14,10 +14,12 @@ from aiohttp import web
 from aiogram.types import User
 from aiogram.utils.web_app import safe_parse_webapp_init_data
 
+import casino_arcade as arcade
 import casino_bank as bank
 import casino_bum as bum
 import casino_engine as engine
 import casino_tables as tables
+import casino_walk as walk
 import casino_work as work
 import donations
 import members
@@ -187,6 +189,20 @@ async def api_table_bet(request: web.Request) -> web.Response:
                                   body.get("round")))
 
 
+# Поиграть: бесконечные игры на рекорд
+
+
+async def api_arcade(request: web.Request) -> web.Response:
+    chat_id, user_id = await _player(request)
+    return _json(arcade.state(chat_id, user_id))
+
+
+async def api_arcade_score(request: web.Request) -> web.Response:
+    chat_id, user_id = await _player(request)
+    body = await _body(request)
+    return _json(arcade.submit(chat_id, user_id, body.get("game"), body.get("score")))
+
+
 # Халтура: мини-игры, где зарабатывают руками
 
 
@@ -209,6 +225,25 @@ async def api_work_step(request: web.Request) -> web.Response:
 async def api_work_finish(request: web.Request) -> web.Response:
     chat_id, user_id = await _player(request)
     return _json(work.finish(chat_id, user_id, await _body(request)))
+
+
+# Выйти погулять
+
+
+async def api_walk(request: web.Request) -> web.Response:
+    chat_id, user_id = await _player(request)
+    return _json(walk.state(chat_id, user_id))
+
+
+async def api_walk_start(request: web.Request) -> web.Response:
+    chat_id, user_id = await _player(request)
+    return _json(walk.start(chat_id, user_id))
+
+
+async def api_walk_go(request: web.Request) -> web.Response:
+    chat_id, user_id = await _player(request)
+    body = await _body(request)
+    return _json(walk.go(chat_id, user_id, body.get("choice")))
 
 
 # Бомж
@@ -278,10 +313,15 @@ def build_app() -> web.Application:
         app.router.add_post(f"{prefix}/api/donate", api_donate)
         app.router.add_post(f"{prefix}/api/table", api_table)
         app.router.add_post(f"{prefix}/api/table/bet", api_table_bet)
+        app.router.add_post(f"{prefix}/api/arcade", api_arcade)
+        app.router.add_post(f"{prefix}/api/arcade/score", api_arcade_score)
         app.router.add_post(f"{prefix}/api/work", api_work)
         app.router.add_post(f"{prefix}/api/work/start", api_work_start)
         app.router.add_post(f"{prefix}/api/work/step", api_work_step)
         app.router.add_post(f"{prefix}/api/work/finish", api_work_finish)
+        app.router.add_post(f"{prefix}/api/walk", api_walk)
+        app.router.add_post(f"{prefix}/api/walk/start", api_walk_start)
+        app.router.add_post(f"{prefix}/api/walk/go", api_walk_go)
         app.router.add_post(f"{prefix}/api/bum", api_bum)
         app.router.add_post(f"{prefix}/api/bum/{{action}}", api_bum_action)
         app.router.add_post(f"{prefix}/api/bank", api_bank)

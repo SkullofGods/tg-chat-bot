@@ -64,6 +64,9 @@ BACKUP_INTERVAL_MINUTES: int = max(10, _int_env("BACKUP_INTERVAL_MINUTES", 60))
 TZ_OFFSET_HOURS: int = _int_env("TZ_OFFSET_HOURS", 3)
 LOCAL_TZ = timezone(timedelta(hours=TZ_OFFSET_HOURS))
 
+# Во сколько рекордсмены бесконечных игр получают ежедневную премию
+ARCADE_PRIZE_HOUR: int = _int_env("ARCADE_PRIZE_HOUR", 13)
+
 # Кулдаун оргии в часах
 ORGY_COOLDOWN_HOURS: int = _int_env("ORGY_COOLDOWN_HOURS", 24)
 

@@ -7,9 +7,10 @@ from datetime import datetime
 
 from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 
+import casino_arcade as arcade
 import limits
 import texts
-from config import LOCAL_TZ
+from config import ARCADE_PRIZE_HOUR, LOCAL_TZ
 from loader import bot, db
 
 logger = logging.getLogger(__name__)
@@ -36,6 +37,31 @@ async def announce_spam_day_if_needed() -> bool:
     db.set_meta(key, "1")  # до отправки: если что-то упадёт на полпути, не объявим дважды
     await announce(random.choice(texts.SPAM_DAY_ANNOUNCEMENTS))
     return True
+
+
+async def pay_arcade_records_if_needed():
+    """Раз в день рекордсмены бесконечных игр получают премию — и держат её, пока рекорд не побьют."""
+    now = datetime.now(LOCAL_TZ)
+    if now.hour < ARCADE_PRIZE_HOUR:
+        return
+    for chat_id in db.get_known_chats():
+        lines = arcade.pay_records(chat_id)
+        if not lines:
+            continue
+        try:
+            await bot.send_message(chat_id, texts.ARCADE_PRIZE_TEXT.format(
+                prize=arcade.DAILY_PRIZE, lines="\n".join(lines)))
+        except Exception as e:
+            logger.warning("Не смог объявить рекордсменов в %s: %s", chat_id, e)
+
+
+async def arcade_prize_loop():
+    while True:
+        try:
+            await pay_arcade_records_if_needed()
+        except Exception:
+            logger.exception("Премия рекордсменам не выдалась")
+        await asyncio.sleep(300)
 
 
 async def spam_day_loop():

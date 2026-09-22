@@ -89,6 +89,7 @@ async def on_startup():
     _background_tasks.append(asyncio.create_task(backup.backup_loop()))
     _background_tasks.append(asyncio.create_task(members.sync_members()))
     _background_tasks.append(asyncio.create_task(scheduler.spam_day_loop()))
+    _background_tasks.append(asyncio.create_task(scheduler.arcade_prize_loop()))
     _background_tasks.append(asyncio.create_task(casino_tables.loop()))  # раунды рулетки и скачек со ставками
     _background_tasks.append(asyncio.create_task(casino_bank.loop()))    # выплата вкладов, у которых вышел срок
 

@@ -199,6 +199,15 @@ _SCHEMA = [
         collected_at INTEGER NOT NULL,
         PRIMARY KEY (chat_id, user_id)
     ) WITHOUT ROWID""",
+    # Рекорды в бесконечных играх: у каждого свой лучший результат
+    """CREATE TABLE IF NOT EXISTS arcade_records (
+        chat_id INTEGER NOT NULL,
+        game    TEXT NOT NULL,
+        user_id INTEGER NOT NULL,
+        score   INTEGER NOT NULL,
+        made_at TEXT NOT NULL,
+        PRIMARY KEY (chat_id, game, user_id)
+    ) WITHOUT ROWID""",
     "CREATE INDEX IF NOT EXISTS bank_deposits_user ON bank_deposits (chat_id, user_id, status)",
     "CREATE INDEX IF NOT EXISTS bank_deposits_due ON bank_deposits (ends_at) WHERE status = 'active'",
 ]
@@ -869,14 +878,18 @@ class Database:
             self._record_game(c, chat_id, user_id, game, bet, payout, special)
             return self._balance(c, chat_id, user_id)
 
-    def casino_russian_roulette(self, chat_id: int, user_id: int, delta: int, died: bool) -> int:
-        """Выстрел в русской рулетке: награда за храбрость или штраф на похороны."""
+    def casino_adjust(self, chat_id: int, user_id: int, game: str, delta: int, special: bool = False) -> int:
+        """Начисление или списание без ставки: русская рулетка, прогулки. Баланс не уходит в минус."""
         with self._tx() as c:
             self._ensure_wallet(c, chat_id, user_id)
             c.execute("UPDATE wallets SET balance = MAX(0, balance + ?) WHERE chat_id = ? AND user_id = ?",
                       (delta, chat_id, user_id))
-            self._record_game(c, chat_id, user_id, "rr", max(-delta, 0), max(delta, 0), died)
+            self._record_game(c, chat_id, user_id, game, max(-delta, 0), max(delta, 0), special)
             return self._balance(c, chat_id, user_id)
+
+    def casino_russian_roulette(self, chat_id: int, user_id: int, delta: int, died: bool) -> int:
+        """Выстрел в русской рулетке: награда за храбрость или штраф на похороны."""
+        return self.casino_adjust(chat_id, user_id, "rr", delta, special=died)
 
     def get_blackjack_hand(self, chat_id: int, user_id: int) -> Optional[dict]:
         row = self.conn.execute(
@@ -1185,6 +1198,51 @@ class Database:
             c.execute("UPDATE wallets SET balance = balance + ? WHERE chat_id = ? AND user_id = ?",
                       (pay, row["chat_id"], row["user_id"]))
             return True
+
+    # ── Рекорды бесконечных игр ────────────────────────────────────────────────
+
+    _ARCADE_ALIVE = (
+        "FROM arcade_records a LEFT JOIN users u ON u.user_id = a.user_id "
+        "LEFT JOIN chat_members cm ON cm.chat_id = a.chat_id AND cm.user_id = a.user_id "
+        "WHERE a.chat_id = ? AND COALESCE(u.is_bot, 0) = 0 AND COALESCE(cm.is_member, 1) = 1"
+    )
+
+    def save_arcade_score(self, chat_id: int, game: str, user_id: int, score: int) -> int:
+        """Оставляет лучший результат игрока. Возвращает его рекорд после попытки."""
+        with self._tx() as c:
+            c.execute(
+                "INSERT INTO arcade_records (chat_id, game, user_id, score, made_at) VALUES (?, ?, ?, ?, ?) "
+                "ON CONFLICT(chat_id, game, user_id) DO UPDATE SET "
+                "score = MAX(score, excluded.score), made_at = CASE WHEN excluded.score > score "
+                "THEN excluded.made_at ELSE made_at END",
+                (chat_id, game, user_id, score, utcnow_iso()),
+            )
+            return c.execute(
+                "SELECT score FROM arcade_records WHERE chat_id = ? AND game = ? AND user_id = ?",
+                (chat_id, game, user_id),
+            ).fetchone()["score"]
+
+    def arcade_top(self, chat_id: int, game: str, limit: int) -> list[dict]:
+        rows = self.conn.execute(
+            f"SELECT a.user_id, a.score {self._ARCADE_ALIVE} AND a.game = ? ORDER BY a.score DESC, a.made_at LIMIT ?",
+            (chat_id, game, limit),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def arcade_record(self, chat_id: int, game: str) -> Optional[dict]:
+        top = self.arcade_top(chat_id, game, 1)
+        return top[0] if top else None
+
+    def arcade_best(self, chat_id: int, game: str, user_id: int) -> int:
+        row = self.conn.execute(
+            "SELECT score FROM arcade_records WHERE chat_id = ? AND game = ? AND user_id = ?",
+            (chat_id, game, user_id),
+        ).fetchone()
+        return row["score"] if row else 0
+
+    def arcade_all(self, chat_id: int) -> list[dict]:
+        rows = self.conn.execute(f"SELECT a.user_id, a.game, a.score {self._ARCADE_ALIVE}", (chat_id,)).fetchall()
+        return [dict(r) for r in rows]
 
     # ── Бомж ───────────────────────────────────────────────────────────────────
 
