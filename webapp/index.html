@@ -1335,6 +1335,161 @@ button:disabled { cursor: default; }
 .pad.p2 { background: linear-gradient(160deg, #54e08a, #1c7a45); }
 .pad.p3 { background: linear-gradient(160deg, #f5c542, #9a7314); }
 
+/* проспект */
+.road {
+  position: relative;
+  height: 286px;
+  margin-top: 8px;
+  border-radius: 18px;
+  overflow: hidden;
+  touch-action: none;
+  background: linear-gradient(180deg, #1b2a36 0 30px, #2b3037 30px 244px, #1e3320 244px);
+  border: 2px solid #3d4854;
+}
+.road-lane {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 42px;
+  border-bottom: 2px dashed rgba(245, 197, 66, 0.35);
+}
+.road-car { position: absolute; top: 6px; font-size: 28px; will-change: transform; }
+.road-hero { position: absolute; left: 50%; margin-left: -14px; font-size: 26px; transition: top 0.09s; z-index: 2; }
+
+/* гаражи */
+.run {
+  position: relative;
+  height: 240px;
+  margin-top: 8px;
+  border-radius: 18px;
+  overflow: hidden;
+  touch-action: none;
+  background: linear-gradient(180deg, #131d2a 0 60%, #1d2a33);
+  border: 2px solid #3d4854;
+}
+.run-ground { position: absolute; left: 0; right: 0; bottom: 0; height: 44px; background: linear-gradient(180deg, #5b4a33, #3a2f20); border-top: 3px solid #7a6444; }
+.run-hero { position: absolute; left: 46px; font-size: 30px; will-change: transform; }
+.run-box { position: absolute; bottom: 44px; font-size: 26px; will-change: transform; }
+
+/* денежный дождь */
+.rain {
+  position: relative;
+  height: 300px;
+  margin-top: 8px;
+  border-radius: 18px;
+  overflow: hidden;
+  touch-action: none;
+  background: linear-gradient(180deg, #101a2a, #1b1430);
+  border: 2px solid #3d4854;
+}
+.rain-item { position: absolute; font-size: 26px; will-change: transform; }
+.rain-bag { position: absolute; bottom: 6px; font-size: 34px; margin-left: -20px; transition: transform 0.05s; }
+
+/* казан с червяком */
+.kazan {
+  position: relative;
+  margin: 8px auto 0;
+  border-radius: 18px;
+  overflow: hidden;
+  touch-action: none;
+  background: radial-gradient(70% 70% at 50% 40%, #3a2a18, #1d1610);
+  border: 2px solid #6b5030;
+}
+.kazan-cell { position: absolute; border-radius: 4px; }
+.kazan-cell.body { background: linear-gradient(160deg, #7ad07a, #2f7a3a); box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.3); }
+.kazan-cell.head { background: linear-gradient(160deg, #d6f58a, #5aa23a); }
+.kazan-cell.food { display: grid; place-items: center; font-size: 14px; background: none; }
+
+/* сложи таджикоины */
+.merge-grid {
+  position: relative;
+  margin: 8px auto 0;
+  padding: 6px;
+  border-radius: 16px;
+  touch-action: none;
+  background: #1d232b;
+  border: 2px solid #3d4854;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.merge-tile {
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-weight: 900;
+  font-size: 18px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #1a1408;
+  transition: transform 0.1s;
+}
+.merge-tile.v { animation: pop-in 0.14s ease-out; }
+@keyframes pop-in { from { transform: scale(0.8); } to { transform: scale(1); } }
+
+/* ступеньки */
+.tiles {
+  position: relative;
+  height: 320px;
+  margin-top: 8px;
+  border-radius: 18px;
+  overflow: hidden;
+  touch-action: none;
+  background: repeating-linear-gradient(90deg, #1b2129 0 25%, #20262e 25% 50%);
+  border: 2px solid #3d4854;
+}
+.tile-step {
+  position: absolute;
+  width: 25%;
+  height: 74px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #4a5b6e, #1b232c);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.14);
+  will-change: transform;
+}
+.tile-step.hit { background: linear-gradient(180deg, #4b7a3f, #1f3a1c); opacity: 0.5; }
+
+/* банки на заборе */
+.fence {
+  position: relative;
+  height: 260px;
+  margin-top: 8px;
+  border-radius: 18px;
+  overflow: hidden;
+  touch-action: none;
+  background: repeating-linear-gradient(90deg, #5a4530 0 22px, #4a3826 22px 26px);
+  border: 2px solid #3d4854;
+}
+.can {
+  position: absolute;
+  font-size: 30px;
+  transform: scale(0);
+  transition: transform 0.12s ease-out, opacity 0.2s;
+}
+.can.up { transform: scale(1); }
+.can.dead { opacity: 0; transform: scale(1.5) rotate(25deg); }
+
+/* шаурма */
+.wrap-order { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 10px; }
+.wrap-chip {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--line);
+  opacity: 0.45;
+}
+.wrap-chip.now { opacity: 1; border-color: var(--gold); box-shadow: 0 0 16px rgba(245, 197, 66, 0.25); }
+.wrap-chip.done { opacity: 1; background: rgba(76, 175, 80, 0.18); border-color: rgba(76, 175, 80, 0.5); }
+.wrap-timer { height: 8px; margin: 12px 0 0; border-radius: 5px; background: rgba(255, 255, 255, 0.07); overflow: hidden; }
+.wrap-timer i { display: block; height: 100%; width: 100%; background: linear-gradient(90deg, var(--gold-2), var(--lose)); }
+.wrap-btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+.wrap-btn { height: 66px; border-radius: 14px; font-size: 30px; background: var(--card-strong); border: 1px solid var(--line); }
+.wrap-btn:active { transform: scale(0.96); }
+
 /* ─── Толян ─── */
 
 .bum-scene {
@@ -1453,6 +1608,58 @@ button:disabled { cursor: default; }
 .deposit-foot button.confirm { color: #fff; background: var(--red); }
 .deposits li.closed { opacity: 0.7; font-size: 14px; }
 
+/* ─── Хаб «Заработок» и мультиплеер ─── */
+
+.hub-hero { margin-top: 4px; text-align: center; }
+.hub-hero b { font-size: 18px; }
+.hub-hero p { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
+.hub-hero.soon { position: relative; }
+.soon-badge {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #2a1c05;
+  background: linear-gradient(135deg, var(--gold-2), var(--gold));
+}
+.hub { display: grid; gap: 10px; margin-top: 12px; }
+.hub-tile {
+  display: grid;
+  grid-template-columns: 54px 1fr;
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 2px 10px;
+  padding: 16px 14px;
+  border-radius: 18px;
+  text-align: left;
+  background: var(--card-strong);
+  border: 1px solid var(--line);
+  transition: transform 0.1s;
+}
+.hub-tile:active { transform: scale(0.99); }
+.hub-tile .hub-icon { grid-row: 1 / 3; font-size: 34px; text-align: center; }
+.hub-tile b { font-size: 16px; }
+.hub-tile small { color: var(--muted); font-size: 12px; }
+.hub-tile.work { background: linear-gradient(160deg, rgba(90, 120, 60, 0.35), rgba(255, 255, 255, 0.03)); }
+.hub-tile.bank { background: linear-gradient(160deg, rgba(60, 100, 140, 0.35), rgba(255, 255, 255, 0.03)); }
+.hub-tile.awards { background: linear-gradient(160deg, rgba(150, 110, 30, 0.35), rgba(255, 255, 255, 0.03)); }
+
+.soon-list { margin-top: 12px; padding: 4px 0; }
+.soon-list div {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  grid-template-rows: auto auto;
+  gap: 0 8px;
+  padding: 10px 14px;
+  opacity: 0.75;
+}
+.soon-list div + div { border-top: 1px solid rgba(255, 255, 255, 0.05); }
+.soon-list span { grid-row: 1 / 3; font-size: 26px; text-align: center; }
+.soon-list b { font-size: 15px; }
+.soon-list small { color: var(--muted); font-size: 12px; }
+
 /* ─── Ачивки ─── */
 
 .awards-hero { text-align: center; }
@@ -1551,7 +1758,8 @@ button:disabled { cursor: default; }
 }
 .tabbar::-webkit-scrollbar { display: none; }
 .tabbar button {
-  flex: 1 0 58px;
+  flex: 1 1 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1560,8 +1768,8 @@ button:disabled { cursor: default; }
   border-radius: 12px;
   color: var(--muted);
 }
-.tabbar span { font-size: 22px; line-height: 1.1; filter: grayscale(0.6); transition: filter 0.2s, transform 0.2s; }
-.tabbar small { font-size: 11px; }
+.tabbar span { font-size: 21px; line-height: 1.1; filter: grayscale(0.6); transition: filter 0.2s, transform 0.2s; }
+.tabbar small { font-size: 10px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tabbar .active { color: var(--gold); background: rgba(245, 197, 66, 0.08); }
 .tabbar .active span { filter: none; transform: translateY(-1px) scale(1.08); }
 
@@ -1646,14 +1854,9 @@ body.dead::after {
           <div class="hero-hello" id="hello">Открываем казино…</div>
           <div class="hero-balance"><span id="hero-balance">—</span></div>
           <div class="hero-sub"><span id="hero-currency">таджикоинов</span> · <span id="hero-place"></span></div>
-          <button class="hero-bank" id="hero-bank" type="button" data-go="bank" hidden></button>
         </div>
 
         <div class="card tajik-banner" id="tajik-banner" hidden></div>
-        <button class="card tajik-banner" id="bum-banner" type="button" data-go="bum" hidden></button>
-        <button class="card tajik-banner" id="awards-banner" type="button" data-go="awards">
-          🏅 <b>Ачивки</b> — звёзды и разовые награды за игры, вклады, Толяна и концовки историй
-        </button>
 
         <button class="card bonus" id="bonus-btn" type="button" disabled>
           <span class="bonus-icon" aria-hidden="true">🎁</span>
@@ -1680,23 +1883,8 @@ body.dead::after {
           <button class="game-tile coin" data-go="coin" type="button">
             <span class="tile-icon">🪙</span><b>Монетка</b><small>×2</small>
           </button>
-          <button class="game-tile rr" data-go="rr" type="button">
+          <button class="game-tile rr wide" data-go="rr" type="button">
             <span class="tile-icon">🔫</span><b>Русская рулетка</b><small>1 патрон из 6</small>
-          </button>
-          <button class="game-tile bank" data-go="bank" type="button">
-            <span class="tile-icon">🏦</span><b>Банк</b><small>вклады до +100%</small>
-          </button>
-          <button class="game-tile work" data-go="work" type="button">
-            <span class="tile-icon">🧰</span><b>Халтура</b><small>работа руками</small>
-          </button>
-          <button class="game-tile arcade" data-go="arcade" type="button">
-            <span class="tile-icon">🎮</span><b>Поиграть</b><small>бесконечно, на рекорд</small>
-          </button>
-          <button class="game-tile walk wide" data-go="walk" type="button">
-            <span class="tile-icon">🚶</span><b>Выйти погулять</b><small>случайная история с развилками</small>
-          </button>
-          <button class="game-tile bum" data-go="bum" type="button">
-            <span class="tile-icon">🧔</span><b>Толян</b><small>приносит, пока спишь</small>
           </button>
         </div>
 
@@ -2152,6 +2340,47 @@ body.dead::after {
         <ul class="card deposits" id="deposits"><li class="empty">Загружаем…</li></ul>
       </section>
 
+      <!-- ─── Заработок ─── -->
+      <section class="screen" data-screen="earn">
+        <div class="card hub-hero">
+          <b>💼 Заработок</b>
+          <p>Всё, что приносит таджикоины без ставок: руки, проценты и награды за заслуги.</p>
+        </div>
+        <div class="hub">
+          <button class="hub-tile work" type="button" data-go="work">
+            <span class="hub-icon">🧰</span>
+            <b>Халтура</b>
+            <small id="hub-work">Пять мини-игр, где платят за работу руками</small>
+          </button>
+          <button class="hub-tile bank" type="button" data-go="bank">
+            <span class="hub-icon">🏦</span>
+            <b>Банк</b>
+            <small id="hub-bank">Вклады от часа до недели под 1–100%</small>
+          </button>
+          <button class="hub-tile awards" type="button" data-go="awards">
+            <span class="hub-icon">🏅</span>
+            <b>Ачивки</b>
+            <small id="hub-awards">Звёзды и разовые награды за всё подряд</small>
+          </button>
+        </div>
+      </section>
+
+      <!-- ─── Мультиплеер ─── -->
+      <section class="screen" data-screen="multi">
+        <div class="card hub-hero soon">
+          <b>👥 Мультиплеер</b>
+          <p>Столы на несколько человек: играем друг с другом, а не с казино.</p>
+          <span class="soon-badge">в разработке</span>
+        </div>
+        <div class="card soon-list">
+          <div><span>🃏</span><b>Дурак</b><small>2–6 игроков, можно подсесть к идущей партии</small></div>
+          <div><span>♠️</span><b>Покер</b><small>sit-n-go столы, сбор игроков объявляется в беседе</small></div>
+          <div><span>⛃</span><b>Шашки</b><small>один на один, на ставку или просто так</small></div>
+          <div><span>♟</span><b>Шахматы</b><small>один на один, партия ждёт хода хоть до завтра</small></div>
+        </div>
+        <p class="hint">Пока делаем — играйте в остальное. Как будет готово, бот напишет в беседу.</p>
+      </section>
+
       <!-- ─── Ачивки ─── -->
       <section class="screen" data-screen="awards">
         <div class="card awards-hero">
@@ -2165,19 +2394,13 @@ body.dead::after {
     </main>
 
     <nav class="tabbar" aria-label="Разделы">
-      <button type="button" data-tab="lobby" class="active"><span>🏠</span><small>Лобби</small></button>
-      <button type="button" data-tab="roulette"><span>🎡</span><small>Рулетка</small></button>
-      <button type="button" data-tab="race"><span>🏇</span><small>Скачки</small></button>
-      <button type="button" data-tab="slots"><span>🎰</span><small>Слоты</small></button>
-      <button type="button" data-tab="blackjack"><span>🃏</span><small>Блэкджек</small></button>
-      <button type="button" data-tab="coin"><span>🪙</span><small>Монетка</small></button>
+      <button type="button" data-tab="lobby" class="active"><span>🎰</span><small>Казино</small></button>
       <button type="button" data-tab="rr"><span>🔫</span><small>Русская</small></button>
-      <button type="button" data-tab="work"><span>🧰</span><small>Халтура</small></button>
-      <button type="button" data-tab="arcade"><span>🎮</span><small>Поиграть</small></button>
-      <button type="button" data-tab="walk"><span>🚶</span><small>Погулять</small></button>
+      <button type="button" data-tab="earn"><span>💼</span><small>Заработок</small></button>
       <button type="button" data-tab="bum"><span>🧔</span><small>Толян</small></button>
-      <button type="button" data-tab="bank"><span>🏦</span><small>Банк</small></button>
-      <button type="button" data-tab="awards"><span>🏅</span><small>Ачивки</small></button>
+      <button type="button" data-tab="arcade"><span>🎮</span><small>Игры</small></button>
+      <button type="button" data-tab="walk"><span>🚶</span><small>Прогулка</small></button>
+      <button type="button" data-tab="multi"><span>👥</span><small>Мульти</small></button>
     </nav>
   </div>
 
@@ -2296,7 +2519,7 @@ body.dead::after {
     safe(() => tg.setHeaderColor("#0a0f0c"));
     safe(() => tg.setBackgroundColor("#0a0f0c"));
     safe(() => tg.disableVerticalSwipes && tg.disableVerticalSwipes());
-    safe(() => tg.BackButton.onClick(() => go("lobby")));
+    safe(() => tg.BackButton.onClick(() => go(PARENT[state.screen] || "lobby")));
   }
 
   const haptic = {
@@ -2339,6 +2562,20 @@ body.dead::after {
     box.classList.add("show");
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => box.classList.remove("show"), 2800);
+  }
+
+  function renderEarn() {
+    const bank = state.bank || {};
+    $("#hub-bank").textContent = bank.total
+      ? `Во вкладах ${fmt(bank.total)} ${plural(bank.total, COIN_FORMS)} · от часа до недели`
+      : "Вклады от часа до недели под 1–100%";
+    const shifts = (state.work || {}).shifts;
+    $("#hub-work").textContent = shifts
+      ? `Смен отработано ${fmt(shifts)} · заработано ${state.work.money}`
+      : "Пять мини-игр, где платят за работу руками";
+    $("#hub-awards").textContent = awards.data
+      ? `Звёзд ${awards.data.stars} из ${awards.data.max_stars} · заработано ${fmt(awards.data.earned)}`
+      : "Звёзды и разовые награды за всё подряд";
   }
 
   // ─── Ачивки ────────────────────────────────────────────────────────────────
@@ -2408,7 +2645,7 @@ body.dead::after {
     fill.style.width = `${Math.min(100, Math.round((card.value / (goal || card.goals[2])) * 100))}%`;
     bar.append(fill);
     body.append(bar);
-    node.append(body, el("span", "award-stars", stars(card.stars)));
+    node.append(body, el("span", "award-stars", stars(card.stars, card.goals.length)));
     return node;
   }
 
@@ -2417,7 +2654,7 @@ body.dead::after {
     if (card.done) node.classList.add("done");
     const head = el("div", "quest-head");
     head.append(el("span", "award-icon", card.emoji), el("b", "", card.title),
-                el("span", "award-stars", stars(card.stars)));
+                el("span", "award-stars", stars(card.stars, card.goals.length)));
     node.append(head);
     const sub = el("small", "", card.done
       ? "Все концовки найдены"
@@ -2503,11 +2740,21 @@ body.dead::after {
     updateRussianButton();
   }
 
+  // Экранов больше, чем разделов внизу: игры казино живут в «Казино», работа и банк — в «Заработке»
+  const TAB_OF = {
+    lobby: "lobby", roulette: "lobby", race: "lobby", slots: "lobby", blackjack: "lobby", coin: "lobby",
+    rr: "rr", earn: "earn", work: "earn", bank: "earn", awards: "earn",
+    bum: "bum", arcade: "arcade", walk: "walk", multi: "multi",
+  };
+  const PARENT = { work: "earn", bank: "earn", awards: "earn", roulette: "lobby", race: "lobby",
+                   slots: "lobby", blackjack: "lobby", coin: "lobby" };
+
   function go(screen) {
     if (!$(`.screen[data-screen="${screen}"]`)) return;
     state.screen = screen;
     $$(".screen").forEach((node) => node.classList.toggle("active", node.dataset.screen === screen));
-    $$(".tabbar button").forEach((node) => node.classList.toggle("active", node.dataset.tab === screen));
+    const tabKey = TAB_OF[screen] || screen;
+    $$(".tabbar button").forEach((node) => node.classList.toggle("active", node.dataset.tab === tabKey));
     window.scrollTo(0, 0);
     try {
       if (screen === "lobby") tg.BackButton.hide();
@@ -2523,7 +2770,8 @@ body.dead::after {
     if (screen === "bum") loadBum();
     if (screen in tables) pollTable(screen);
     if (screen === "bank") loadBank();
-    const tab = $(`.tabbar [data-tab="${screen}"]`);
+    if (screen === "earn") renderEarn();
+    const tab = $(`.tabbar [data-tab="${tabKey}"]`);
     if (tab) tab.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" });
   }
 
@@ -2605,9 +2853,6 @@ body.dead::after {
 
     $("#hello").textContent = `Привет, ${data.user.name}!`;
     $("#hero-place").textContent = `${data.place}-е место в Форбсе`;
-    const heroBank = $("#hero-bank");
-    heroBank.hidden = !data.bank.total;
-    heroBank.textContent = `🏦 В банке: ${fmt(data.bank.total)} · открыть`;
     $("#spam-banner").hidden = !data.spam_day;
 
     const bonus = $("#bonus-btn");
@@ -2648,13 +2893,10 @@ body.dead::after {
       stats.append(box);
     });
 
-    const bumBanner = $("#bum-banner");
-    const napping = data.bum;
-    bumBanner.hidden = !(napping.hungry || napping.pending >= 20);
-    bumBanner.textContent = napping.hungry
-      ? `🧔 ${napping.name} голодный — покорми, иначе работает вполсилы`
-      : `🧔 ${napping.name} накопил ${fmt(napping.pending)} 🪙 — забери`;
     showWorkEarned(data.work);
+    state.bank = data.bank;      // хабу «Заработок» хватает того, что уже пришло в состоянии
+    state.work = data.work;
+    if (state.screen === "earn") renderEarn();
 
     state.donate = data.donate;
     $("#donate-link").hidden = !data.donate;
@@ -5463,8 +5705,600 @@ body.dead::after {
     }
   }
 
+  // ── Общее: свайп по элементу ──
+  function swipeOn(node, handler) {
+    let startX = 0;
+    let startY = 0;
+    let down = false;
+    node.addEventListener("pointerdown", (event) => { startX = event.clientX; startY = event.clientY; down = true; });
+    node.addEventListener("pointerup", (event) => {
+      if (!down) return;
+      down = false;
+      const dx = event.clientX - startX;
+      const dy = event.clientY - startY;
+      if (Math.abs(dx) < 16 && Math.abs(dy) < 16) return;
+      handler(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : (dy > 0 ? "down" : "up"));
+    });
+  }
+
+  // ── Через проспект ──
+  const ROAD_CARS = ["🚗", "🚕", "🚙", "🚚", "🏎"];
+  const ROAD_ROWS = 5;
+
+  function arcadeRoad() {
+    const road = el("div", "road");
+    const hero = el("div", "road-hero", "🚶");
+    const lanes = [];
+    for (let index = 0; index < ROAD_ROWS; index += 1) {
+      const node = el("div", "road-lane");
+      node.style.top = `${30 + index * 42}px`;
+      road.append(node);
+      lanes.push({ node, cars: [], dir: index % 2 ? 1 : -1, speed: 58 + index * 14,
+                   gap: 1900 - index * 120, wait: 300 + index * 260 });
+    }
+    road.append(hero);
+    road.addEventListener("pointerdown", roadHop);
+    $("#arcade-area").replaceChildren(road);
+    arcade.state = { road, hero, lanes, row: ROAD_ROWS, points: 0, maxLives: 0, alive: true,
+                     last: 0, width: road.clientWidth || 320 };
+    $("#arcade-note").textContent = "Тап — шаг вперёд. Перешёл дорогу — очко, и машины поедут быстрее.";
+    roadPlace();
+    arcadeScore(0);
+    arcade.raf = requestAnimationFrame(roadFrame);
+  }
+
+  function roadPlace() {
+    const here = arcade.state;
+    here.hero.style.top = `${here.row >= ROAD_ROWS ? 248 : 36 + here.row * 42}px`;
+  }
+
+  function roadHop() {
+    const here = arcade.state;
+    if (!here || !here.alive) return;
+    here.row -= 1;
+    haptic.impact("light");
+    if (here.row < 0) {                       // добежал до другой стороны
+      here.row = ROAD_ROWS;
+      here.points += 1;
+      here.lanes.forEach((lane) => {
+        lane.speed = Math.min(260, lane.speed * 1.08);
+        lane.gap = Math.max(420, lane.gap * 0.94);
+      });
+      arcadeScore(here.points);
+      if (here.points % 10 === 0) toast(`${here.points} перебежек! 🚦`);
+    }
+    roadPlace();
+  }
+
+  function roadFrame(now) {
+    const here = arcade.state;
+    if (!here || !here.alive) return;
+    const step = here.last ? Math.min(0.05, (now - here.last) / 1000) : 0;
+    here.last = now;
+    const heroLeft = here.width / 2;
+    here.lanes.forEach((lane, index) => {
+      lane.wait -= step * 1000;
+      if (lane.wait <= 0) {
+        lane.wait = lane.gap * (0.7 + Math.random() * 0.8);
+        const node = el("div", "road-car", ROAD_CARS[Math.floor(Math.random() * ROAD_CARS.length)]);
+        if (lane.dir > 0) node.style.transform = "scaleX(-1)";
+        lane.node.append(node);
+        lane.cars.push({ node, x: lane.dir > 0 ? -44 : here.width + 10 });
+      }
+      lane.cars = lane.cars.filter((car) => {
+        car.x += lane.dir * lane.speed * step;
+        car.node.style.left = `${car.x}px`;
+        if (index === here.row && Math.abs(car.x + 16 - heroLeft) < 26) {
+          here.alive = false;
+          here.hero.textContent = "💥";
+          haptic.notify("error");
+          aLater(() => arcadeOver(here.points), 550);
+        }
+        if (car.x < -80 || car.x > here.width + 60) { car.node.remove(); return false; }
+        return true;
+      });
+    });
+    if (here.alive) arcade.raf = requestAnimationFrame(roadFrame);
+  }
+
+  // ── По гаражам ──
+  function arcadeJump() {
+    const run = el("div", "run");
+    const hero = el("div", "run-hero", "🏃");
+    hero.style.bottom = "44px";
+    run.append(el("div", "run-ground"), hero);
+    run.addEventListener("pointerdown", jumpNow);
+    $("#arcade-area").replaceChildren(run);
+    arcade.state = { run, hero, boxes: [], y: 0, vy: 0, speed: 200, gap: 1500, wait: 900,
+                     points: 0, maxLives: 0, alive: true, last: 0, width: run.clientWidth || 320 };
+    $("#arcade-note").textContent = "Тап — прыжок. Каждая перепрыгнутая дыра — очко.";
+    arcadeScore(0);
+    arcade.raf = requestAnimationFrame(jumpFrame);
+  }
+
+  function jumpNow() {
+    const here = arcade.state;
+    if (!here || !here.alive || here.y > 0.5) return;
+    here.vy = 430;
+    haptic.impact("light");
+  }
+
+  function jumpFrame(now) {
+    const here = arcade.state;
+    if (!here || !here.alive) return;
+    const step = here.last ? Math.min(0.05, (now - here.last) / 1000) : 0;
+    here.last = now;
+    here.y += here.vy * step;
+    here.vy -= 1400 * step;
+    if (here.y <= 0) { here.y = 0; here.vy = 0; }
+    here.hero.style.transform = `translateY(${-here.y}px)`;
+    here.wait -= step * 1000;
+    if (here.wait <= 0) {
+      here.wait = here.gap * (0.75 + Math.random() * 0.6);
+      const kind = Math.random() < 0.35 ? "🕳" : "📦";
+      const node = el("div", "run-box", kind);
+      here.run.append(node);
+      here.boxes.push({ node, x: here.width + 20, scored: false });
+    }
+    here.boxes = here.boxes.filter((box) => {
+      box.x -= here.speed * step;
+      box.node.style.left = `${box.x}px`;
+      if (Math.abs(box.x - 46) < 22 && here.y < 30) {
+        here.alive = false;
+        here.hero.textContent = "😵";
+        haptic.notify("error");
+        aLater(() => arcadeOver(here.points), 500);
+      }
+      if (!box.scored && box.x < 20) {
+        box.scored = true;
+        here.points += 1;
+        here.speed = Math.min(430, here.speed + 5);
+        here.gap = Math.max(700, here.gap - 14);
+        arcadeScore(here.points);
+      }
+      if (box.x < -40) { box.node.remove(); return false; }
+      return true;
+    });
+    if (here.alive) arcade.raf = requestAnimationFrame(jumpFrame);
+  }
+
+  // ── Денежный дождь ──
+  function arcadeRain() {
+    const rain = el("div", "rain");
+    const bag = el("div", "rain-bag", "👜");
+    rain.append(bag);
+    $("#arcade-area").replaceChildren(rain);
+    const width = rain.clientWidth || 320;
+    arcade.state = { rain, bag, items: [], x: width / 2, width, height: rain.clientHeight || 300,
+                     lives: 3, maxLives: 3, points: 0, speed: 130, gap: 950, wait: 200,
+                     alive: true, last: 0 };
+    const grab = (event) => {
+      const here = arcade.state;
+      if (!here || !here.alive) return;
+      here.x = Math.max(24, Math.min(here.width - 24, event.clientX - rain.getBoundingClientRect().left));
+      bag.style.transform = `translateX(${here.x}px)`;
+    };
+    rain.addEventListener("pointerdown", (event) => { rain.setPointerCapture(event.pointerId); grab(event); });
+    rain.addEventListener("pointermove", (event) => { if (event.buttons || event.pointerType === "touch") grab(event); });
+    bag.style.transform = `translateX(${width / 2}px)`;
+    $("#arcade-note").textContent = "Веди мешок пальцем. Монеты — в мешок, кирпичи — мимо.";
+    arcadeScore(0, 3);
+    arcade.raf = requestAnimationFrame(rainFrame);
+  }
+
+  function rainFrame(now) {
+    const here = arcade.state;
+    if (!here || !here.alive) return;
+    const step = here.last ? Math.min(0.05, (now - here.last) / 1000) : 0;
+    here.last = now;
+    here.wait -= step * 1000;
+    if (here.wait <= 0) {
+      here.wait = here.gap * (0.6 + Math.random() * 0.8);
+      const brick = Math.random() < Math.min(0.45, 0.18 + here.points * 0.004);
+      const node = el("div", "rain-item", brick ? "🧱" : "🪙");
+      here.rain.append(node);
+      here.items.push({ node, brick, x: 20 + Math.random() * (here.width - 40), y: -26 });
+    }
+    here.items = here.items.filter((item) => {
+      item.y += here.speed * step;
+      item.node.style.transform = `translate(${item.x}px, ${item.y}px)`;
+      if (item.y > here.height - 58 && item.y < here.height - 20 && Math.abs(item.x - here.x) < 34) {
+        item.node.remove();
+        if (item.brick) {
+          here.lives -= 1;
+          haptic.notify("error");
+          arcadeScore(here.points, here.lives);
+          if (here.lives <= 0) {
+            here.alive = false;
+            aLater(() => arcadeOver(here.points), 350);
+          }
+        } else {
+          here.points += 1;
+          here.speed = Math.min(420, here.speed + 3);
+          here.gap = Math.max(380, here.gap - 8);
+          haptic.impact("light");
+          arcadeScore(here.points, here.lives);
+        }
+        return false;
+      }
+      if (item.y > here.height + 20) { item.node.remove(); return false; }
+      return true;
+    });
+    if (here.alive) arcade.raf = requestAnimationFrame(rainFrame);
+  }
+
+  // ── Червяк в казане ──
+  const SNAKE_SIDE = 11;
+
+  function arcadeSnake() {
+    const box = el("div", "kazan");
+    const area = $("#arcade-area");
+    area.replaceChildren(box);
+    const size = Math.min(320, area.clientWidth || 320);
+    box.style.width = `${size}px`;
+    box.style.height = `${size}px`;
+    const cell = size / SNAKE_SIDE;
+    arcade.state = {
+      box, cell, alive: true, points: 0, maxLives: 0, tick: 300, acc: 0, last: 0,
+      dir: { x: 1, y: 0 }, next: { x: 1, y: 0 },
+      body: [{ x: 3, y: 5 }, { x: 2, y: 5 }, { x: 1, y: 5 }],
+      food: { x: 8, y: 5 },
+    };
+    swipeOn(box, (way) => {
+      const here = arcade.state;
+      if (!here || !here.alive) return;
+      const turns = { left: { x: -1, y: 0 }, right: { x: 1, y: 0 }, up: { x: 0, y: -1 }, down: { x: 0, y: 1 } };
+      const turn = turns[way];
+      if (turn.x === -here.dir.x && turn.y === -here.dir.y) return;  // назад через себя нельзя
+      here.next = turn;
+    });
+    $("#arcade-note").textContent = "Веди червяка свайпом. Рис — очко, стенка или хвост — конец.";
+    snakeDraw();
+    arcadeScore(0);
+    arcade.raf = requestAnimationFrame(snakeFrame);
+  }
+
+  function snakeDraw() {
+    const here = arcade.state;
+    const nodes = here.body.map((part, index) => {
+      const node = el("div", `kazan-cell ${index ? "body" : "head"}`);
+      node.style.cssText = `left:${part.x * here.cell + 1}px;top:${part.y * here.cell + 1}px;`
+        + `width:${here.cell - 2}px;height:${here.cell - 2}px`;
+      return node;
+    });
+    const food = el("div", "kazan-cell food", "🍚");
+    food.style.cssText = `left:${here.food.x * here.cell}px;top:${here.food.y * here.cell}px;`
+      + `width:${here.cell}px;height:${here.cell}px`;
+    here.box.replaceChildren(...nodes, food);
+  }
+
+  function snakeFrame(now) {
+    const here = arcade.state;
+    if (!here || !here.alive) return;
+    const step = here.last ? now - here.last : 0;
+    here.last = now;
+    here.acc += step;
+    if (here.acc >= here.tick) {
+      here.acc = 0;
+      here.dir = here.next;
+      const head = { x: here.body[0].x + here.dir.x, y: here.body[0].y + here.dir.y };
+      const bitten = here.body.some((part) => part.x === head.x && part.y === head.y);
+      if (head.x < 0 || head.y < 0 || head.x >= SNAKE_SIDE || head.y >= SNAKE_SIDE || bitten) {
+        here.alive = false;
+        haptic.notify("error");
+        arcadeOver(here.points);
+        return;
+      }
+      here.body.unshift(head);
+      if (head.x === here.food.x && head.y === here.food.y) {
+        here.points += 1;
+        here.tick = Math.max(110, here.tick - 6);
+        haptic.impact("light");
+        arcadeScore(here.points);
+        do {
+          here.food = { x: Math.floor(Math.random() * SNAKE_SIDE), y: Math.floor(Math.random() * SNAKE_SIDE) };
+        } while (here.body.some((part) => part.x === here.food.x && part.y === here.food.y));
+      } else {
+        here.body.pop();
+      }
+      snakeDraw();
+    }
+    arcade.raf = requestAnimationFrame(snakeFrame);
+  }
+
+  // ── Сложи таджикоины ──
+  const MERGE_COLORS = {
+    2: "#efe4d2", 4: "#ecd8b4", 8: "#f2b179", 16: "#f59563", 32: "#f67c5f", 64: "#f65e3b",
+    128: "#edcf72", 256: "#edcc61", 512: "#edc850", 1024: "#edc53f", 2048: "#edc22e",
+  };
+
+  function arcadeMerge() {
+    const area = $("#arcade-area");
+    const grid = el("div", "merge-grid");
+    area.replaceChildren(grid);
+    const size = Math.min(320, area.clientWidth || 320);
+    grid.style.width = `${size}px`;
+    grid.style.height = `${size}px`;
+    arcade.state = { grid, cells: new Array(16).fill(0), points: 0, maxLives: 0, alive: true };
+    mergeAdd();
+    mergeAdd();
+    mergeDraw();
+    swipeOn(grid, mergeMove);
+    $("#arcade-note").textContent = "Свайп двигает всё поле. Одинаковые монеты складываются.";
+    arcadeScore(0);
+  }
+
+  function mergeAdd() {
+    const here = arcade.state;
+    const free = here.cells.map((value, index) => (value ? -1 : index)).filter((index) => index >= 0);
+    if (!free.length) return false;
+    here.cells[free[Math.floor(Math.random() * free.length)]] = Math.random() < 0.9 ? 2 : 4;
+    return true;
+  }
+
+  function mergeDraw() {
+    const here = arcade.state;
+    here.grid.replaceChildren(...here.cells.map((value) => {
+      const tile = el("div", `merge-tile${value ? " v" : ""}`, value ? fmt(value) : "");
+      if (value) {
+        tile.style.background = MERGE_COLORS[value] || "#e8b923";
+        tile.style.fontSize = value >= 1024 ? "15px" : value >= 128 ? "17px" : "20px";
+      }
+      return tile;
+    }));
+  }
+
+  function mergeLine(line) {
+    const tight = line.filter(Boolean);
+    const out = [];
+    let gained = 0;
+    for (let index = 0; index < tight.length; index += 1) {
+      if (tight[index] === tight[index + 1]) {
+        out.push(tight[index] * 2);
+        gained += tight[index] * 2;
+        index += 1;
+      } else {
+        out.push(tight[index]);
+      }
+    }
+    while (out.length < 4) out.push(0);
+    return { out, gained };
+  }
+
+  function mergeMove(way) {
+    const here = arcade.state;
+    if (!here || !here.alive) return;
+    const before = here.cells.join(",");
+    let gained = 0;
+    for (let index = 0; index < 4; index += 1) {
+      const line = [0, 1, 2, 3].map((step) => (way === "left" || way === "right"
+        ? here.cells[index * 4 + step] : here.cells[step * 4 + index]));
+      const back = way === "right" || way === "down";
+      const result = mergeLine(back ? line.reverse() : line);
+      const row = back ? result.out.reverse() : result.out;
+      gained += result.gained;
+      row.forEach((value, step) => {
+        if (way === "left" || way === "right") here.cells[index * 4 + step] = value;
+        else here.cells[step * 4 + index] = value;
+      });
+    }
+    if (here.cells.join(",") === before) return;   // ничего не сдвинулось — ход не считается
+    here.points += gained;
+    if (gained) haptic.impact("light");
+    mergeAdd();
+    mergeDraw();
+    arcadeScore(here.points);
+    if (!mergeCanMove()) {
+      here.alive = false;
+      haptic.notify("error");
+      aLater(() => arcadeOver(here.points), 400);
+    }
+  }
+
+  function mergeCanMove() {
+    const cells = arcade.state.cells;
+    if (cells.some((value) => !value)) return true;
+    for (let row = 0; row < 4; row += 1) {
+      for (let col = 0; col < 4; col += 1) {
+        const value = cells[row * 4 + col];
+        if (col < 3 && value === cells[row * 4 + col + 1]) return true;
+        if (row < 3 && value === cells[(row + 1) * 4 + col]) return true;
+      }
+    }
+    return false;
+  }
+
+  // ── Ступеньки ──
+  function arcadeTiles() {
+    const box = el("div", "tiles");
+    box.addEventListener("pointerdown", tilesTap);
+    $("#arcade-area").replaceChildren(box);
+    arcade.state = { box, rows: [], speed: 110, gap: 640, wait: 0, points: 0, maxLives: 0,
+                     alive: true, last: 0, height: box.clientHeight || 320, width: box.clientWidth || 320 };
+    $("#arcade-note").textContent = "Жми на тёмную ступень раньше, чем она уедет вниз.";
+    arcadeScore(0);
+    arcade.raf = requestAnimationFrame(tilesFrame);
+  }
+
+  function tilesFrame(now) {
+    const here = arcade.state;
+    if (!here || !here.alive) return;
+    const step = here.last ? Math.min(0.05, (now - here.last) / 1000) : 0;
+    here.last = now;
+    here.wait -= step * 1000;
+    if (here.wait <= 0) {
+      here.wait = here.gap;
+      const col = Math.floor(Math.random() * 4);
+      const node = el("div", "tile-step");
+      node.style.left = `${col * 25}%`;
+      here.box.append(node);
+      here.rows.push({ node, col, y: -76, done: false });
+    }
+    here.rows = here.rows.filter((row) => {
+      row.y += here.speed * step;
+      row.node.style.transform = `translateY(${row.y}px)`;
+      if (!row.done && row.y > here.height) {
+        here.alive = false;
+        haptic.notify("error");
+        row.node.style.background = "linear-gradient(180deg,#8a2f2f,#3a1414)";
+        aLater(() => arcadeOver(here.points), 400);
+      }
+      if (row.y > here.height + 90) { row.node.remove(); return false; }
+      return true;
+    });
+    if (here.alive) arcade.raf = requestAnimationFrame(tilesFrame);
+  }
+
+  function tilesTap(event) {
+    const here = arcade.state;
+    if (!here || !here.alive) return;
+    const col = Math.floor((event.clientX - here.box.getBoundingClientRect().left) / (here.width / 4));
+    const live = here.rows.filter((row) => !row.done && row.y > -76);
+    const target = live.length ? live.reduce((low, row) => (row.y > low.y ? row : low)) : null;
+    if (!target || target.col !== col) {
+      here.alive = false;
+      haptic.notify("error");
+      aLater(() => arcadeOver(here.points), 300);
+      return;
+    }
+    target.done = true;
+    target.node.classList.add("hit");
+    here.points += 1;
+    here.speed = Math.min(460, here.speed + 3.5);
+    here.gap = Math.max(240, here.gap - 8);
+    haptic.impact("light");
+    arcadeScore(here.points);
+  }
+
+  // ── Сбей банки ──
+  function arcadeShoot() {
+    const fence = el("div", "fence");
+    $("#arcade-area").replaceChildren(fence);
+    arcade.state = { fence, lives: 3, maxLives: 3, points: 0, life: 1500, gap: 850, alive: true,
+                     width: fence.clientWidth || 320, height: fence.clientHeight || 260 };
+    $("#arcade-note").textContent = "Сбивай банки, пока стоят. Три ушедшие — конец.";
+    arcadeScore(0, 3);
+    shootNext();
+  }
+
+  function shootNext() {
+    const here = arcade.state;
+    if (!here || !here.alive) return;
+    const can = el("div", "can", Math.random() < 0.25 ? "🍾" : "🥫");
+    can.style.left = `${16 + Math.random() * (here.width - 60)}px`;
+    can.style.top = `${16 + Math.random() * (here.height - 70)}px`;
+    here.fence.append(can);
+    reflow(can);
+    can.classList.add("up");
+    let hit = false;
+    can.addEventListener("pointerdown", () => {
+      if (hit || !here.alive) return;
+      hit = true;
+      can.classList.add("dead");
+      aLater(() => can.remove(), 240);
+      here.points += 1;
+      here.life = Math.max(520, here.life * 0.97);
+      here.gap = Math.max(320, here.gap * 0.97);
+      haptic.impact("light");
+      arcadeScore(here.points, here.lives);
+    });
+    aLater(() => {
+      if (hit || !here.alive) return;
+      can.classList.remove("up");
+      aLater(() => can.remove(), 200);
+      here.lives -= 1;
+      haptic.notify("error");
+      arcadeScore(here.points, here.lives);
+      if (here.lives <= 0) {
+        here.alive = false;
+        arcadeOver(here.points);
+      }
+    }, here.life);
+    aLater(shootNext, here.gap);
+  }
+
+  // ── Заверни шаурму ──
+  const WRAP_ITEMS = ["🥙", "🍖", "🧅", "🥬", "🍅", "🧄"];
+
+  function arcadeWrap() {
+    const order = el("div", "wrap-order");
+    const timer = el("div", "wrap-timer");
+    const fill = el("i", "");
+    timer.append(fill);
+    const buttons = el("div", "wrap-btns");
+    WRAP_ITEMS.forEach((item) => {
+      const button = el("button", "wrap-btn", item);
+      button.type = "button";
+      button.addEventListener("click", () => wrapTap(item));
+      buttons.append(button);
+    });
+    $("#arcade-area").replaceChildren(order, timer, buttons);
+    arcade.state = { order, fill, points: 0, lives: 3, maxLives: 3, alive: true, span: 7000, list: [], step: 0 };
+    $("#arcade-note").textContent = "Повтори заказ по порядку. Ошибся или не успел — минус жизнь.";
+    arcadeScore(0, 3);
+    wrapNext();
+  }
+
+  function wrapNext() {
+    const here = arcade.state;
+    if (!here || !here.alive) return;
+    const length = Math.min(6, 3 + Math.floor(here.points / 4));
+    here.list = Array.from({ length }, () => WRAP_ITEMS[Math.floor(Math.random() * WRAP_ITEMS.length)]);
+    here.step = 0;
+    wrapDraw();
+    here.fill.style.transition = "none";
+    here.fill.style.width = "100%";
+    reflow(here.fill);
+    here.fill.style.transition = `width ${here.span}ms linear`;
+    here.fill.style.width = "0%";
+    aLater(() => wrapMiss("Не успел!"), here.span);
+  }
+
+  function wrapDraw() {
+    const here = arcade.state;
+    here.order.replaceChildren(...here.list.map((item, index) => el("div",
+      `wrap-chip${index < here.step ? " done" : index === here.step ? " now" : ""}`, item)));
+  }
+
+  function wrapTap(item) {
+    const here = arcade.state;
+    if (!here || !here.alive) return;
+    if (item !== here.list[here.step]) {
+      wrapMiss("Не то положил!");
+      return;
+    }
+    here.step += 1;
+    haptic.impact("light");
+    wrapDraw();
+    if (here.step >= here.list.length) {
+      here.points += 1;
+      here.span = Math.max(2400, here.span * 0.95);
+      arcadeScore(here.points, here.lives);
+      stopArcade();                      // снимаем таймер заказа, который уже не нужен
+      aLater(wrapNext, 260);
+    }
+  }
+
+  function wrapMiss(why) {
+    const here = arcade.state;
+    if (!here || !here.alive) return;
+    stopArcade();
+    here.lives -= 1;
+    haptic.notify("error");
+    arcadeScore(here.points, here.lives);
+    if (here.lives <= 0) {
+      here.alive = false;
+      arcadeOver(here.points);
+      return;
+    }
+    toast(why, "error");
+    aLater(wrapNext, 500);
+  }
+
   const ARCADE_GAMES = {
     yard: arcadeYard, post: arcadePost, belt: arcadeBelt, stack: arcadeStack, memory: arcadeMemory,
+    road: arcadeRoad, jump: arcadeJump, rain: arcadeRain, snake: arcadeSnake, merge: arcadeMerge,
+    tiles: arcadeTiles, shoot: arcadeShoot, wrap: arcadeWrap,
   };
 
   // ─── Толян ─────────────────────────────────────────────────────────────────

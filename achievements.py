@@ -13,7 +13,6 @@
 import logging
 from typing import Optional
 
-import casino_arcade as arcade
 import casino_bum as bum
 import casino_engine as engine
 import casino_work as work
@@ -24,7 +23,7 @@ from loader import db
 
 logger = logging.getLogger(__name__)
 
-STARS = 3                       # больше трёх звёзд не бывает: третья — полная ачивка
+STARS = 3                       # обычно у ачивки три ступени, но бывают и короче — см. goals карточки
 QUEST_REWARDS = (60, 180, 500)  # за первую концовку квеста, за половину и за все
 ENDING_MIN, ENDING_MAX = 30, 150
 
@@ -125,8 +124,8 @@ ACHIEVEMENTS = (
     # ── Поиграть ──────────────────────────────────────────────────────────────
     ("arcade_play", "arcade", "🕹", "Залипание", "Сыграть в бесконечные игры",
      (10, 50, 200), (100, 400, 1500), lambda s: _count(s, "arcade:plays")),
-    ("arcade_record", "arcade", "🏅", "Рекордсмен", "Держать рекорды беседы",
-     (1, 3, len(arcade.GAMES)), (300, 900, 3000), lambda s: len(s["records"])),
+    ("arcade_record", "arcade", "🏅", "Рекордсмен", "Побить рекорд беседы",
+     (1,), (500,), lambda s: _count(s, "arcade:records")),   # одна ступень: держать все рекорды нереально
     ("arcade_prize", "arcade", "💰", "Премия за рекорд", "Получать премию рекордсмена",
      (1, 10, 50), (150, 500, 2000), lambda s: _count(s, "arcade:prize")),
 
@@ -153,7 +152,7 @@ ACHIEVEMENTS = (
      (10, 40, 100), (300, 1000, 4000), lambda s: s["stars"]),
 )
 
-MAX_STARS = (len(ACHIEVEMENTS) + len(quests.QUESTS)) * STARS
+MAX_STARS = sum(len(item[5]) for item in ACHIEVEMENTS) + len(quests.QUESTS) * STARS
 
 
 def ending_reward(quest_key: str) -> int:
@@ -164,15 +163,6 @@ def ending_reward(quest_key: str) -> int:
 def _quest_goals(quest_key: str) -> tuple[int, int, int]:
     total = len(quests.ENDINGS[quest_key])
     return (1, max(2, (total + 1) // 2), total)
-
-
-def _record_holders(chat_id: int) -> dict[str, int]:
-    """По одному хозяину рекорда на игру."""
-    best: dict[str, dict] = {}
-    for row in db.arcade_all(chat_id):
-        if row["game"] not in best or row["score"] > best[row["game"]]["score"]:
-            best[row["game"]] = row
-    return {game: row["user_id"] for game, row in best.items()}
 
 
 def _snapshot(chat_id: int, user_id: int) -> dict:
@@ -189,7 +179,6 @@ def _snapshot(chat_id: int, user_id: int) -> dict:
         "stats": {row["game"]: row for row in db.get_casino_stats(chat_id, user_id)},
         "counters": db.get_counters(chat_id, user_id),
         "bum": db.peek_bum(chat_id, user_id) or {},
-        "records": [game for game, holder in _record_holders(chat_id).items() if holder == user_id],
         "earned": earned,
         "found": found,
         "stars": sum(level for key, level in earned.items() if not key.startswith("end:")),
@@ -229,11 +218,13 @@ def check(chat_id: int, user_id: int) -> list[dict]:
             reward = card["rewards"][have - 1]
             if db.award_achievement(chat_id, user_id, card["key"], have, reward) is None:
                 break  # эту ступень уже выдали из соседней вкладки
+            top = len(card["goals"])
             unlocked.append({"key": card["key"], "emoji": card["emoji"], "title": card["title"],
-                             "star": have, "stars": STARS, "reward": reward, "goal": card["goals"][have - 1]})
-            if have == STARS:
+                             "star": have, "stars": top, "reward": reward, "goal": card["goals"][have - 1]})
+            if have == top:
+                done = {1: "полностью", 2: "на две звезды"}.get(top, "на три звезды")
                 engine.add_feed(chat_id, f"{card['emoji']} {engine.player_name(user_id)} закрывает ачивку "
-                                         f"«{card['title']}» на три звезды")
+                                         f"«{card['title']}» {done}")
     if unlocked:
         logger.info("Ачивки %s в %s: %s", user_id, chat_id, ", ".join(item["title"] for item in unlocked))
     return unlocked
@@ -266,7 +257,7 @@ def state(chat_id: int, user_id: int) -> dict:
     by_section: dict[str, list[dict]] = {}
     for card in cards:
         view = {key: card[key] for key in ("key", "emoji", "title", "about", "goals", "rewards", "value", "stars")}
-        view["done"] = view["stars"] >= STARS
+        view["done"] = view["stars"] >= len(card["goals"])
         view["next_goal"] = None if view["done"] else card["goals"][view["stars"]]
         view["next_reward"] = None if view["done"] else card["rewards"][view["stars"]]
         if "quest" in card:
@@ -287,7 +278,7 @@ def state(chat_id: int, user_id: int) -> dict:
         "sections": [section for section in sections if section["cards"]],
         "stars": sum(card["stars"] for card in cards),
         "max_stars": MAX_STARS,
-        "done": sum(1 for card in cards if card["stars"] >= STARS),
+        "done": sum(1 for card in cards if card["stars"] >= len(card["goals"])),
         "total": len(cards),
         "earned": db.achievement_earned(chat_id, user_id),
         "endings": {"found": sum(snap["found"].values()), "total": sum(len(ends) for ends in quests.ENDINGS.values())},
