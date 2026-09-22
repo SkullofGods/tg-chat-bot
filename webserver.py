@@ -61,12 +61,17 @@ async def _player(request: web.Request) -> tuple[int, int]:
     if not init_data and WEBAPP_DEV_USER_ID:
         user_id, start_param = int(request.headers.get("X-Dev-User") or WEBAPP_DEV_USER_ID), None
     else:
+        if not init_data:
+            # Приложение не получило данные входа: открыли не из Telegram или не загрузился его скрипт
+            logger.warning("Казино без данных Telegram: %s", request.headers.get("User-Agent", "")[:200])
+            raise engine.GameError("Казино не получило данные от Telegram. Открой его кнопкой в беседе "
+                                   "или кнопкой «Казино» в меню бота", 401)
         try:
             data = safe_parse_webapp_init_data(BOT_TOKEN, init_data)
         except ValueError:
-            raise engine.GameError("Открой казино кнопкой в Telegram", 401)
+            raise engine.GameError("Telegram не подтвердил вход — закрой казино и открой заново", 401)
         if data.user is None:
-            raise engine.GameError("Открой казино кнопкой в Telegram", 401)
+            raise engine.GameError("Telegram не сказал, кто ты. Открой казино кнопкой в беседе", 401)
         if (datetime.now(timezone.utc) - data.auth_date).total_seconds() > INIT_DATA_MAX_AGE_SECONDS:
             raise engine.GameError("Сессия устарела — закрой и открой казино заново", 401)
         user = data.user
