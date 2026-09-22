@@ -130,6 +130,7 @@ def feed(chat_id: int, user_id: int) -> dict:
     bum = _bum(chat_id, user_id, now)
     if not db.feed_bum(chat_id, user_id, FEED_COST, max(now, bum["fed_until"]) + FEED_HOURS * 3600):
         raise engine.not_enough_money(chat_id, user_id)
+    db.bump_counter(chat_id, user_id, "bum:feed")
     return _state(_bum(chat_id, user_id, now), f"🍲 Поел плова. Сыт ещё {FEED_HOURS} часов")
 
 

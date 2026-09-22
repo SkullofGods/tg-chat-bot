@@ -208,6 +208,34 @@ _SCHEMA = [
         made_at TEXT NOT NULL,
         PRIMARY KEY (chat_id, game, user_id)
     ) WITHOUT ROWID""",
+    # Начатая прогулка: переживает перезапуск бота, чтобы квест можно было продолжить с того же места
+    """CREATE TABLE IF NOT EXISTS walks (
+        chat_id    INTEGER NOT NULL,
+        user_id    INTEGER NOT NULL,
+        quest      TEXT NOT NULL,
+        node       TEXT NOT NULL,
+        steps      INTEGER NOT NULL DEFAULT 0,
+        started_at INTEGER NOT NULL,
+        PRIMARY KEY (chat_id, user_id)
+    ) WITHOUT ROWID""",
+    # Счётчики для ачивок: победы по играм, смены, найденные концовки квестов и прочее
+    """CREATE TABLE IF NOT EXISTS counters (
+        chat_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        key     TEXT NOT NULL,
+        value   INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (chat_id, user_id, key)
+    ) WITHOUT ROWID""",
+    # Ачивки: level — сколько ступеней (звёзд) взято, награда за каждую выдаётся один раз
+    """CREATE TABLE IF NOT EXISTS achievements (
+        chat_id    INTEGER NOT NULL,
+        user_id    INTEGER NOT NULL,
+        key        TEXT NOT NULL,
+        level      INTEGER NOT NULL DEFAULT 0,
+        paid       INTEGER NOT NULL DEFAULT 0,
+        updated_at TEXT NOT NULL,
+        PRIMARY KEY (chat_id, user_id, key)
+    ) WITHOUT ROWID""",
     "CREATE INDEX IF NOT EXISTS bank_deposits_user ON bank_deposits (chat_id, user_id, status)",
     "CREATE INDEX IF NOT EXISTS bank_deposits_due ON bank_deposits (ends_at) WHERE status = 'active'",
 ]
@@ -866,6 +894,13 @@ class Database:
             """,
             (chat_id, user_id, game, wagered, returned, max(returned - wagered, 0), int(special)),
         )
+        if returned > wagered:  # счётчики побед нужны ачивкам, поэтому считаем их там же, где и саму игру
+            for key in (f"win:{game}", "win:any"):
+                c.execute(
+                    "INSERT INTO counters (chat_id, user_id, key, value) VALUES (?, ?, ?, 1) "
+                    "ON CONFLICT(chat_id, user_id, key) DO UPDATE SET value = value + 1",
+                    (chat_id, user_id, key),
+                )
 
     def casino_settle(self, chat_id: int, user_id: int, game: str, bet: int, payout: int,
                       special: bool = False) -> int:
@@ -1244,6 +1279,108 @@ class Database:
         rows = self.conn.execute(f"SELECT a.user_id, a.game, a.score {self._ARCADE_ALIVE}", (chat_id,)).fetchall()
         return [dict(r) for r in rows]
 
+    # ── Прогулки, счётчики и ачивки ────────────────────────────────────────────
+
+    def get_walk(self, chat_id: int, user_id: int) -> Optional[dict]:
+        row = self.conn.execute(
+            "SELECT * FROM walks WHERE chat_id = ? AND user_id = ?", (chat_id, user_id)
+        ).fetchone()
+        return dict(row) if row else None
+
+    def save_walk(self, chat_id: int, user_id: int, quest: str, node: str, steps: int, started_at: int):
+        """Куда игрок дошёл в квесте. Перезапись, чтобы прогулка была одна."""
+        with self._tx() as c:
+            c.execute(
+                "INSERT INTO walks (chat_id, user_id, quest, node, steps, started_at) VALUES (?, ?, ?, ?, ?, ?) "
+                "ON CONFLICT(chat_id, user_id) DO UPDATE SET quest = excluded.quest, node = excluded.node, "
+                "steps = excluded.steps, started_at = excluded.started_at",
+                (chat_id, user_id, quest, node, steps, started_at),
+            )
+
+    def clear_walk(self, chat_id: int, user_id: int):
+        with self._tx() as c:
+            c.execute("DELETE FROM walks WHERE chat_id = ? AND user_id = ?", (chat_id, user_id))
+
+    def prune_walks(self, before: int):
+        """Брошенные прогулки не копятся в базе."""
+        with self._tx() as c:
+            c.execute("DELETE FROM walks WHERE started_at < ?", (before,))
+
+    def get_counters(self, chat_id: int, user_id: int) -> dict[str, int]:
+        rows = self.conn.execute(
+            "SELECT key, value FROM counters WHERE chat_id = ? AND user_id = ?", (chat_id, user_id)
+        ).fetchall()
+        return {row["key"]: row["value"] for row in rows}
+
+    def get_counter(self, chat_id: int, user_id: int, key: str) -> int:
+        row = self.conn.execute(
+            "SELECT value FROM counters WHERE chat_id = ? AND user_id = ? AND key = ?", (chat_id, user_id, key)
+        ).fetchone()
+        return row["value"] if row else 0
+
+    def bump_counter(self, chat_id: int, user_id: int, key: str, delta: int = 1) -> int:
+        with self._tx() as c:
+            c.execute(
+                "INSERT INTO counters (chat_id, user_id, key, value) VALUES (?, ?, ?, ?) "
+                "ON CONFLICT(chat_id, user_id, key) DO UPDATE SET value = value + excluded.value",
+                (chat_id, user_id, key, delta),
+            )
+            return c.execute(
+                "SELECT value FROM counters WHERE chat_id = ? AND user_id = ? AND key = ?", (chat_id, user_id, key)
+            ).fetchone()["value"]
+
+    def set_counter(self, chat_id: int, user_id: int, key: str, value: int):
+        with self._tx() as c:
+            c.execute(
+                "INSERT INTO counters (chat_id, user_id, key, value) VALUES (?, ?, ?, ?) "
+                "ON CONFLICT(chat_id, user_id, key) DO UPDATE SET value = excluded.value",
+                (chat_id, user_id, key, value),
+            )
+
+    def get_achievements(self, chat_id: int, user_id: int) -> dict[str, int]:
+        rows = self.conn.execute(
+            "SELECT key, level FROM achievements WHERE chat_id = ? AND user_id = ?", (chat_id, user_id)
+        ).fetchall()
+        return {row["key"]: row["level"] for row in rows}
+
+    def award_achievement(self, chat_id: int, user_id: int, key: str, level: int, reward: int) -> Optional[int]:
+        """Поднимает ачивку до уровня и разом выдаёт награду. None — этот уровень уже был взят.
+
+        Уровень и деньги двигаются в одной транзакции, поэтому за одну ступень не заплатят дважды,
+        даже если приложение попросит проверить ачивки из двух вкладок сразу.
+        """
+        with self._tx() as c:
+            self._ensure_wallet(c, chat_id, user_id)
+            cursor = c.execute(
+                "INSERT INTO achievements (chat_id, user_id, key, level, paid, updated_at) VALUES (?, ?, ?, ?, ?, ?) "
+                "ON CONFLICT(chat_id, user_id, key) DO UPDATE SET level = excluded.level, "
+                "paid = paid + excluded.paid, updated_at = excluded.updated_at WHERE level < excluded.level",
+                (chat_id, user_id, key, level, reward, utcnow_iso()),
+            )
+            if cursor.rowcount == 0:
+                return None
+            if reward:
+                c.execute("UPDATE wallets SET balance = balance + ? WHERE chat_id = ? AND user_id = ?",
+                          (reward, chat_id, user_id))
+            return self._balance(c, chat_id, user_id)
+
+    def achievement_earned(self, chat_id: int, user_id: int) -> int:
+        """Сколько всего заработано на ачивках — для экрана достижений."""
+        row = self.conn.execute(
+            "SELECT COALESCE(SUM(paid), 0) AS total FROM achievements WHERE chat_id = ? AND user_id = ?",
+            (chat_id, user_id),
+        ).fetchone()
+        return row["total"]
+
+    def achievement_leaders(self, chat_id: int, limit: int = 5) -> list[dict]:
+        rows = self.conn.execute(
+            "SELECT user_id, SUM(level) AS stars FROM achievements "
+            "WHERE chat_id = ? AND level > 0 AND key NOT LIKE 'end:%' "  # концовки квестов — не звёзды
+            "GROUP BY user_id ORDER BY stars DESC, MIN(updated_at) LIMIT ?",
+            (chat_id, limit),
+        ).fetchall()
+        return [dict(row) for row in rows]
+
     # ── Бомж ───────────────────────────────────────────────────────────────────
 
     def get_bum(self, chat_id: int, user_id: int, name: str, now: int, fed_until: int) -> dict:
@@ -1254,6 +1391,13 @@ class Database:
                 (chat_id, user_id, name, fed_until, now),
             )
             return dict(c.execute("SELECT * FROM bums WHERE chat_id = ? AND user_id = ?", (chat_id, user_id)).fetchone())
+
+    def peek_bum(self, chat_id: int, user_id: int) -> Optional[dict]:
+        """Бомж, если он уже есть. В отличие от get_bum ничего не заводит."""
+        row = self.conn.execute(
+            "SELECT * FROM bums WHERE chat_id = ? AND user_id = ?", (chat_id, user_id)
+        ).fetchone()
+        return dict(row) if row else None
 
     def collect_bum(self, chat_id: int, user_id: int, amount: int, now: int):
         """Выручка бомжа — в кошелёк."""
@@ -1310,6 +1454,11 @@ class Database:
         c.execute(
             "UPDATE wallets SET balance = balance + ? WHERE chat_id = ? AND user_id = ?",
             (row["amount"] * coins_per_ruble, row["chat_id"], row["user_id"]),
+        )
+        c.execute(  # ачивка «спонсор казана» считает подтверждённые донаты
+            "INSERT INTO counters (chat_id, user_id, key, value) VALUES (?, ?, 'donate', 1) "
+            "ON CONFLICT(chat_id, user_id, key) DO UPDATE SET value = value + 1",
+            (row["chat_id"], row["user_id"]),
         )
 
     def add_donation(self, chat_id: int, user_id: int, amount: int, message: str,

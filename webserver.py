@@ -14,6 +14,7 @@ from aiohttp import web
 from aiogram.types import User
 from aiogram.utils.web_app import safe_parse_webapp_init_data
 
+import achievements
 import casino_arcade as arcade
 import casino_bank as bank
 import casino_bum as bum
@@ -91,6 +92,7 @@ async def _player(request: web.Request) -> tuple[int, int]:
         if db.member_status(chat_id, user_id) is not True and await members.check_member(chat_id, user_id) is not True:
             raise engine.GameError("Казино только для участников беседы 🙅", 403)
         _member_checked[key] = time.monotonic()
+    request["player"] = key
     return chat_id, user_id
 
 
@@ -117,6 +119,43 @@ async def _errors(request: web.Request, handler):
     except Exception:
         logger.exception("Ошибка в API казино: %s", request.path)
         return _json({"error": "Что-то сломалось, попробуй ещё раз"}, 500)
+
+
+AWARDS_POLL_SECONDS = 15   # на опросах состояния ачивки пересчитываем не чаще
+_awards_checked: dict[tuple[int, int], float] = {}
+_POLLING = ("/api/state", "/api/table", "/api/walk", "/api/arcade", "/api/bank", "/api/bum", "/api/work")
+
+
+def _needs_check(request: web.Request, player: tuple[int, int]) -> bool:
+    """Ходы проверяем всегда, а опросы состояния — раз в несколько секунд, чтобы не гонять базу."""
+    if not request.path.endswith(_POLLING):
+        return True
+    now = time.monotonic()
+    if now - _awards_checked.get(player, -AWARDS_POLL_SECONDS) < AWARDS_POLL_SECONDS:
+        return False
+    _awards_checked[player] = now
+    return True
+
+
+@web.middleware
+async def _awards(request: web.Request, handler):
+    response = await handler(request)
+    player = request.get("player")
+    if player is None or response.status != 200 or response.content_type != "application/json":
+        return response
+    if not _needs_check(request, player):
+        return response
+    try:
+        unlocked = achievements.check(*player)
+    except Exception:
+        logger.exception("Не смог проверить ачивки")
+        return response
+    if not unlocked:
+        return response
+    data = json.loads(response.text)
+    data["unlocked"] = unlocked
+    data["balance"] = db.get_balance(*player)  # награды уже в кошельке
+    return _json(data)
 
 
 # ── API ───────────────────────────────────────────────────────────────────────
@@ -246,6 +285,11 @@ async def api_walk_go(request: web.Request) -> web.Response:
     return _json(walk.go(chat_id, user_id, body.get("choice")))
 
 
+async def api_achievements(request: web.Request) -> web.Response:
+    chat_id, user_id = await _player(request)
+    return _json(achievements.state(chat_id, user_id))
+
+
 # Бомж
 
 
@@ -287,7 +331,7 @@ async def api_bank_withdraw(request: web.Request) -> web.Response:
 
 
 def build_app() -> web.Application:
-    app = web.Application(middlewares=[_errors])
+    app = web.Application(middlewares=[_errors, _awards])
     # Приложение — один файл: стили и скрипт внутри index.html (см. комментарий в нём)
     index_html = (APP_DIR / "index.html").read_text(encoding="utf-8")
 
@@ -319,6 +363,7 @@ def build_app() -> web.Application:
         app.router.add_post(f"{prefix}/api/work/start", api_work_start)
         app.router.add_post(f"{prefix}/api/work/step", api_work_step)
         app.router.add_post(f"{prefix}/api/work/finish", api_work_finish)
+        app.router.add_post(f"{prefix}/api/achievements", api_achievements)
         app.router.add_post(f"{prefix}/api/walk", api_walk)
         app.router.add_post(f"{prefix}/api/walk/start", api_walk_start)
         app.router.add_post(f"{prefix}/api/walk/go", api_walk_go)

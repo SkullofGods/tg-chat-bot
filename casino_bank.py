@@ -40,6 +40,8 @@ def pay_matured() -> int:
         if not db.close_deposit(deposit["id"], "paid", deposit["amount"] + deposit["interest"], now):
             continue
         paid += 1
+        db.bump_counter(deposit["chat_id"], deposit["user_id"], "bank:interest", deposit["interest"])
+        db.bump_counter(deposit["chat_id"], deposit["user_id"], f"bank:term:{deposit['term']}")
         if deposit["amount"] >= FEED_FROM:
             engine.add_feed(deposit["chat_id"], f"🏦 Вклад {engine.player_name(deposit['user_id'])} "
                                                 f"принёс {signed(deposit['interest'])}")
@@ -95,6 +97,7 @@ def deposit(chat_id: int, user_id: int, amount, term) -> dict:
     now = _now()
     if db.open_deposit(chat_id, user_id, amount, amount * percent // 100, term, now, now + seconds) is None:
         raise engine.not_enough_money(chat_id, user_id)
+    db.bump_counter(chat_id, user_id, "bank:opened")
     if amount >= FEED_FROM:
         engine.add_feed(chat_id, f"🏦 {engine.player_name(user_id)} кладёт {money(amount)} в банк: {label}, +{percent}%")
     return bank_state(chat_id, user_id)
@@ -111,6 +114,9 @@ def withdraw(chat_id: int, user_id: int, deposit_id) -> dict:
     paid = found["amount"] + (found["interest"] if matured else 0)
     if not db.close_deposit(found["id"], "paid" if matured else "withdrawn", paid, now):
         raise GameError("Вклад уже закрыт", 409)
+    if matured:
+        db.bump_counter(chat_id, user_id, "bank:interest", found["interest"])
+        db.bump_counter(chat_id, user_id, f"bank:term:{found['term']}")
     return bank_state(chat_id, user_id) | {"paid": paid, "early": not matured}
 
 

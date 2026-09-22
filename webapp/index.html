@@ -1453,6 +1453,83 @@ button:disabled { cursor: default; }
 .deposit-foot button.confirm { color: #fff; background: var(--red); }
 .deposits li.closed { opacity: 0.7; font-size: 14px; }
 
+/* ─── Ачивки ─── */
+
+.awards-hero { text-align: center; }
+.awards-hero b { font-size: 18px; }
+.awards-hero p { margin: 6px 0 12px; color: var(--muted); font-size: 13px; }
+.awards-bar { height: 10px; border-radius: 6px; background: rgba(255, 255, 255, 0.07); overflow: hidden; }
+.awards-bar i {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--gold-2), var(--gold));
+  transition: width 0.6s ease;
+}
+.awards-stats { display: flex; justify-content: space-around; margin-top: 12px; }
+.awards-stats div { text-align: center; }
+.awards-stats b { display: block; font-size: 17px; color: var(--gold); font-variant-numeric: tabular-nums; }
+.awards-stats small { color: var(--muted); font-size: 11px; }
+
+.award-card {
+  display: grid;
+  grid-template-columns: 42px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+  margin-bottom: 8px;
+}
+.award-card.done { border-color: rgba(245, 197, 66, 0.45); }
+.award-icon { font-size: 26px; text-align: center; filter: grayscale(0.7); opacity: 0.6; }
+.award-card.started .award-icon,
+.award-card.done .award-icon { filter: none; opacity: 1; }
+.award-body b { display: block; font-size: 15px; }
+.award-body small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+.award-stars { font-size: 13px; letter-spacing: 1px; color: var(--gold); white-space: nowrap; }
+.award-progress { height: 6px; border-radius: 4px; background: rgba(255, 255, 255, 0.07); margin-top: 6px; overflow: hidden; }
+.award-progress i { display: block; height: 100%; background: var(--gold-2); border-radius: 4px; }
+.award-next { color: var(--gold-2); }
+
+.award-quest { display: block; padding: 12px; margin-bottom: 8px; width: 100%; text-align: left; }
+.award-quest .quest-head { display: flex; align-items: center; gap: 8px; }
+.award-quest .quest-head b { flex: 1; font-size: 15px; }
+.award-ends { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.award-end {
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--muted);
+  border: 1px solid var(--line);
+}
+.award-end.found { background: rgba(245, 197, 66, 0.14); color: var(--gold-2); border-color: rgba(245, 197, 66, 0.3); }
+
+.award-toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 70px);
+  transform: translate(-50%, 20px);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #3a2c0c, #1d1a12);
+  border: 1px solid rgba(245, 197, 66, 0.5);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s, transform 0.25s;
+  max-width: min(92vw, 420px);
+}
+.award-toast.show { opacity: 1; transform: translate(-50%, 0); }
+.award-toast .emoji { font-size: 26px; }
+.award-toast b { display: block; font-size: 14px; }
+.award-toast small { display: block; color: var(--muted); font-size: 12px; }
+.award-toast .reward { color: var(--gold); font-weight: 800; white-space: nowrap; }
+
 /* ─── Нижняя навигация ─── */
 
 .tabbar {
@@ -1574,6 +1651,9 @@ body.dead::after {
 
         <div class="card tajik-banner" id="tajik-banner" hidden></div>
         <button class="card tajik-banner" id="bum-banner" type="button" data-go="bum" hidden></button>
+        <button class="card tajik-banner" id="awards-banner" type="button" data-go="awards">
+          🏅 <b>Ачивки</b> — звёзды и разовые награды за игры, вклады, Толяна и концовки историй
+        </button>
 
         <button class="card bonus" id="bonus-btn" type="button" disabled>
           <span class="bonus-icon" aria-hidden="true">🎁</span>
@@ -2071,6 +2151,17 @@ body.dead::after {
         <h2 class="section-title">📒 Мои вклады</h2>
         <ul class="card deposits" id="deposits"><li class="empty">Загружаем…</li></ul>
       </section>
+
+      <!-- ─── Ачивки ─── -->
+      <section class="screen" data-screen="awards">
+        <div class="card awards-hero">
+          <b>🏅 Ачивки</b>
+          <p id="awards-sub">Загружаем…</p>
+          <div class="awards-bar"><i id="awards-bar-fill"></i></div>
+          <div class="awards-stats" id="awards-stats"></div>
+        </div>
+        <div id="awards-list"></div>
+      </section>
     </main>
 
     <nav class="tabbar" aria-label="Разделы">
@@ -2086,8 +2177,11 @@ body.dead::after {
       <button type="button" data-tab="walk"><span>🚶</span><small>Погулять</small></button>
       <button type="button" data-tab="bum"><span>🧔</span><small>Толян</small></button>
       <button type="button" data-tab="bank"><span>🏦</span><small>Банк</small></button>
+      <button type="button" data-tab="awards"><span>🏅</span><small>Ачивки</small></button>
     </nav>
   </div>
+
+  <div class="award-toast" id="award-toast" aria-live="polite"></div>
 
   <div class="gate" id="gate" hidden>
     <div class="gate-box">
@@ -2230,6 +2324,7 @@ body.dead::after {
       /* ответ не JSON */
     }
     if (!response.ok) throw new ApiError(data.error || "Казино временно закрыто", response.status);
+    if (Array.isArray(data.unlocked) && data.unlocked.length) celebrate(data.unlocked);
     return data;
   }
 
@@ -2244,6 +2339,122 @@ body.dead::after {
     box.classList.add("show");
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => box.classList.remove("show"), 2800);
+  }
+
+  // ─── Ачивки ────────────────────────────────────────────────────────────────
+
+  const awards = { data: null, queue: [], showing: false, timer: 0 };
+
+  function stars(count, total = 3) {
+    return "★".repeat(count) + "☆".repeat(Math.max(0, total - count));
+  }
+
+  function celebrate(list) {
+    awards.queue.push(...list);
+    awards.data = null;                                   // на экране ачивок теперь другие цифры
+    if (state.screen === "awards") loadAwards();
+    if (!awards.showing) nextAward();
+  }
+
+  function nextAward() {
+    const item = awards.queue.shift();
+    const box = $("#award-toast");
+    if (!item) {
+      awards.showing = false;
+      box.classList.remove("show");
+      return;
+    }
+    awards.showing = true;
+    box.replaceChildren();
+    box.append(el("span", "emoji", item.emoji || "🏅"));
+    const body = el("div", "body");
+    body.append(el("b", "", `${item.title} · ${stars(item.star, item.stars)}`),
+                el("small", "", item.star >= item.stars ? "Ачивка закрыта полностью!" : "Новая звезда"));
+    box.append(body, el("span", "reward", `+${fmt(item.reward)}`));
+    box.classList.add("show");
+    haptic.notify("success");
+    if (item.star >= item.stars) confetti.burst(90);
+    clearTimeout(awards.timer);
+    awards.timer = setTimeout(nextAward, 2600);
+  }
+
+  async function loadAwards() {
+    try {
+      awards.data = await api("achievements");
+      renderAwards();
+    } catch (error) {
+      showError(error);
+    }
+  }
+
+  function awardCard(card) {
+    const node = el("div", "card award-card");
+    if (card.done) node.classList.add("done");
+    else if (card.stars > 0 || card.value > 0) node.classList.add("started");
+    node.append(el("span", "award-icon", card.emoji));
+    const body = el("div", "award-body");
+    body.append(el("b", "", card.title));
+    const goal = card.next_goal;
+    const line = el("small", "");
+    if (card.done) {
+      line.textContent = `${card.about} · всё собрано`;
+    } else {
+      line.append(document.createTextNode(`${card.about} · ${fmt(Math.min(card.value, goal))} из ${fmt(goal)} `));
+      line.append(el("span", "award-next", `→ +${fmt(card.next_reward)}`));
+    }
+    body.append(line);
+    const bar = el("div", "award-progress");
+    const fill = el("i", "");
+    fill.style.width = `${Math.min(100, Math.round((card.value / (goal || card.goals[2])) * 100))}%`;
+    bar.append(fill);
+    body.append(bar);
+    node.append(body, el("span", "award-stars", stars(card.stars)));
+    return node;
+  }
+
+  function questCard(card) {
+    const node = el("div", "card award-quest");
+    if (card.done) node.classList.add("done");
+    const head = el("div", "quest-head");
+    head.append(el("span", "award-icon", card.emoji), el("b", "", card.title),
+                el("span", "award-stars", stars(card.stars)));
+    node.append(head);
+    const sub = el("small", "", card.done
+      ? "Все концовки найдены"
+      : `Найдено ${card.value} из ${card.total}` + (card.next_reward ? ` · дальше +${fmt(card.next_reward)}` : ""));
+    sub.style.color = "var(--muted)";
+    node.append(sub);
+    const ends = el("div", "award-ends");
+    card.endings.forEach((ending) => {
+      const chip = el("span", `award-end${ending.found ? " found" : ""}`, ending.found ? ending.name : "???");
+      if (!ending.found) chip.title = `Найдёшь — получишь ${ending.reward}`;
+      ends.append(chip);
+    });
+    node.append(ends);
+    return node;
+  }
+
+  function renderAwards() {
+    const data = awards.data;
+    if (!data) return;
+    $("#awards-sub").textContent = `Закрыто ${data.done} из ${data.total} · заработано ${fmt(data.earned)} `
+      + plural(data.earned, COIN_FORMS);
+    $("#awards-bar-fill").style.width = `${Math.round((data.stars / data.max_stars) * 100)}%`;
+    const stat = $("#awards-stats");
+    stat.replaceChildren();
+    [["Звёзды", `${data.stars} / ${data.max_stars}`], ["Концовки", `${data.endings.found} / ${data.endings.total}`],
+     ["Место", data.leaders.findIndex((row) => row.me) >= 0
+       ? `${data.leaders.findIndex((row) => row.me) + 1}-е` : "—"]].forEach(([label, value]) => {
+      const box = el("div", "");
+      box.append(el("b", "", value), el("small", "", label));
+      stat.append(box);
+    });
+    const list = $("#awards-list");
+    list.replaceChildren();
+    data.sections.forEach((section) => {
+      list.append(el("h2", "section-title", `${section.emoji} ${section.title}`));
+      section.cards.forEach((card) => list.append(card.endings ? questCard(card) : awardCard(card)));
+    });
   }
 
   function showError(error) {
@@ -2308,6 +2519,7 @@ body.dead::after {
     if (screen === "work") loadWork();
     if (screen === "arcade") loadArcade();
     if (screen === "walk") loadWalk();
+    if (screen === "awards") loadAwards();
     if (screen === "bum") loadBum();
     if (screen in tables) pollTable(screen);
     if (screen === "bank") loadBank();
@@ -4162,6 +4374,429 @@ body.dead::after {
       <rect x="198" y="92" width="74" height="16" rx="4" fill="#5b4a3a"/>
       <rect x="198" y="108" width="74" height="30" rx="4" fill="#6b5a46"/>
       <circle cx="150" cy="86" r="4" fill="#f5c542" opacity="0.8"/>`,
+    market: `
+      <rect width="300" height="150" fill="#1a1e26"/>
+      <rect x="0" y="0" width="300" height="40" fill="#242a33"/>
+      <path d="M0 40 h300 v-14 h-300 z" fill="#8c3b34"/>
+      <path d="M0 26 h50 v14 h-50 z M100 26 h50 v14 h-50 z M200 26 h50 v14 h-50 z" fill="#e0d3b8"/>
+      <rect x="0" y="112" width="300" height="38" fill="#2a2f38"/>
+      <rect x="18" y="80" width="86" height="32" rx="3" fill="#6b4a2a"/>
+      <rect x="112" y="80" width="76" height="32" rx="3" fill="#7a5530"/>
+      <rect x="196" y="80" width="86" height="32" rx="3" fill="#6b4a2a"/>
+      <circle cx="34" cy="76" r="9" fill="#d94f3d"/><circle cx="54" cy="74" r="9" fill="#d94f3d"/>
+      <circle cx="74" cy="76" r="9" fill="#e07a2f"/><circle cx="92" cy="74" r="9" fill="#e07a2f"/>
+      <ellipse cx="140" cy="72" rx="16" ry="11" fill="#4f8a3b"/>
+      <ellipse cx="168" cy="74" rx="14" ry="10" fill="#6ba84a"/>
+      <circle cx="214" cy="74" r="10" fill="#f0c94b"/><circle cx="236" cy="72" r="10" fill="#f0c94b"/>
+      <circle cx="258" cy="74" r="10" fill="#c9d94b"/>
+      <rect x="128" y="112" width="44" height="6" fill="#4a5058"/>
+      <rect x="146" y="96" width="8" height="18" fill="#4a5058"/>`,
+    station: `
+      <rect width="300" height="150" fill="#10161e"/>
+      <rect x="0" y="0" width="300" height="86" fill="#182029"/>
+      <rect x="10" y="16" width="280" height="10" rx="3" fill="#39424d"/>
+      <rect x="24" y="26" width="8" height="60" fill="#39424d"/>
+      <rect x="268" y="26" width="8" height="60" fill="#39424d"/>
+      <rect x="104" y="30" width="92" height="26" rx="3" fill="#0d2a1c"/>
+      <rect x="112" y="38" width="30" height="4" fill="#4fd17a"/>
+      <rect x="112" y="46" width="52" height="4" fill="#4fd17a" opacity="0.7"/>
+      <rect x="0" y="86" width="300" height="12" fill="#2b323a"/>
+      <rect x="0" y="98" width="300" height="52" fill="#1d232b"/>
+      <rect x="0" y="104" width="300" height="4" fill="#39424d"/>
+      <rect x="36" y="112" width="76" height="8" rx="3" fill="#6b4a2a"/>
+      <rect x="40" y="120" width="6" height="18" fill="#3f3320"/>
+      <rect x="102" y="120" width="6" height="18" fill="#3f3320"/>
+      <circle cx="238" cy="60" r="7" fill="#f5c542" opacity="0.8"/>`,
+    train: `
+      <rect width="300" height="150" fill="#171b21"/>
+      <rect x="0" y="0" width="300" height="150" fill="#232a33"/>
+      <rect x="18" y="14" width="96" height="56" rx="6" fill="#0e1a26"/>
+      <rect x="24" y="20" width="84" height="44" rx="4" fill="#27506d"/>
+      <path d="M24 52 q22 -18 44 -6 q18 10 40 -4 v22 h-84 z" fill="#1c3a50"/>
+      <rect x="0" y="76" width="140" height="10" rx="3" fill="#7a5a3a"/>
+      <rect x="0" y="118" width="140" height="10" rx="3" fill="#7a5a3a"/>
+      <rect x="128" y="60" width="52" height="8" rx="3" fill="#8a6a44"/>
+      <rect x="150" y="68" width="8" height="30" fill="#5a4530"/>
+      <circle cx="140" cy="54" r="7" fill="#c0392b"/>
+      <rect x="196" y="20" width="96" height="110" rx="6" fill="#2b323b"/>
+      <rect x="204" y="30" width="80" height="10" rx="3" fill="#7a5a3a"/>
+      <rect x="204" y="72" width="80" height="10" rx="3" fill="#7a5a3a"/>
+      <rect x="204" y="114" width="80" height="10" rx="3" fill="#7a5a3a"/>
+      <rect x="210" y="40" width="30" height="8" rx="3" fill="#c9c2b6" opacity="0.6"/>`,
+    kitchen: `
+      <rect width="300" height="150" fill="#1d222a"/>
+      <rect x="0" y="0" width="300" height="88" fill="#26303a"/>
+      <rect x="182" y="14" width="88" height="58" rx="4" fill="#12222f"/>
+      <rect x="188" y="20" width="76" height="46" rx="3" fill="#1d3a4f"/>
+      <circle cx="252" cy="32" r="8" fill="#f5e7a3" opacity="0.5"/>
+      <rect x="0" y="88" width="300" height="10" fill="#6b5030"/>
+      <rect x="0" y="98" width="300" height="52" fill="#222932"/>
+      <rect x="18" y="60" width="60" height="28" rx="4" fill="#3d4750"/>
+      <circle cx="34" cy="74" r="7" fill="#5b6773"/><circle cx="62" cy="74" r="7" fill="#5b6773"/>
+      <path d="M96 88 v-20 h30 v20 z" fill="#8a9099"/>
+      <path d="M126 74 q12 -4 10 -12" stroke="#8a9099" stroke-width="4" fill="none"/>
+      <rect x="100" y="60" width="22" height="6" rx="2" fill="#6d747d"/>
+      <rect x="150" y="70" width="34" height="18" rx="3" fill="#c98a3b"/>
+      <ellipse cx="167" cy="70" rx="17" ry="5" fill="#e0a95a"/>`,
+    roof: `
+      <rect width="300" height="150" fill="#0c1018"/>
+      <circle cx="248" cy="28" r="14" fill="#e8e4d0" opacity="0.9"/>
+      <circle cx="40" cy="22" r="1.6" fill="#fff" opacity="0.8"/><circle cx="96" cy="16" r="1.4" fill="#fff" opacity="0.7"/>
+      <circle cx="150" cy="30" r="1.8" fill="#fff" opacity="0.8"/><circle cx="196" cy="14" r="1.3" fill="#fff" opacity="0.6"/>
+      <circle cx="70" cy="44" r="1.4" fill="#fff" opacity="0.5"/><circle cx="286" cy="52" r="1.5" fill="#fff" opacity="0.6"/>
+      <rect x="0" y="86" width="300" height="64" fill="#1a2029"/>
+      <rect x="0" y="78" width="300" height="10" fill="#2b323b"/>
+      <rect x="12" y="60" width="26" height="18" fill="#232a33"/>
+      <rect x="18" y="30" width="4" height="30" fill="#39424d"/>
+      <path d="M14 34 h12 M12 42 h16" stroke="#39424d" stroke-width="3"/>
+      <rect x="236" y="62" width="40" height="16" rx="3" fill="#232a33"/>
+      <rect x="0" y="96" width="300" height="54" fill="#12171e"/>
+      <rect x="20" y="106" width="16" height="12" fill="#f5c542" opacity="0.5"/>
+      <rect x="60" y="120" width="14" height="10" fill="#f5c542" opacity="0.35"/>
+      <rect x="120" y="108" width="16" height="12" fill="#f5c542" opacity="0.45"/>
+      <rect x="200" y="124" width="14" height="10" fill="#f5c542" opacity="0.3"/>`,
+    park: `
+      <rect width="300" height="150" fill="#131b18"/>
+      <rect x="0" y="0" width="300" height="76" fill="#1b2620"/>
+      <rect x="0" y="76" width="300" height="74" fill="#26361f"/>
+      <path d="M92 150 q58 -44 116 -74 l-24 -6 q-52 30 -108 80 z" fill="#3c4a36"/>
+      <path d="M46 96 l0 -34" stroke="#4a3a24" stroke-width="7"/>
+      <circle cx="46" cy="52" r="24" fill="#2f5c33"/><circle cx="28" cy="62" r="15" fill="#28502c"/>
+      <circle cx="66" cy="62" r="15" fill="#28502c"/>
+      <path d="M254 92 l0 -38" stroke="#4a3a24" stroke-width="8"/>
+      <circle cx="254" cy="44" r="26" fill="#2f5c33"/><circle cx="232" cy="56" r="16" fill="#28502c"/>
+      <rect x="118" y="86" width="72" height="8" rx="3" fill="#7a5a34"/>
+      <rect x="118" y="72" width="72" height="8" rx="3" fill="#7a5a34"/>
+      <rect x="122" y="94" width="6" height="16" fill="#3a3324"/>
+      <rect x="180" y="94" width="6" height="16" fill="#3a3324"/>
+      <rect x="216" y="40" width="5" height="56" fill="#39424d"/>
+      <circle cx="218" cy="36" r="8" fill="#f5e7a3" opacity="0.75"/>`,
+    forest: `
+      <rect width="300" height="150" fill="#101a14"/>
+      <rect x="0" y="0" width="300" height="150" fill="#16241a"/>
+      <path d="M0 0 h300 v40 q-40 18 -80 4 q-46 -16 -90 6 q-50 20 -130 -8 z" fill="#1d3322" opacity="0.9"/>
+      <rect x="28" y="20" width="14" height="110" fill="#3b2c1c"/>
+      <rect x="96" y="6" width="18" height="124" fill="#46351f"/>
+      <rect x="182" y="14" width="12" height="116" fill="#3b2c1c"/>
+      <rect x="250" y="0" width="20" height="130" fill="#46351f"/>
+      <circle cx="35" cy="26" r="26" fill="#234d2b" opacity="0.8"/>
+      <circle cx="105" cy="14" r="32" fill="#28582f" opacity="0.8"/>
+      <circle cx="188" cy="20" r="26" fill="#234d2b" opacity="0.8"/>
+      <circle cx="260" cy="8" r="30" fill="#28582f" opacity="0.8"/>
+      <rect x="0" y="128" width="300" height="22" fill="#2a3520"/>
+      <ellipse cx="140" cy="136" rx="10" ry="5" fill="#8a5a3a"/>
+      <rect x="138" y="136" width="4" height="8" fill="#d8cdb4"/>
+      <ellipse cx="166" cy="142" rx="8" ry="4" fill="#9a6a44"/>
+      <rect x="164" y="142" width="4" height="6" fill="#d8cdb4"/>`,
+    mountains: `
+      <rect width="300" height="150" fill="#16202c"/>
+      <rect x="0" y="0" width="300" height="94" fill="#1e2c3a"/>
+      <circle cx="252" cy="28" r="12" fill="#f0d79a" opacity="0.8"/>
+      <path d="M-10 94 L70 24 L130 94 z" fill="#2c3d4e"/>
+      <path d="M70 24 L94 52 L46 52 z" fill="#d8e2ea" opacity="0.9"/>
+      <path d="M90 94 L170 16 L250 94 z" fill="#35495c"/>
+      <path d="M170 16 L198 50 L142 50 z" fill="#e6eef4" opacity="0.9"/>
+      <path d="M210 94 L280 40 L320 94 z" fill="#2c3d4e"/>
+      <rect x="0" y="94" width="300" height="56" fill="#33442c"/>
+      <path d="M0 118 q70 -16 140 2 q70 18 160 -6" stroke="#6b5a3a" stroke-width="7" fill="none"/>
+      <circle cx="60" cy="128" r="6" fill="#d97b3d"/>
+      <circle cx="74" cy="132" r="5" fill="#e08a48"/>`,
+    cemetery: `
+      <rect width="300" height="150" fill="#0d1218"/>
+      <circle cx="56" cy="30" r="16" fill="#e8e4d0" opacity="0.85"/>
+      <rect x="0" y="96" width="300" height="54" fill="#1a2118"/>
+      <rect x="0" y="88" width="300" height="10" fill="#222b1f"/>
+      <rect x="36" y="58" width="6" height="38" fill="#4a5058"/>
+      <rect x="24" y="68" width="30" height="6" fill="#4a5058"/>
+      <rect x="96" y="64" width="26" height="32" rx="3" fill="#39424d"/>
+      <rect x="170" y="54" width="6" height="42" fill="#4a5058"/>
+      <rect x="158" y="64" width="30" height="6" fill="#4a5058"/>
+      <rect x="230" y="66" width="30" height="30" rx="3" fill="#39424d"/>
+      <path d="M210 40 l0 -20" stroke="#3a3228" stroke-width="5"/>
+      <path d="M200 26 q10 -10 20 0" stroke="#3a3228" stroke-width="4" fill="none"/>
+      <ellipse cx="210" cy="18" rx="9" ry="6" fill="#151a20"/>
+      <circle cx="214" cy="16" r="1.6" fill="#f5c542"/>`,
+    bathhouse: `
+      <rect width="300" height="150" fill="#1a1410"/>
+      <rect x="0" y="0" width="300" height="150" fill="#2a1f16"/>
+      <rect x="0" y="16" width="300" height="10" fill="#3b2c1f"/>
+      <rect x="0" y="34" width="300" height="10" fill="#3b2c1f"/>
+      <rect x="0" y="52" width="300" height="10" fill="#3b2c1f"/>
+      <rect x="0" y="96" width="300" height="12" fill="#4a3826"/>
+      <rect x="0" y="126" width="300" height="12" fill="#4a3826"/>
+      <rect x="196" y="62" width="76" height="64" rx="4" fill="#3a2a1c"/>
+      <rect x="208" y="86" width="52" height="34" rx="3" fill="#7a2f1c"/>
+      <path d="M216 116 q8 -18 16 0 q8 -16 16 0" fill="#e0902f" opacity="0.9"/>
+      <ellipse cx="90" cy="70" rx="30" ry="12" fill="#d8cdb4" opacity="0.12"/>
+      <ellipse cx="130" cy="52" rx="34" ry="12" fill="#d8cdb4" opacity="0.1"/>
+      <path d="M40 92 l10 -22" stroke="#3f5a2a" stroke-width="4"/>
+      <circle cx="48" cy="66" r="10" fill="#4a6b32"/>
+      <circle cx="40" cy="60" r="7" fill="#3f5a2a"/>`,
+    carwash: `
+      <rect width="300" height="150" fill="#141a20"/>
+      <rect x="0" y="0" width="300" height="96" fill="#1e262e"/>
+      <rect x="0" y="0" width="300" height="16" fill="#2b3640"/>
+      <rect x="10" y="16" width="10" height="80" fill="#2b3640"/>
+      <rect x="280" y="16" width="10" height="80" fill="#2b3640"/>
+      <rect x="0" y="96" width="300" height="54" fill="#232a31"/>
+      <path d="M72 92 q6 -28 34 -30 h56 q26 4 34 30 z" fill="#3d6b8a"/>
+      <rect x="86" y="70" width="56" height="18" rx="4" fill="#5b93b5" opacity="0.8"/>
+      <circle cx="98" cy="92" r="9" fill="#151a1f"/><circle cx="176" cy="92" r="9" fill="#151a1f"/>
+      <circle cx="90" cy="56" r="10" fill="#e8eef2" opacity="0.5"/>
+      <circle cx="112" cy="46" r="13" fill="#e8eef2" opacity="0.45"/>
+      <circle cx="140" cy="42" r="10" fill="#e8eef2" opacity="0.4"/>
+      <path d="M236 30 q-20 24 -44 34" stroke="#5b6773" stroke-width="4" fill="none"/>
+      <rect x="230" y="20" width="14" height="14" rx="3" fill="#8a9099"/>`,
+    shawarma: `
+      <rect width="300" height="150" fill="#181c22"/>
+      <rect x="0" y="94" width="300" height="56" fill="#222830"/>
+      <rect x="34" y="26" width="232" height="70" rx="5" fill="#2e3742"/>
+      <rect x="34" y="14" width="232" height="16" rx="4" fill="#c0392b"/>
+      <rect x="96" y="17" width="108" height="10" rx="3" fill="#f5e7c8"/>
+      <rect x="52" y="44" width="150" height="40" rx="3" fill="#121821"/>
+      <rect x="214" y="40" width="10" height="50" fill="#5b6773"/>
+      <path d="M212 46 q14 -4 14 14 q0 18 -14 16 z" fill="#8a4a24"/>
+      <path d="M212 60 q16 -2 15 12" stroke="#b5703a" stroke-width="3" fill="none"/>
+      <rect x="60" y="66" width="30" height="16" rx="3" fill="#d8cdb4"/>
+      <rect x="98" y="68" width="26" height="14" rx="3" fill="#c9bfa6"/>
+      <circle cx="150" cy="74" r="8" fill="#4f8a3b"/>
+      <circle cx="170" cy="72" r="7" fill="#d94f3d"/>
+      <rect x="0" y="90" width="300" height="6" fill="#39424d"/>`,
+    teahouse: `
+      <rect width="300" height="150" fill="#20160f"/>
+      <rect x="0" y="0" width="300" height="86" fill="#2e2016"/>
+      <rect x="16" y="10" width="88" height="66" rx="4" fill="#7a2f22"/>
+      <path d="M22 16 h76 v54 h-76 z" fill="#93402c"/>
+      <path d="M30 24 l60 38 M90 24 l-60 38" stroke="#d9a441" stroke-width="3" opacity="0.7"/>
+      <rect x="196" y="10" width="88" height="66" rx="4" fill="#5a3a22"/>
+      <path d="M204 18 h72 v50 h-72 z" fill="#6f4a2c"/>
+      <circle cx="240" cy="42" r="16" fill="#c98a3b" opacity="0.7"/>
+      <rect x="0" y="86" width="300" height="64" fill="#3b2a1c"/>
+      <rect x="40" y="96" width="220" height="14" rx="4" fill="#5a4026"/>
+      <rect x="70" y="110" width="30" height="20" rx="3" fill="#7a5a34"/>
+      <rect x="200" y="110" width="30" height="20" rx="3" fill="#7a5a34"/>
+      <ellipse cx="150" cy="104" rx="20" ry="8" fill="#d8cdb4"/>
+      <path d="M168 100 q10 -2 8 -10" stroke="#d8cdb4" stroke-width="3" fill="none"/>
+      <path d="M144 92 q4 -10 0 -16" stroke="#e8e4d0" stroke-width="2.5" fill="none" opacity="0.6"/>`,
+    police: `
+      <rect width="300" height="150" fill="#161b22"/>
+      <rect x="0" y="0" width="300" height="92" fill="#1f2730"/>
+      <rect x="18" y="14" width="76" height="58" rx="3" fill="#121820"/>
+      <path d="M26 14 v58 M42 14 v58 M58 14 v58 M74 14 v58" stroke="#39424d" stroke-width="4"/>
+      <rect x="120" y="18" width="70" height="46" rx="3" fill="#2b3640"/>
+      <rect x="128" y="26" width="54" height="6" fill="#4a5764"/>
+      <rect x="128" y="38" width="42" height="6" fill="#4a5764"/>
+      <rect x="0" y="92" width="300" height="58" fill="#252d36"/>
+      <rect x="150" y="92" width="130" height="10" rx="3" fill="#5a4530"/>
+      <rect x="164" y="102" width="8" height="34" fill="#4a3826"/>
+      <rect x="258" y="102" width="8" height="34" fill="#4a3826"/>
+      <rect x="176" y="72" width="34" height="20" rx="3" fill="#3d4750"/>
+      <circle cx="238" cy="80" r="10" fill="#f5c542" opacity="0.75"/>
+      <rect x="232" y="88" width="12" height="6" fill="#39424d"/>`,
+    hospital: `
+      <rect width="300" height="150" fill="#1b2126"/>
+      <rect x="0" y="0" width="300" height="96" fill="#e8eef0" opacity="0.08"/>
+      <rect x="0" y="0" width="300" height="96" fill="#243038"/>
+      <path d="M0 32 h300 M0 64 h300 M60 0 v96 M150 0 v96 M240 0 v96" stroke="#2c3a44" stroke-width="2"/>
+      <rect x="0" y="96" width="300" height="54" fill="#2a343d"/>
+      <rect x="40" y="74" width="150" height="16" rx="4" fill="#d8e2ea"/>
+      <rect x="40" y="90" width="150" height="10" rx="3" fill="#5b93b5"/>
+      <rect x="46" y="100" width="8" height="18" fill="#39424d"/>
+      <rect x="176" y="100" width="8" height="18" fill="#39424d"/>
+      <rect x="226" y="30" width="5" height="70" fill="#8a9099"/>
+      <rect x="216" y="28" width="26" height="6" rx="2" fill="#8a9099"/>
+      <rect x="220" y="36" width="18" height="26" rx="4" fill="#cfe3ef" opacity="0.85"/>
+      <path d="M229 62 v24" stroke="#cfe3ef" stroke-width="2"/>
+      <rect x="120" y="18" width="24" height="8" rx="2" fill="#c0392b"/>
+      <rect x="128" y="10" width="8" height="24" rx="2" fill="#c0392b"/>`,
+    school: `
+      <rect width="300" height="150" fill="#1d232a"/>
+      <rect x="0" y="0" width="300" height="94" fill="#28323c"/>
+      <rect x="24" y="12" width="180" height="62" rx="3" fill="#1e3a2c"/>
+      <rect x="24" y="12" width="180" height="62" rx="3" fill="none" stroke="#5a4530" stroke-width="4"/>
+      <path d="M40 34 h60 M40 46 h90 M40 58 h44" stroke="#d8e2ea" stroke-width="3" opacity="0.7"/>
+      <circle cx="244" cy="36" r="20" fill="#3d6b8a"/>
+      <path d="M228 30 q16 8 32 0 M244 16 v40" stroke="#2c4f66" stroke-width="2"/>
+      <rect x="240" y="56" width="8" height="12" fill="#5a4530"/>
+      <rect x="0" y="94" width="300" height="56" fill="#222932"/>
+      <rect x="20" y="100" width="110" height="10" rx="3" fill="#7a5a34"/>
+      <rect x="30" y="110" width="8" height="26" fill="#4a3826"/>
+      <rect x="112" y="110" width="8" height="26" fill="#4a3826"/>
+      <rect x="170" y="100" width="110" height="10" rx="3" fill="#7a5a34"/>
+      <rect x="180" y="110" width="8" height="26" fill="#4a3826"/>
+      <rect x="262" y="110" width="8" height="26" fill="#4a3826"/>`,
+    construction: `
+      <rect width="300" height="150" fill="#151b22"/>
+      <rect x="0" y="0" width="300" height="104" fill="#1e2630"/>
+      <rect x="170" y="10" width="110" height="94" fill="#2b3640"/>
+      <path d="M170 28 h110 M170 52 h110 M170 76 h110 M200 10 v94 M240 10 v94" stroke="#39424d" stroke-width="3"/>
+      <rect x="40" y="6" width="8" height="98" fill="#d9a441"/>
+      <rect x="40" y="18" width="96" height="7" fill="#d9a441"/>
+      <path d="M44 18 l0 -12 l40 12" stroke="#d9a441" stroke-width="4" fill="none"/>
+      <path d="M116 25 v26" stroke="#8a9099" stroke-width="2"/>
+      <rect x="104" y="51" width="26" height="18" rx="2" fill="#7a5a34"/>
+      <rect x="0" y="104" width="300" height="46" fill="#333b44"/>
+      <rect x="16" y="112" width="40" height="24" rx="2" fill="#6b4a2a"/>
+      <rect x="60" y="118" width="40" height="18" rx="2" fill="#7a5530"/>
+      <path d="M0 104 h300" stroke="#454f59" stroke-width="3"/>
+      <path d="M244 96 l14 8 l-14 8 z" fill="#d9a441" opacity="0.8"/>`,
+    dump: `
+      <rect width="300" height="150" fill="#181d17"/>
+      <rect x="0" y="0" width="300" height="80" fill="#242a22"/>
+      <rect x="0" y="80" width="300" height="70" fill="#2e3327"/>
+      <path d="M0 96 q40 -30 90 -8 q40 18 80 -6 q50 -30 130 6 v62 h-300 z" fill="#3a4030"/>
+      <rect x="0" y="58" width="300" height="6" fill="#4a5058"/>
+      <path d="M20 64 v16 M70 64 v14 M120 64 v16 M170 64 v14 M220 64 v16 M270 64 v14" stroke="#4a5058" stroke-width="3"/>
+      <rect x="40" y="104" width="30" height="22" rx="3" fill="#6b4a2a" transform="rotate(-8 55 115)"/>
+      <rect x="96" y="112" width="26" height="18" rx="3" fill="#5b6773" transform="rotate(6 109 121)"/>
+      <ellipse cx="180" cy="116" rx="18" ry="10" fill="#7a5530"/>
+      <rect x="216" y="106" width="34" height="24" rx="3" fill="#4a5764" transform="rotate(-5 233 118)"/>
+      <path d="M86 70 l10 -6 l10 6 z" fill="#d8e2ea" opacity="0.8"/>
+      <path d="M198 62 l8 -5 l8 5 z" fill="#d8e2ea" opacity="0.7"/>`,
+    club: `
+      <rect width="300" height="150" fill="#0f0b18"/>
+      <circle cx="150" cy="24" r="16" fill="#cfd6e6"/>
+      <path d="M134 24 h32 M150 8 v32 M139 13 l22 22 M161 13 l-22 22" stroke="#6b7590" stroke-width="2"/>
+      <path d="M150 40 L60 150 h40 z" fill="#8a3ad9" opacity="0.28"/>
+      <path d="M150 40 L150 150 h44 z" fill="#3ad9c4" opacity="0.22"/>
+      <path d="M150 40 L250 150 h-40 z" fill="#d93a8a" opacity="0.25"/>
+      <rect x="0" y="118" width="300" height="32" fill="#191428"/>
+      <circle cx="54" cy="108" r="10" fill="#0c0916"/>
+      <rect x="46" y="118" width="18" height="24" fill="#0c0916"/>
+      <circle cx="110" cy="102" r="11" fill="#0c0916"/>
+      <rect x="100" y="113" width="20" height="30" fill="#0c0916"/>
+      <circle cx="196" cy="104" r="10" fill="#0c0916"/>
+      <rect x="186" y="114" width="20" height="28" fill="#0c0916"/>
+      <circle cx="252" cy="108" r="11" fill="#0c0916"/>
+      <rect x="242" y="118" width="20" height="26" fill="#0c0916"/>`,
+    field: `
+      <rect width="300" height="150" fill="#1c2430"/>
+      <rect x="0" y="0" width="300" height="80" fill="#26384a"/>
+      <circle cx="238" cy="46" r="18" fill="#f0c06a" opacity="0.85"/>
+      <rect x="0" y="80" width="300" height="70" fill="#5c5a2c"/>
+      <path d="M0 80 q60 -12 120 0 q70 12 180 -4 v10 q-110 18 -180 4 q-60 -12 -120 2 z" fill="#6d6a32"/>
+      <path d="M0 108 h300" stroke="#4e4c26" stroke-width="3" opacity="0.6"/>
+      <rect x="44" y="34" width="5" height="46" fill="#4a5058"/>
+      <path d="M38 40 h18" stroke="#4a5058" stroke-width="3"/>
+      <rect x="196" y="40" width="5" height="40" fill="#4a5058"/>
+      <path d="M190 46 h18" stroke="#4a5058" stroke-width="3"/>
+      <path d="M0 96 h300" stroke="#403f20" stroke-width="2" opacity="0.5"/>
+      <path d="M20 128 l4 -14 M40 132 l4 -16 M64 126 l3 -12 M240 130 l4 -14 M262 126 l3 -12"
+            stroke="#8a8440" stroke-width="3" opacity="0.8"/>`,
+    elevator: `
+      <rect width="300" height="150" fill="#1b2027"/>
+      <rect x="20" y="0" width="260" height="150" fill="#2b333c"/>
+      <rect x="20" y="0" width="260" height="10" fill="#39424d"/>
+      <rect x="148" y="10" width="6" height="140" fill="#1f262e"/>
+      <rect x="30" y="18" width="112" height="124" rx="3" fill="#333c46"/>
+      <rect x="160" y="18" width="112" height="124" rx="3" fill="#333c46"/>
+      <rect x="36" y="24" width="100" height="40" rx="2" fill="#3b4551" opacity="0.7"/>
+      <rect x="166" y="24" width="100" height="40" rx="2" fill="#3b4551" opacity="0.7"/>
+      <rect x="0" y="0" width="20" height="150" fill="#232a32"/>
+      <rect x="280" y="0" width="20" height="150" fill="#232a32"/>
+      <rect x="286" y="40" width="10" height="56" rx="3" fill="#39424d"/>
+      <circle cx="291" cy="50" r="3" fill="#f5c542"/>
+      <circle cx="291" cy="62" r="3" fill="#5b6773"/>
+      <circle cx="291" cy="74" r="3" fill="#5b6773"/>
+      <circle cx="291" cy="86" r="3" fill="#c0392b"/>
+      <rect x="60" y="4" width="40" height="6" rx="2" fill="#f5c542" opacity="0.5"/>`,
+    balcony: `
+      <rect width="300" height="150" fill="#131a22"/>
+      <rect x="0" y="0" width="300" height="86" fill="#1f2c3a"/>
+      <rect x="0" y="40" width="300" height="46" fill="#27384a" opacity="0.7"/>
+      <rect x="20" y="52" width="40" height="34" fill="#2e4256"/>
+      <rect x="86" y="46" width="34" height="40" fill="#2a3d50"/>
+      <rect x="220" y="50" width="46" height="36" fill="#2e4256"/>
+      <rect x="26" y="60" width="12" height="10" fill="#f5c542" opacity="0.45"/>
+      <rect x="232" y="58" width="12" height="10" fill="#f5c542" opacity="0.4"/>
+      <rect x="0" y="86" width="300" height="10" fill="#4a5058"/>
+      <rect x="0" y="96" width="300" height="54" fill="#2b323a"/>
+      <path d="M12 96 v-30 M52 96 v-30 M92 96 v-30 M132 96 v-30 M172 96 v-30 M212 96 v-30 M252 96 v-30 M288 96 v-30"
+            stroke="#5b6773" stroke-width="4"/>
+      <rect x="0" y="62" width="300" height="6" rx="2" fill="#6d747d"/>
+      <rect x="196" y="104" width="30" height="34" rx="3" fill="#8a9a5a" opacity="0.85"/>
+      <rect x="232" y="110" width="26" height="28" rx="3" fill="#a5794a" opacity="0.85"/>
+      <rect x="196" y="100" width="30" height="6" rx="2" fill="#c9c2b6"/>
+      <rect x="232" y="106" width="26" height="6" rx="2" fill="#c9c2b6"/>`,
+    taxi: `
+      <rect width="300" height="150" fill="#10151c"/>
+      <rect x="0" y="0" width="300" height="96" fill="#16202c"/>
+      <rect x="18" y="10" width="264" height="74" rx="8" fill="#0b131c"/>
+      <rect x="26" y="18" width="248" height="58" rx="6" fill="#1b3247"/>
+      <circle cx="70" cy="42" r="5" fill="#f5c542" opacity="0.7"/>
+      <circle cx="104" cy="54" r="4" fill="#f5c542" opacity="0.5"/>
+      <circle cx="214" cy="40" r="6" fill="#d94f3d" opacity="0.6"/>
+      <circle cx="246" cy="58" r="4" fill="#f5c542" opacity="0.45"/>
+      <rect x="0" y="96" width="300" height="54" fill="#242c35"/>
+      <rect x="0" y="92" width="300" height="8" fill="#39424d"/>
+      <circle cx="96" cy="126" r="26" fill="none" stroke="#4a5058" stroke-width="7"/>
+      <path d="M76 120 h40 M96 126 v20" stroke="#4a5058" stroke-width="5"/>
+      <rect x="188" y="104" width="86" height="30" rx="4" fill="#2f3842"/>
+      <rect x="196" y="112" width="30" height="8" rx="2" fill="#4fd17a" opacity="0.8"/>
+      <rect x="140" y="4" width="34" height="14" rx="3" fill="#2b3640"/>`,
+    lake: `
+      <rect width="300" height="150" fill="#16202a"/>
+      <rect x="0" y="0" width="300" height="70" fill="#22394e"/>
+      <path d="M0 70 L60 34 L110 70 z" fill="#2c4256" opacity="0.9"/>
+      <path d="M90 70 L160 26 L230 70 z" fill="#32495e" opacity="0.9"/>
+      <circle cx="252" cy="26" r="12" fill="#f0e2b0" opacity="0.8"/>
+      <rect x="0" y="70" width="300" height="80" fill="#1d3a4e"/>
+      <path d="M0 86 h300 M0 100 h300 M0 116 h300 M0 132 h300" stroke="#27506d" stroke-width="3" opacity="0.6"/>
+      <path d="M96 106 q34 12 70 0 q-6 14 -35 14 q-29 0 -35 -14 z" fill="#5a4530"/>
+      <rect x="126" y="92" width="6" height="16" fill="#6b5030"/>
+      <path d="M132 96 l26 -14" stroke="#8a6a44" stroke-width="3"/>
+      <path d="M18 76 v-16 M26 78 v-20 M34 76 v-14 M262 78 v-18 M270 76 v-14"
+            stroke="#3f5a2a" stroke-width="3"/>
+      <circle cx="238" cy="112" r="3" fill="#d8cdb4" opacity="0.7"/>`,
+    snow: `
+      <rect width="300" height="150" fill="#18222e"/>
+      <rect x="0" y="0" width="300" height="94" fill="#223044"/>
+      <rect x="12" y="20" width="70" height="74" fill="#2a3c52"/>
+      <rect x="22" y="30" width="16" height="14" fill="#f5c542" opacity="0.4"/>
+      <rect x="52" y="52" width="16" height="14" fill="#f5c542" opacity="0.35"/>
+      <rect x="216" y="14" width="74" height="80" fill="#2a3c52"/>
+      <rect x="228" y="26" width="16" height="14" fill="#f5c542" opacity="0.4"/>
+      <rect x="12" y="14" width="70" height="8" rx="3" fill="#e8eef4" opacity="0.9"/>
+      <rect x="216" y="8" width="74" height="8" rx="3" fill="#e8eef4" opacity="0.9"/>
+      <rect x="0" y="94" width="300" height="56" fill="#dfe8f0"/>
+      <path d="M0 94 q60 -14 120 0 q70 16 180 -6 v62 h-300 z" fill="#eef4f8"/>
+      <rect x="146" y="30" width="5" height="64" fill="#39424d"/>
+      <circle cx="148" cy="26" r="9" fill="#f5e7a3" opacity="0.8"/>
+      <circle cx="60" cy="40" r="2" fill="#fff" opacity="0.8"/><circle cx="110" cy="24" r="2" fill="#fff" opacity="0.7"/>
+      <circle cx="186" cy="52" r="2" fill="#fff" opacity="0.75"/><circle cx="252" cy="66" r="2" fill="#fff" opacity="0.6"/>
+      <circle cx="30" cy="70" r="2" fill="#fff" opacity="0.65"/><circle cx="208" cy="34" r="2" fill="#fff" opacity="0.7"/>`,
+    bridge: `
+      <rect width="300" height="150" fill="#131b26"/>
+      <rect x="0" y="0" width="300" height="86" fill="#1b2634"/>
+      <path d="M0 86 q150 -70 300 0" stroke="#4a5764" stroke-width="5" fill="none"/>
+      <path d="M40 66 v20 M80 54 v32 M120 46 v40 M160 44 v42 M200 48 v38 M240 58 v28 M280 72 v14"
+            stroke="#3b4653" stroke-width="3"/>
+      <rect x="0" y="86" width="300" height="12" fill="#39424d"/>
+      <rect x="0" y="98" width="300" height="52" fill="#20262e"/>
+      <path d="M0 124 h300" stroke="#f5c542" stroke-width="2" stroke-dasharray="14 12" opacity="0.5"/>
+      <rect x="26" y="102" width="56" height="18" rx="4" fill="#3d6b8a"/>
+      <rect x="36" y="96" width="34" height="10" rx="3" fill="#5b93b5"/>
+      <circle cx="40" cy="120" r="5" fill="#12171d"/><circle cx="70" cy="120" r="5" fill="#12171d"/>
+      <rect x="150" y="104" width="64" height="20" rx="4" fill="#8c3b34"/>
+      <rect x="162" y="98" width="38" height="10" rx="3" fill="#b5544a"/>
+      <circle cx="166" cy="124" r="5" fill="#12171d"/><circle cx="202" cy="124" r="5" fill="#12171d"/>
+      <circle cx="252" cy="112" r="4" fill="#d94f3d" opacity="0.8"/>`,
+    pitch: `
+      <rect width="300" height="150" fill="#1a2118"/>
+      <rect x="0" y="0" width="300" height="60" fill="#232b20"/>
+      <rect x="0" y="60" width="300" height="90" fill="#2f3d28"/>
+      <path d="M0 60 h300" stroke="#48583c" stroke-width="3"/>
+      <path d="M150 60 v90" stroke="#6d7a5e" stroke-width="2" opacity="0.5"/>
+      <circle cx="150" cy="104" r="26" fill="none" stroke="#6d7a5e" stroke-width="2" opacity="0.5"/>
+      <rect x="10" y="66" width="10" height="44" fill="#d8dee4"/>
+      <rect x="10" y="66" width="46" height="6" fill="#d8dee4"/>
+      <path d="M20 72 h30 v34 h-30 z" fill="#8a9099" opacity="0.25"/>
+      <rect x="280" y="66" width="10" height="44" fill="#d8dee4"/>
+      <rect x="244" y="66" width="46" height="6" fill="#d8dee4"/>
+      <path d="M250 72 h30 v34 h-30 z" fill="#8a9099" opacity="0.25"/>
+      <circle cx="176" cy="122" r="9" fill="#e8eef0"/>
+      <path d="M170 118 l6 -4 l6 4 l-3 8 h-6 z" fill="#2b3239"/>
+      <rect x="0" y="40" width="300" height="6" fill="#39424d" opacity="0.6"/>`,
   };
 
   const walk = { data: null, sending: false };
@@ -4205,21 +4840,31 @@ body.dead::after {
       button.disabled = data.cooldown > 0 || walk.sending;
       button.addEventListener("click", walkStart);
       choices.append(button);
-      $("#walk-hint").textContent = "Прогулка раз в 15 минут. Иногда с неё приносят деньги, иногда — опыт.";
+      $("#walk-hint").textContent = data.endings
+        ? `Историй во дворе: ${data.stories}. Концовок найдено ${data.endings.found} из ${data.endings.total}.`
+        : "Свежий воздух и случайная история.";
       return;
     }
     drawScene(node.scene);
-    $("#walk-title").textContent = node.title;
+    $("#walk-title").textContent = `${node.emoji || "📖"} ${node.title}`;
     $("#walk-text").textContent = node.text;
     if (node.end) {
       pay.hidden = false;
       pay.className = `walk-pay ${node.pay > 0 ? "win" : node.pay < 0 ? "lose" : "zero"}`;
-      pay.textContent = node.pay ? signedCoins(node.pay) : "Ни туда, ни сюда: 0";
+      pay.replaceChildren(document.createTextNode(node.pay ? signedCoins(node.pay) : "Ни туда, ни сюда: 0"));
+      const found = data.ending;
+      if (found) {
+        const bonus = el("div", "");
+        bonus.style.cssText = "font-size:13px;font-weight:700;color:var(--gold-2);margin-top:4px";
+        bonus.textContent = `📖 Новая концовка «${found.name}» +${fmt(found.reward)}`;
+        pay.append(bonus);
+      }
       const home = el("button", "walk-choice", "🏠 Вернуться домой");
       home.type = "button";
       home.addEventListener("click", () => loadWalk());
       choices.append(home);
-      $("#walk-hint").textContent = "Следующая прогулка — через 15 минут.";
+      $("#walk-hint").textContent = `Концовка «${node.name}» · в этой истории открыто `
+        + `${node.found} из ${node.total}. Следующая прогулка — через ${waitText(data.cooldown || 1200)}.`;
       return;
     }
     pay.hidden = true;
@@ -4231,7 +4876,9 @@ body.dead::after {
       button.addEventListener("click", () => walkGo(choice.i));
       choices.append(button);
     });
-    $("#walk-hint").textContent = "Выбор за тобой. Обратной дороги нет.";
+    $("#walk-hint").textContent = node.steps
+      ? `Шаг ${node.steps} · концовок в этой истории открыто ${node.found} из ${node.total}`
+      : "Выбор за тобой. Обратной дороги нет.";
   }
 
   async function walkStart() {

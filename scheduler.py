@@ -3,11 +3,13 @@
 import asyncio
 import logging
 import random
+import time
 from datetime import datetime
 
 from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 
 import casino_arcade as arcade
+import casino_walk as walk
 import limits
 import texts
 from config import ARCADE_PRIZE_HOUR, LOCAL_TZ
@@ -59,6 +61,7 @@ async def arcade_prize_loop():
     while True:
         try:
             await pay_arcade_records_if_needed()
+            db.prune_walks(int(time.time()) - walk.WALK_TTL_SECONDS)  # брошенные прогулки не копятся
         except Exception:
             logger.exception("Премия рекордсменам не выдалась")
         await asyncio.sleep(300)

@@ -175,6 +175,7 @@ def claim_bonus(chat_id: int, user_id: int) -> dict:
     balance = db.claim_bonus(chat_id, user_id, local_today(), amount)
     if balance is None:
         raise GameError(texts.BONUS_ALREADY, 409)
+    db.bump_counter(chat_id, user_id, "bonus")
     return {"amount": amount, "source": source, "balance": balance}
 
 

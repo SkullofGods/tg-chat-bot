@@ -95,6 +95,7 @@ def submit(chat_id: int, user_id: int, key, score) -> dict:
     if isinstance(score, bool) or not isinstance(score, int) or not 0 <= score <= game["max"]:
         raise GameError("Странный счёт")
     engine.throttle(chat_id, user_id)
+    db.bump_counter(chat_id, user_id, "arcade:plays")
     was = db.arcade_record(chat_id, key)
     best = db.save_arcade_score(chat_id, key, user_id, score)
     beaten = score > 0 and (was is None or score > was["score"]) and (was is None or was["user_id"] != user_id)
@@ -118,6 +119,7 @@ def pay_records(chat_id: int) -> list[str]:
         if holder is None:
             continue
         db.add_money(chat_id, holder["user_id"], DAILY_PRIZE)
+        db.bump_counter(chat_id, holder["user_id"], "arcade:prize")
         name = members.display_name(holder["user_id"])
         lines.append(f"{game['emoji']} <b>{game['title']}</b> — {name}: "
                      f"{count_with_word(holder['score'], game['units'])}")
