@@ -3021,6 +3021,17 @@ body.dead::after {
   const MP_RANKS = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "В", "Д", "К", "Т"];
   const CHESS_GLYPHS = ["", "♟", "♞", "♝", "♜", "♛", "♚"];   // белых и чёрных красим стилем, не символом
 
+  function paintPicks(board, steps, cellOf) {
+    // Подсветка выбранной фигуры и её ходов: трогаем только классы, доска остаётся на месте
+    const from = multi.pickFrom;
+    const targets = new Set(steps.filter((step) => step.from === from).map((step) => step.to));
+    [...board.children].forEach((box, index) => {
+      const cell = cellOf(index);
+      box.classList.toggle("on", cell === from && from !== null);
+      box.classList.toggle("hint", targets.has(cell));
+    });
+  }
+
   function boardCell(index, me, side = 8) {
     // свои фигуры всегда снизу: первый игрок смотрит на доску «перевёрнутой», второй — как есть
     const row = Math.floor(index / side);
@@ -3199,6 +3210,15 @@ body.dead::after {
     }
   }
 
+  function tableSign(view) {
+    // Всё, кроме секундных счётчиков: их обновляет тикалка, ради них перерисовывать нечего
+    const copy = { ...view, turn_left: 0, waits: 0, balance: 0 };
+    if (copy.play && typeof copy.play.left === "number") {
+      copy.play = { ...copy.play, left: Math.round(copy.play.left / 5) };
+    }
+    return JSON.stringify(copy);
+  }
+
   function applyMpTable(view) {
     const before = multi.view;
     if (view.my_turn && (!before || !before.my_turn) && view.status === "playing") audio.play("turn");
@@ -3209,7 +3229,12 @@ body.dead::after {
     multi.view = view;
     multi.polled = Date.now();
     if (typeof view.balance === "number") setBalance(view.balance, state.loaded);
+    const sign = tableSign(view);
+    if (sign === multi.sign && $("#multi-body").firstElementChild) return;   // ничего не поменялось
+    multi.sign = sign;
+    const keep = window.scrollY;
     renderMpTable();
+    if (Math.abs(window.scrollY - keep) > 2) window.scrollTo(0, keep);       // не выкидывать со страницы
   }
 
   async function multiMove(action) {
@@ -3268,6 +3293,7 @@ body.dead::after {
 
   function renderMpTable() {
     const view = multi.view;
+    multi.sign = view ? tableSign(view) : null;
     const root = $("#multi-body");
     if (!view) return;
     root.replaceChildren();
@@ -3478,9 +3504,11 @@ body.dead::after {
           box.append(man);
         }
         box.addEventListener("click", () => {
-          if (targets.has(cell)) { multiMove({ type: "step", from, to: cell }); return; }
+          const picked = multi.pickFrom;
+          const canGo = steps.some((step) => step.from === picked && step.to === cell);
+          if (canGo) { multiMove({ type: "step", from: picked, to: cell }); return; }
           multi.pickFrom = sources.has(cell) ? cell : null;
-          renderMpTable();
+          paintPicks(board, steps, (index) => boardCell(index, game.me, game.side));
         });
         board.append(box);
       }
@@ -3506,9 +3534,11 @@ body.dead::after {
         if (cell === from) box.classList.add("on");
         if (targets.has(cell)) box.classList.add("hint");
         box.addEventListener("click", () => {
-          if (targets.has(cell)) { multiMove({ type: "move", from, to: cell, promo: "q" }); return; }
+          const picked = multi.pickFrom;
+          const canGo = steps.some((step) => step.from === picked && step.to === cell);
+          if (canGo) { multiMove({ type: "move", from: picked, to: cell, promo: "q" }); return; }
           multi.pickFrom = sources.has(cell) ? cell : null;
-          renderMpTable();
+          paintPicks(board, steps, (index) => boardCell(index, game.me));
         });
         board.append(box);
       }
@@ -3553,15 +3583,19 @@ body.dead::after {
       const targets = new Set(steps.filter((step) => step.from === from).map((step) => step.to));
       const sources = new Set(steps.map((step) => step.from));
       const board = el("div", "bg-board");
+      const order = [];
       const drawPoint = (point) => {
+        order.push(point);
         const count = game.board[point];
         const box = el("div", `bg-point${count > 0 ? " p0" : count < 0 ? " p1" : ""}`
           + `${point === from ? " on" : ""}${targets.has(point) ? " hint" : ""}`);
         box.append(el("b", "", `${point + 1}`), document.createTextNode(count ? `${Math.abs(count)}●` : ""));
         box.addEventListener("click", () => {
-          if (targets.has(point)) { multiMove({ type: "move", from, to: point }); return; }
+          const picked = multi.pickFrom;
+          const canGo = steps.some((step) => step.from === picked && step.to === point);
+          if (canGo) { multiMove({ type: "move", from: picked, to: point }); return; }
           multi.pickFrom = sources.has(point) ? point : null;
-          renderMpTable();
+          paintPicks(board, steps, (index) => order[index]);
         });
         return box;
       };
@@ -4376,6 +4410,13 @@ body.dead::after {
 
   function renderTableBets(list, view, game) {
     const hideResults = unrevealed(game, view);
+    // Стол опрашивается раз в секунду. Если пересобирать список каждый раз, страница дёргается
+    // под пальцем — поэтому сначала сверяем, изменилось ли в нём хоть что-то.
+    const sign = JSON.stringify([hideResults,
+      view.bets.map((bet) => [bet.name, bet.label, bet.amount, bet.payout, bet.me]),
+      view.next_bets.map((bet) => [bet.name, bet.label, bet.amount, bet.me])]);
+    if (list.dataset.sign === sign) return;
+    list.dataset.sign = sign;
     list.replaceChildren();
     const addRows = (bets, withResults) => bets.forEach((bet) => {
       const row = el("li", bet.me ? "me" : "");
