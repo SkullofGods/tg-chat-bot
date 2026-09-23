@@ -284,7 +284,8 @@ async def on_duel_button(callback: CallbackQuery):
         return
     if action == "duel_no":
         await callback.answer("Ну и ладно")
-        await _edit_duel(callback, chat_id, random.choice(texts.DUEL_DECLINED).format(target=name_b))
+        await _edit_duel(callback, chat_id,
+                         random.choice(texts.DUEL_DECLINED).format(target=name_b, challenger=name_a))
         return
     if not db.take_bet(chat_id, target, bet):
         await callback.answer("Тебе не хватает таджикоинов на эту дуэль 💸", show_alert=True)

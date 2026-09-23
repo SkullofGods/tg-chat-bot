@@ -1555,6 +1555,12 @@ class Database:
         ).fetchall()
         return {row["skin"]: {"got_at": row["got_at"], "worn": bool(row["worn"])} for row in rows}
 
+    def worn_bum_skin(self, chat_id: int, user_id: int) -> Optional[str]:
+        row = self.conn.execute(
+            "SELECT skin FROM bum_skins WHERE chat_id = ? AND user_id = ? AND worn = 1", (chat_id, user_id)
+        ).fetchone()
+        return row["skin"] if row else None
+
     def add_bum_skin(self, chat_id: int, user_id: int, skin: str, now: int) -> bool:
         """Открывает образ. False — он уже был (например, его выдали из соседней вкладки)."""
         with self._tx() as c:

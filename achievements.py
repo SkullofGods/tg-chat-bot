@@ -207,6 +207,13 @@ def _snapshot(chat_id: int, user_id: int) -> dict:
     }
 
 
+def _stars(snap: dict, key: str, goals, value: int) -> int:
+    """Сколько звёзд у карточки. Взятую ступень не отбираем: деньги на руках тают, цели у ачивок растут,
+    когда добавляются новые работы и истории, — а заслуженная звезда остаётся навсегда."""
+    reached = sum(1 for goal in goals if value >= goal)
+    return max(reached, min(len(goals), snap["earned"].get(key, 0)))
+
+
 def _cards(snap: dict) -> list[dict]:
     """Все ачивки с посчитанным прогрессом: обычные и по одной на каждую историю."""
     cards = []
@@ -218,14 +225,14 @@ def _cards(snap: dict) -> list[dict]:
             value = 0
         cards.append({"key": key, "section": section, "emoji": emoji, "title": title, "about": about,
                       "goals": list(goals), "rewards": list(rewards), "value": value,
-                      "stars": sum(1 for goal in goals if value >= goal)})
+                      "stars": _stars(snap, key, goals, value)})
     for quest_key, quest in quests.QUESTS.items():
         goals = _quest_goals(quest_key)
         value = snap["found"].get(quest_key, 0)
         cards.append({"key": f"quest:{quest_key}", "section": "quests", "emoji": quest.get("emoji", "📖"),
                       "title": quest["title"], "about": "Открыть все концовки истории",
                       "goals": list(goals), "rewards": list(QUEST_REWARDS), "value": value,
-                      "stars": sum(1 for goal in goals if value >= goal), "quest": quest_key})
+                      "stars": _stars(snap, f"quest:{quest_key}", goals, value), "quest": quest_key})
     return cards
 
 

@@ -20,3 +20,6 @@ result.json
 ChatExport*/
 фанфик*.txt
 history_imported.stamp
+
+# настройки Claude Code и временные конфиги dev-сервера — не для прода
+.claude/
