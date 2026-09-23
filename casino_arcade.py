@@ -110,6 +110,12 @@ GAMES = {
         "about": "Сбивай пришельцев, пока не выстрелили в прохожих. Плита даёт ножное зрение.",
         "max": 3000,
     },
+    # server — счёт ведёт сервер (casino_quote), из приложения его прислать нельзя
+    "quote": {
+        "title": "Кто это сказал?", "emoji": "🗣", "units": ("фраза", "фразы", "фраз"),
+        "about": "Настоящая фраза из беседы и четыре человека — угадай автора. Ошибся — серия кончилась.",
+        "max": 1000, "server": True,
+    },
 }
 
 
@@ -157,9 +163,17 @@ def submit(chat_id: int, user_id: int, key, score) -> dict:
     game = GAMES.get(key) if isinstance(key, str) else None
     if game is None:
         raise GameError("Такой игры нет", 404)
+    if game.get("server"):
+        raise GameError("Этот рекорд считает сам казан", 403)
     if isinstance(score, bool) or not isinstance(score, int) or not 0 <= score <= game["max"]:
         raise GameError("Странный счёт")
     engine.throttle(chat_id, user_id)
+    return record(chat_id, user_id, key, score)
+
+
+def record(chat_id: int, user_id: int, key: str, score: int) -> dict:
+    """Записывает результат партии: личный рекорд, рекорд беседы, лента."""
+    game = GAMES[key]
     db.bump_counter(chat_id, user_id, "arcade:plays")
     was = db.arcade_record(chat_id, key)
     best = db.save_arcade_score(chat_id, key, user_id, score)

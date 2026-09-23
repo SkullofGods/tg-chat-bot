@@ -2649,6 +2649,166 @@ body.dead::after {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
 }
 
+/* ─── Золотой казан ─── */
+.game-tile.crash { background: linear-gradient(145deg, #1f4f8f, #0b1a33); }
+.game-tile.mines { background: linear-gradient(145deg, #3d4a5a, #12171d); }
+.jackpot-line {
+  margin: -4px 0 10px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 800;
+  color: #ffe9a6;
+  text-shadow: 0 0 8px rgba(255, 179, 0, 0.6);
+}
+.jackpot-line b { font-size: 16px; color: var(--gold-2); font-variant-numeric: tabular-nums; }
+.machine-message.pot { color: var(--gold-2); font-size: 20px; animation: pop-text 0.5s ease-out; }
+
+/* ─── Мины ─── */
+.mines-head { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
+.mines-mult { padding: 8px 12px; border-radius: 14px; background: var(--card); border: 1px solid var(--line); text-align: center; }
+.mines-mult small { display: block; color: var(--muted); font-size: 12px; }
+.mines-mult b { font-size: 22px; color: var(--gold); font-variant-numeric: tabular-nums; }
+.mines-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; max-width: 290px; margin: 10px auto 0; }
+.mines-cell {
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  font-size: 26px;
+  background: linear-gradient(180deg, #46546a, #2b3440);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.3);
+}
+.mines-cell:disabled { opacity: 1; }
+.mines-cell.gem { background: linear-gradient(180deg, #1f6b4a, #124030); animation: pop-in 0.2s ease-out; }
+.mines-cell.mine { background: #3a1f24; }
+.mines-cell.boom { background: #a32727; animation: pop-in 0.25s ease-out; }
+.mines-cell.ghost { opacity: 0.4; }
+.mines-message { min-height: 24px; margin-top: 10px; text-align: center; font-weight: 800; }
+.mines-message.win { color: var(--win); }
+.mines-message.lose { color: #ff8a80; }
+.mines-count { grid-template-columns: repeat(3, 1fr); }
+.locked { pointer-events: none; opacity: 0.45; }
+/* «Забрать» и «Выпрыгнуть» нельзя прятать под нижнее меню — прилипают над ним на любом экране */
+.screen > #mines-play, .screen > #crash-play {
+  position: sticky;
+  bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 8px);
+  z-index: 6;
+}
+
+/* ─── Толян Эйр ─── */
+.crash-sky {
+  position: relative;
+  height: 230px;
+  margin-top: 4px;
+  border-radius: 20px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #0c1d3a 0%, #1d3f6e 60%, #47698f 100%);
+  border: 2px solid #2d4f7a;
+}
+.crash-sky::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 12px;
+  background: repeating-linear-gradient(90deg, #d9d9d9 0 14px, #20262c 14px 30px) center / 100% 2px no-repeat, #20262c;
+}
+.crash-graph { position: absolute; inset: 0; width: 100%; height: 100%; }
+.crash-plane {
+  position: absolute;
+  left: 4%;
+  top: 88%;
+  width: 86px;
+  margin: -16px 0 0 -12px;
+  transform: rotate(-14deg);
+  transform-origin: 12px 16px;
+  pointer-events: none;
+}
+.crash-plane svg { display: block; width: 86px; height: auto; }
+.crash-plane.boom svg { display: none; }
+.crash-plane.boom::after { content: "💥"; display: block; font-size: 40px; transform: rotate(14deg); }
+.crash-mult {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 4%;
+  text-align: center;
+  font-size: 46px;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 4px 18px rgba(0, 0, 0, 0.55);
+  font-variant-numeric: tabular-nums;
+}
+.crash-mult.crashed { color: #ff6b6b; }
+.crash-mult.cashed { color: var(--win); }
+.crash-status { position: absolute; left: 12px; right: 12px; top: 29%; text-align: center; font-weight: 700; font-size: 14px; color: rgba(255, 255, 255, 0.9); }
+.crash-history { flex-wrap: wrap; }
+.crash-history span { width: auto; min-width: 44px; padding: 0 7px; border-radius: 999px; font-size: 12px; }
+.crash-history .low { background: #7a2424; }
+.crash-history .mid { background: #1f6b4a; }
+.crash-history .high { background: #b8860b; color: #1b1200; }
+.crash-auto { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px; font-size: 14px; }
+.crash-auto input[type="number"] {
+  width: 90px;
+  padding: 7px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--card-strong);
+  color: inherit;
+  font: inherit;
+  text-align: center;
+}
+.crash-bets { margin: 0; padding: 4px 0; list-style: none; }
+.crash-bets li { display: flex; align-items: center; gap: 8px; padding: 8px 14px; font-size: 14px; }
+.crash-bets li + li { border-top: 1px solid rgba(255, 255, 255, 0.05); }
+.crash-bets li.me { background: rgba(245, 197, 66, 0.08); font-weight: 700; }
+.crash-bets .who { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.crash-bets .what { color: var(--muted); font-variant-numeric: tabular-nums; }
+.crash-bets .win { color: var(--win); font-weight: 800; }
+.crash-bets .lost { color: #ff8a80; }
+
+/* ─── Кто это сказал? ─── */
+.quote-game { display: flex; flex-direction: column; gap: 10px; }
+.quote-text {
+  position: relative;
+  min-height: 110px;
+  padding: 18px 16px 16px 36px;
+  border-radius: 18px;
+  background: var(--card-strong);
+  border: 1px solid var(--line);
+  font-size: 17px;
+  line-height: 1.4;
+  font-style: italic;
+  overflow-wrap: anywhere;
+}
+.quote-text::before { content: "«"; position: absolute; left: 12px; top: 6px; font-size: 38px; color: var(--gold); font-style: normal; }
+.quote-bar { height: 6px; border-radius: 6px; overflow: hidden; background: rgba(255, 255, 255, 0.08); }
+.quote-bar i { display: block; height: 100%; width: 100%; border-radius: 6px; background: linear-gradient(90deg, var(--gold-deep), var(--gold-2)); }
+.quote-options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.quote-options button {
+  min-height: 52px;
+  padding: 8px;
+  border-radius: 14px;
+  font-weight: 800;
+  font-size: 14px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  overflow-wrap: anywhere;
+}
+.quote-options button.right { background: rgba(84, 224, 138, 0.18); border-color: var(--win); }
+.quote-options button.wrong { background: rgba(255, 107, 107, 0.18); border-color: var(--lose); }
+
+@media (max-height: 700px) {
+  .mines-cell { font-size: 20px; border-radius: 10px; }
+  .mines-grid { max-width: 250px; }
+  .crash-sky { height: 180px; }
+  .crash-mult { font-size: 38px; }
+  .crash-status { top: 33%; font-size: 13px; }
+  .quote-text { min-height: 84px; font-size: 16px; }
+}
+
 /* Маленькие телефоны: каждый пиксель по высоте на счету — баннер и шапки поуже */
 @media (max-width: 380px), (max-height: 700px) {
   .spam-banner { margin: 2px 0 6px; padding: 6px 10px; font-size: 12px; border-radius: 12px; }
@@ -2732,6 +2892,9 @@ body.dead::after {
           <button class="game-tile blackjack wide" data-go="blackjack" type="button">
             <span class="tile-icon">🃏</span><b>Блэкджек и шлюхи</b><small>«Построим своё казино — с блэкджеком и шлюхами!»</small>
           </button>
+          <button class="game-tile crash wide" data-go="crash" type="button">
+            <span class="tile-icon">🛩</span><b>Толян Эйр</b><small>общий рейс · выпрыгни, пока не упал</small>
+          </button>
           <button class="game-tile roulette" data-go="roulette" type="button">
             <span class="tile-icon">🎡</span><b>Рулетка</b><small>общий стол · до ×36</small>
           </button>
@@ -2739,12 +2902,15 @@ body.dead::after {
             <span class="tile-icon">🏇</span><b>Скачки</b><small>забег каждые 30 с</small>
           </button>
           <button class="game-tile slots" data-go="slots" type="button">
-            <span class="tile-icon">🎰</span><b>Слоты</b><small>до ×100</small>
+            <span class="tile-icon">🎰</span><b>Слоты</b><small id="slots-tile-sub">до ×100 и Золотой казан</small>
           </button>
           <button class="game-tile coin" data-go="coin" type="button">
             <span class="tile-icon">🪙</span><b>Монетка</b><small>×2</small>
           </button>
-          <button class="game-tile rr wide" data-go="rr" type="button">
+          <button class="game-tile mines" data-go="mines" type="button">
+            <span class="tile-icon">💣</span><b>Мины</b><small>до ×1000</small>
+          </button>
+          <button class="game-tile rr" data-go="rr" type="button">
             <span class="tile-icon">🔫</span><b>Русская рулетка</b><small>1 патрон из 6</small>
           </button>
         </div>
@@ -2861,6 +3027,7 @@ body.dead::after {
         <div class="machine">
           <div class="machine-lights" aria-hidden="true"></div>
           <div class="machine-title">ЗОЛОТОЙ КАЗАН</div>
+          <div class="jackpot-line" id="jackpot-line">🍲 В казане <b id="jackpot-amount">…</b></div>
           <div class="reels" id="reels">
             <div class="reel"><div class="strip"></div></div>
             <div class="reel"><div class="strip"></div></div>
@@ -2876,6 +3043,7 @@ body.dead::after {
         <details class="card paytable">
           <summary>Таблица выплат</summary>
           <ul>
+            <li><span>7️⃣ 7️⃣ 7️⃣ со ставкой от 100</span><b>×100 + весь казан 🍲</b></li>
             <li><span>7️⃣ 7️⃣ 7️⃣</span><b>×100</b></li>
             <li><span>💎 💎 💎</span><b>×40</b></li>
             <li><span>🔔 🔔 🔔</span><b>×20</b></li>
@@ -2913,6 +3081,58 @@ body.dead::after {
         <h2 class="section-title">🕘 Последние броски</h2>
         <div class="history coin-history" id="coin-history"></div>
         <ul class="card feed" id="coin-feed"></ul>
+      </section>
+
+      <!-- ─── Мины ─── -->
+      <section class="screen" data-screen="mines">
+        <div class="mines-head">
+          <div class="mines-mult"><small>Множитель</small><b id="mines-mult">×1</b></div>
+          <div class="mines-mult"><small>Следующий 💎</small><b id="mines-next">—</b></div>
+        </div>
+        <div class="mines-grid" id="mines-grid"></div>
+        <div class="mines-message" id="mines-message">Выбери, сколько мин, и начинай</div>
+        <div class="segmented mines-count" id="mines-count">
+          <button type="button" data-mines="3" class="active">💣 3</button>
+          <button type="button" data-mines="5">💣 5</button>
+          <button type="button" data-mines="10">💣 10</button>
+        </div>
+        <div class="bet-control" data-bet-control id="mines-bet"></div>
+        <button class="play-btn" id="mines-play" type="button">Начать</button>
+        <p class="hint">Под клетками — 💎 и 💣. Каждый 💎 поднимает множитель, забрать выигрыш можно в любой момент,
+          мина сжигает ставку. Чем больше мин, тем быстрее растёт множитель.</p>
+      </section>
+
+      <!-- ─── Толян Эйр ─── -->
+      <section class="screen" data-screen="crash">
+        <div class="crash-sky" id="crash-sky">
+          <svg class="crash-graph" viewBox="0 0 320 200" preserveAspectRatio="none" aria-hidden="true">
+            <path id="crash-fill" d="" fill="rgba(245, 197, 66, 0.14)"/>
+            <path id="crash-line" d="" fill="none" stroke="#f5c542" stroke-width="3" vector-effect="non-scaling-stroke"/>
+          </svg>
+          <div class="crash-plane" id="crash-plane">
+            <svg viewBox="0 0 96 34" aria-hidden="true">
+              <path d="M9 13 L3 1 L11 1 L20 13 Z" fill="#c0392b"/>
+              <path d="M8 14 L78 12 Q90 12 92 17 Q90 22 78 22 L12 22 Q7 18 8 14 Z" fill="#eef2f6"/>
+              <path d="M52 16 L62 3 L69 3 L64 16 Z" fill="#c0392b"/>
+              <path d="M54 20 L66 32 L73 32 L66 20 Z" fill="#a33227"/>
+              <path d="M82 13 Q89 14 91 17 L82 17 Z" fill="#5a7fa8"/>
+              <text x="32" y="19.6" text-anchor="middle" font-size="5" font-weight="900" fill="#1f2a44">ТОЛЯН ЭЙР</text>
+            </svg>
+          </div>
+          <div class="crash-mult" id="crash-mult">×1.00</div>
+          <div class="crash-status" id="crash-status">Посадка на рейс…</div>
+        </div>
+        <div class="history crash-history" id="crash-history"></div>
+        <div class="crash-auto">
+          <label><input type="checkbox" id="crash-auto-on"> Автовыход на ×</label>
+          <input type="number" id="crash-auto" min="1.01" max="1000" step="0.01" value="2.00" inputmode="decimal">
+        </div>
+        <div class="bet-control" data-bet-control id="crash-bet"></div>
+        <button class="play-btn" id="crash-play" type="button">Сесть на рейс</button>
+        <h2 class="section-title">👥 На борту</h2>
+        <ul class="card crash-bets" id="crash-bets"></ul>
+        <p class="hint">Самолёт взлетает, множитель растёт — выпрыгни, пока он не упал: забираешь ставку × множитель.
+          Не успел — ставка сгорела. Упасть он может когда угодно, даже прямо на взлёте.</p>
       </section>
 
       <!-- ─── Русская рулетка ─── -->
@@ -5156,11 +5376,12 @@ body.dead::after {
   // Экранов больше, чем разделов внизу: игры казино живут в «Казино», работа и банк — в «Заработке»
   const TAB_OF = {
     lobby: "lobby", roulette: "lobby", race: "lobby", slots: "lobby", blackjack: "lobby", coin: "lobby",
+    mines: "lobby", crash: "lobby",
     rr: "rr", earn: "earn", work: "earn", bank: "earn", awards: "earn",
     bum: "bum", arcade: "arcade", walk: "walk", multi: "multi",
   };
   const PARENT = { work: "earn", bank: "earn", awards: "earn", roulette: "lobby", race: "lobby",
-                   slots: "lobby", blackjack: "lobby", coin: "lobby" };
+                   slots: "lobby", blackjack: "lobby", coin: "lobby", mines: "lobby", crash: "lobby" };
 
   function go(screen) {
     if (!$(`.screen[data-screen="${screen}"]`)) return;
@@ -5185,6 +5406,9 @@ body.dead::after {
     if (screen in tables) pollTable(screen);
     if (screen === "bank") loadBank();
     if (screen === "earn") renderEarn();
+    if (screen === "mines") loadMines();
+    if (screen === "crash") startCrash();
+    else stopCrash();
     const tab = $(`.tabbar [data-tab="${tabKey}"]`);
     if (tab) tab.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" });
   }
@@ -5225,6 +5449,7 @@ body.dead::after {
     $("#slots-play").textContent = `Крутить · ${fmt(state.bet)}`;
     $("#coin-play").textContent = `Подбросить · ${fmt(state.bet)}`;
     $("#bj-deal").textContent = `Раздать · ${fmt(state.bet)}`;
+    if (minesGame.data) renderMines();
   }
 
   function onBetButton(button) {
@@ -5274,6 +5499,8 @@ body.dead::after {
     bonus.disabled = !data.bonus_available;
     $("#bonus-title").textContent = data.bonus_available ? "Забрать ежедневный бонус" : "Бонус уже получен";
     $("#bonus-sub").textContent = data.bonus_available ? "150–400 таджикоинов раз в день" : "Следующий — завтра";
+
+    if (data.jackpot) renderJackpot(data.jackpot);
 
     const tajik = $("#tajik-banner");
     tajik.hidden = !data.tajik.name;
@@ -5956,10 +6183,18 @@ body.dead::after {
     }
   }
 
+  // Золотой казан: сколько в нём сейчас — на слотах и на плитке в лобби
+  function renderJackpot(jackpot) {
+    $("#jackpot-amount").textContent = coins(jackpot.amount);
+    $("#jackpot-line").title = `Забирает тот, кто выбьет 7️⃣7️⃣7️⃣ со ставкой от ${fmt(jackpot.min_bet)}`;
+    $("#slots-tile-sub").textContent = `в казане ${fmt(jackpot.amount)} 🪙`;
+  }
+
   function showSlotsResult(result, strips) {
     const message = $("#slots-message");
     const line = strips.map((strip) => strip.children[strip.children.length - 2]);
     setBalance(result.balance);
+    if (result.jackpot) renderJackpot(result.jackpot);
 
     if (result.combo === "lose") {
       message.className = "machine-message lose";
@@ -5981,7 +6216,15 @@ body.dead::after {
       return;
     }
     $(".machine").classList.add("win");
-    if (result.combo === "jackpot") {
+    if (result.pot) {
+      message.className = "machine-message pot";
+      message.textContent = `🍲 ЗОЛОТОЙ КАЗАН! ${signedCoins(result.net)}`;
+      audio.play("jackpot");
+      audio.play("coins");
+      confetti.burst(260);
+      setTimeout(() => confetti.burst(220), 500);
+      setTimeout(() => confetti.burst(180), 1100);
+    } else if (result.combo === "jackpot") {
       message.className = "machine-message jackpot";
       message.textContent = `💎 ДЖЕКПОТ! ${signedCoins(result.net)}`;
       audio.play("jackpot");
@@ -5995,6 +6238,312 @@ body.dead::after {
       confetti.burst(result.multiplier >= 20 ? 160 : 70);
     }
     setTimeout(() => $(".machine").classList.remove("win"), 2500);
+  }
+
+  // ─── Мины ──────────────────────────────────────────────────────────────────
+
+  const minesGame = { data: null, count: 3, sending: false };
+
+  async function loadMines() {
+    try {
+      applyMines(await api("mines"));
+    } catch (error) {
+      showError(error);
+    }
+  }
+
+  function applyMines(data) {
+    minesGame.data = data;
+    if (typeof data.balance === "number") setBalance(data.balance, state.loaded);
+    renderMines();
+  }
+
+  function renderMines() {
+    const data = minesGame.data;
+    if (!data) return;
+    const game = data.game;
+    const result = data.result;
+    const grid = $("#mines-grid");
+    if (grid.children.length !== data.cells) {
+      grid.replaceChildren(...Array.from({ length: data.cells }, (unused, cell) => {
+        const button = el("button", "mines-cell");
+        button.type = "button";
+        button.dataset.cell = cell;
+        return button;
+      }));
+    }
+    const opened = new Set(game ? game.opened : result ? result.opened : []);
+    const layout = new Set(!game && result ? result.layout : []);
+    [...grid.children].forEach((button, cell) => {
+      let kind = "";
+      if (opened.has(cell)) kind = "gem";
+      else if (result && !game && result.boom === cell) kind = "boom";
+      else if (layout.has(cell)) kind = "mine";
+      else if (result && !game) kind = "ghost";
+      button.className = `mines-cell${kind ? ` ${kind}` : ""}`;
+      button.textContent = kind === "gem" ? "💎" : kind === "boom" ? "💥" : kind === "mine" ? "💣" : "";
+      button.disabled = !game || opened.has(cell) || minesGame.sending;
+    });
+    $("#mines-mult").textContent = game ? `×${game.multiplier}` : result && result.payout ? `×${result.multiplier}` : "×1";
+    $("#mines-next").textContent = game && game.next ? `×${game.next}` : "—";
+    $("#mines-count").classList.toggle("locked", Boolean(game));
+    $("#mines-bet").classList.toggle("locked", Boolean(game));
+    $$("#mines-count button").forEach((button) => {
+      button.classList.toggle("active", Number(button.dataset.mines) === (game ? game.mines : minesGame.count));
+    });
+    const play = $("#mines-play");
+    if (game) {
+      play.textContent = game.cashout ? `Забрать · ${fmt(game.cashout)}` : "Открой клетку";
+      play.disabled = !game.cashout || minesGame.sending;
+    } else {
+      play.textContent = `Начать · ${fmt(state.bet)}`;
+      play.disabled = minesGame.sending;
+    }
+    const message = $("#mines-message");
+    if (game) {
+      message.className = "mines-message";
+      message.textContent = game.opened.length ? `Открыто ${game.opened.length} · безопасных осталось ${game.left}`
+        : `Ставка ${fmt(game.bet)} · мин ${game.mines} — открывай`;
+    } else if (result) {
+      message.className = `mines-message ${result.payout ? "win" : "lose"}`;
+      message.textContent = result.how === "boom" ? `💥 Мина! ${signedCoins(result.net)}`
+        : result.how === "cleared" ? `🏆 Всё поле пройдено! ${signedCoins(result.net)}` : `Забрал(а) ${signedCoins(result.net)}`;
+    } else {
+      message.className = "mines-message";
+      message.textContent = "Выбери, сколько мин, и начинай";
+    }
+  }
+
+  async function minesAction(path, body) {
+    if (minesGame.sending) return null;
+    minesGame.sending = true;
+    renderMines();
+    try {
+      const data = await api(path, body);
+      applyMines(data);
+      return data;
+    } catch (error) {
+      showError(error);
+      return null;
+    } finally {
+      minesGame.sending = false;
+      renderMines();
+    }
+  }
+
+  async function minesPlay() {
+    const game = minesGame.data && minesGame.data.game;
+    if (game) {
+      const data = await minesAction("mines/cashout");
+      if (data && data.result) {
+        haptic.notify("success");
+        audio.play("coins");
+        confetti.burst(data.result.multiplier >= 5 ? 160 : 80);
+      }
+      return;
+    }
+    const data = await minesAction("mines/start", { bet: state.bet, mines: minesGame.count });
+    if (data) {
+      haptic.impact("medium");
+      audio.play("tap");
+    }
+  }
+
+  async function minesOpen(cell) {
+    const data = await minesAction("mines/open", { cell });
+    if (!data) return;
+    if (data.result && data.result.how === "boom") {
+      haptic.notify("error");
+      audio.play("bang");
+      const grid = $("#mines-grid");
+      grid.classList.remove("shake");
+      reflow(grid);
+      grid.classList.add("shake");
+    } else if (data.result) {
+      haptic.notify("success");
+      audio.play("jackpot");
+      confetti.burst(220);
+    } else {
+      haptic.impact("light");
+      audio.play("pick");
+    }
+  }
+
+  // ─── Толян Эйр ─────────────────────────────────────────────────────────────
+
+  const crashGame = { view: null, timer: 0, raf: 0, sending: false, active: false, shownCrash: -1 };
+
+  function startCrash() {
+    if (crashGame.active) return;
+    crashGame.active = true;
+    pollCrash();
+    crashGame.raf = requestAnimationFrame(drawCrash);
+  }
+
+  function stopCrash() {
+    crashGame.active = false;
+    clearTimeout(crashGame.timer);
+    cancelAnimationFrame(crashGame.raf);
+  }
+
+  async function pollCrash() {
+    clearTimeout(crashGame.timer);
+    if (!crashGame.active) return;
+    const started = Date.now();
+    try {
+      const view = await api("crash");
+      clockOffset = view.now * 1000 - (started + Date.now()) / 2;
+      applyCrash(view);
+    } catch (error) {
+      if (error.status === 401 || error.status === 403) showError(error);
+    } finally {
+      if (crashGame.active) crashGame.timer = setTimeout(pollCrash, 500);
+    }
+  }
+
+  function crashMultiplier(view, moment) {
+    if (moment <= view.takeoff) return 1;
+    return Math.floor(Math.exp(view.growth * (moment - view.takeoff)) * 100) / 100;
+  }
+
+  function myCrashBet(view) {
+    return view.bets.find((bet) => bet.me) || null;
+  }
+
+  function applyCrash(view) {
+    const before = crashGame.view;
+    crashGame.view = view;
+    if (typeof view.balance === "number") setBalance(view.balance, state.loaded);
+    if (view.phase === "crashed" && crashGame.shownCrash !== view.round) {
+      crashGame.shownCrash = view.round;
+      const mine = myCrashBet(view);
+      if (before && before.round === view.round) {
+        haptic.notify(mine && mine.status === "lost" ? "error" : "warning");
+        audio.play("bang");
+        const sky = $("#crash-sky");
+        sky.classList.remove("shake");
+        reflow(sky);
+        sky.classList.add("shake");
+      }
+    }
+    renderCrashStatic();
+  }
+
+  function renderCrashStatic() {
+    const view = crashGame.view;
+    if (!view) return;
+    renderStrip($("#crash-history"), view.history, (item) => String(item.round),
+      (item) => el("span", item.crash >= 10 ? "high" : item.crash >= 2 ? "mid" : "low", `×${item.crash}`));
+    const list = $("#crash-bets");
+    const upcoming = !view.bets.length && view.next_bets.length > 0;
+    const rows = upcoming ? view.next_bets : view.bets;
+    list.replaceChildren(...(upcoming ? [el("li", "empty", "✈️ На следующий рейс:")] : []), ...(rows.length ? rows.map((bet) => {
+      const row = el("li", bet.me ? "me" : "");
+      let what = `${fmt(bet.amount)}${bet.auto ? ` · авто ×${bet.auto}` : ""}`;
+      let cls = "what";
+      if (bet.status === "cashed") {
+        what = `×${bet.cashed} · +${fmt(bet.payout - bet.amount)}`;
+        cls = "win";
+      } else if (bet.status === "lost") {
+        what = `сгорело ${fmt(bet.amount)}`;
+        cls = "lost";
+      }
+      row.append(el("span", "who", bet.name), el("span", cls, what));
+      return row;
+    }) : [el("li", "empty", "Пока никого — будь первым пассажиром")]));
+  }
+
+  function drawCrash() {
+    if (!crashGame.active) return;
+    crashGame.raf = requestAnimationFrame(drawCrash);
+    const view = crashGame.view;
+    if (!view) return;
+    const now = serverNow();
+    const crashed = view.phase === "crashed" || (view.crash_at && now >= view.crash_at);
+    const flying = !crashed && now >= view.takeoff;
+    const end = crashed ? view.crash_at || now : now;
+    const elapsed = Math.max(0, end - view.takeoff);
+    const value = crashed ? view.crash : crashMultiplier(view, now);
+    // график: по времени и по множителю масштаб растёт вместе с полётом
+    const spanX = Math.max(8, elapsed * 1.15);
+    const top = Math.max(2, Math.exp(view.growth * elapsed) * 1.15);
+    const point = (t) => {
+      const m = Math.exp(view.growth * t);
+      return [10 + (t / spanX) * 290, 186 - ((m - 1) / (top - 1)) * 92];
+    };
+    let line = "";
+    if (flying || crashed) {
+      const steps = 40;
+      for (let step = 0; step <= steps; step += 1) {
+        const [x, y] = point((elapsed * step) / steps);
+        line += `${step ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)} `;
+      }
+    }
+    $("#crash-line").setAttribute("d", line);
+    const [tipX, tipY] = flying || crashed ? point(elapsed) : [10, 186];
+    $("#crash-fill").setAttribute("d", line ? `${line}L${tipX.toFixed(1)} 196 L10 196 Z` : "");
+    const plane = $("#crash-plane");
+    plane.style.left = `${(tipX / 320) * 100}%`;
+    plane.style.top = `${(tipY / 200) * 100}%`;
+    plane.classList.toggle("boom", Boolean(crashed));
+    const mine = myCrashBet(view);
+    const mult = $("#crash-mult");
+    mult.textContent = `×${value.toFixed(2)}`;
+    mult.className = `crash-mult${crashed ? " crashed" : mine && mine.status === "cashed" ? " cashed" : ""}`;
+    const status = $("#crash-status");
+    if (crashed) {
+      status.textContent = `💥 Упал: ${view.reason || "так бывает"}`;
+    } else if (flying) {
+      status.textContent = mine && mine.status === "cashed" ? `Ты выпрыгнул(а) на ×${mine.cashed} 🪂` : "Толян Эйр набирает высоту…";
+    } else {
+      status.textContent = `Взлёт через ${Math.max(0, Math.ceil(view.takeoff - now))} с — рассаживаемся`;
+    }
+    const play = $("#crash-play");
+    const next = view.next_bets.find((bet) => bet.me);
+    if (flying && mine && mine.status === "open") {
+      play.textContent = `Выпрыгнуть · ${fmt(Math.floor(mine.amount * value))}`;
+      play.disabled = crashGame.sending;
+      play.classList.add("danger");
+    } else {
+      play.classList.remove("danger");
+      if (!flying && !crashed) {
+        play.textContent = mine ? `Ты на борту · ${fmt(mine.amount)}` : `Сесть на рейс · ${fmt(state.bet)}`;
+        play.disabled = Boolean(mine) || crashGame.sending;
+      } else {
+        play.textContent = next ? `Ты на следующем рейсе · ${fmt(next.amount)}` : `На следующий рейс · ${fmt(state.bet)}`;
+        play.disabled = Boolean(next) || crashGame.sending;
+      }
+    }
+  }
+
+  async function crashPlay() {
+    const view = crashGame.view;
+    if (!view || crashGame.sending) return;
+    const now = serverNow();
+    const mine = myCrashBet(view);
+    const flying = view.phase !== "crashed" && now >= view.takeoff && !(view.crash_at && now >= view.crash_at);
+    crashGame.sending = true;
+    try {
+      if (flying && mine && mine.status === "open") {
+        const data = await api("crash/cashout");
+        applyCrash(data);
+        haptic.notify("success");
+        audio.play("coins");
+        confetti.burst(data.cashed.multiplier >= 5 ? 160 : 70);
+        toast(`🪂 Выпрыгнул(а) на ×${data.cashed.multiplier}: ${signedCoins(data.cashed.payout - mine.amount)}`, "win");
+      } else {
+        const auto = $("#crash-auto-on").checked ? Number($("#crash-auto").value) : null;
+        const data = await api("crash/bet", { amount: state.bet, auto });
+        applyCrash(data);
+        haptic.impact("medium");
+        audio.play("tap");
+      }
+    } catch (error) {
+      showError(error);
+      pollCrash();
+    } finally {
+      crashGame.sending = false;
+    }
   }
 
   // ─── Монетка ───────────────────────────────────────────────────────────────
@@ -8270,7 +8819,7 @@ body.dead::after {
     }
   }
 
-  async function arcadeOver(score) {
+  async function arcadeOver(score, serverData = null) {    // serverData — рекорд уже записал сервер
     stopArcade();
     const key = arcade.game;
     const game = arcade.games.find((item) => item.key === key);
@@ -8293,7 +8842,7 @@ body.dead::after {
     if (arcade.sending) return;
     arcade.sending = true;
     try {
-      const data = await api("arcade/score", { game: key, score });
+      const data = serverData || await api("arcade/score", { game: key, score });
       applyArcade(data);
       renderBoard(key);
       const fresh = arcade.games.find((item) => item.key === key);
@@ -9979,12 +10528,88 @@ body.dead::after {
     aLater(() => flash.remove(), 700);
   }
 
+  // ── Кто это сказал? ──
+  // Вопросы и счёт — на сервере: приложение только показывает фразу и отправляет выбор.
+  function arcadeQuote() {
+    const box = el("div", "quote-game");
+    const text = el("div", "quote-text", "Достаём фразу из беседы…");
+    const bar = el("div", "quote-bar");
+    const fill = el("i");
+    bar.append(fill);
+    const options = el("div", "quote-options");
+    box.append(text, bar, options);
+    $("#arcade-area").replaceChildren(box);
+    arcade.state = { box, text, fill, options, alive: true, maxLives: 0, streak: 0, busy: false };
+    $("#arcade-note").textContent = "Настоящая фраза из беседы — кто её написал? На ответ 15 секунд.";
+    arcadeScore(0);
+    options.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-choice]");
+      if (button) quoteAnswer(Number(button.dataset.choice), button);
+    });
+    api("quote/start").then((data) => quoteShow(data.question)).catch((error) => {
+      showError(error);
+      text.textContent = error.message;
+    });
+  }
+
+  function quoteShow(question) {
+    const here = arcade.state;
+    if (!here || !here.alive) return;
+    here.busy = false;
+    here.text.textContent = question.text;
+    here.options.replaceChildren(...question.options.map((option) => {
+      const button = el("button", "", option.name);
+      button.type = "button";
+      button.dataset.choice = option.id;
+      return button;
+    }));
+    here.fill.style.transition = "none";
+    here.fill.style.width = "100%";
+    reflow(here.fill);
+    here.fill.style.transition = `width ${question.seconds}s linear`;
+    here.fill.style.width = "0%";
+    const token = (here.token || 0) + 1;                  // у каждого вопроса свой таймер
+    here.token = token;
+    aLater(() => { if (here.token === token) quoteAnswer(null, null); }, question.seconds * 1000);
+  }
+
+  async function quoteAnswer(choice, button) {
+    const here = arcade.state;
+    if (!here || !here.alive || here.busy) return;
+    here.busy = true;
+    here.token = (here.token || 0) + 1;                   // таймер этого вопроса больше не нужен
+    here.fill.style.transition = "none";
+    here.fill.style.width = getComputedStyle(here.fill).width;
+    try {
+      const data = await api("quote/answer", { choice });
+      [...here.options.children].forEach((node) => {
+        node.disabled = true;
+        if (Number(node.dataset.choice) === data.right.id) node.classList.add("right");
+      });
+      if (data.correct) {
+        arcadeScore(data.streak);
+        haptic.notify("success");
+        audio.play("star");
+        aLater(() => quoteShow(data.question), 700);
+        return;
+      }
+      if (button) button.classList.add("wrong");
+      here.alive = false;
+      here.text.textContent = data.late ? `⏰ Время вышло! Это был(а) ${data.right.name}` : `Нет — это ${data.right.name}`;
+      haptic.notify("error");
+      setTimeout(() => arcadeOver(data.streak, data), 1400);
+    } catch (error) {
+      showError(error);
+      here.busy = false;
+    }
+  }
+
   const ARCADE_GAMES = {
     yard: arcadeYard, post: arcadePost, belt: arcadeBelt, stack: arcadeStack, memory: arcadeMemory,
     road: arcadeRoad, jump: arcadeJump, rain: arcadeRain, snake: arcadeSnake, merge: arcadeMerge,
     tiles: arcadeTiles, shoot: arcadeShoot, wrap: arcadeWrap,
     plankton: arcadePlankton, notebook: arcadeNotebook, delya: arcadeDelya, orbit: arcadeOrbit,
-    nogozavr: arcadeNogozavr,
+    nogozavr: arcadeNogozavr, quote: arcadeQuote,
   };
 
   // ─── Толян ─────────────────────────────────────────────────────────────────
@@ -10616,6 +11241,18 @@ body.dead::after {
       if (button) withdrawDeposit(Number(button.dataset.withdraw));
     });
     $("#slots-play").addEventListener("click", playSlots);
+    $("#mines-play").addEventListener("click", minesPlay);
+    $("#mines-grid").addEventListener("click", (event) => {
+      const cell = event.target.closest("[data-cell]");
+      if (cell && !cell.disabled) minesOpen(Number(cell.dataset.cell));
+    });
+    $("#mines-count").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-mines]");
+      if (!button || (minesGame.data && minesGame.data.game)) return;
+      minesGame.count = Number(button.dataset.mines);
+      renderMines();
+    });
+    $("#crash-play").addEventListener("click", crashPlay);
     $("#coin-play").addEventListener("click", playCoin);
     $("#rr-play").addEventListener("click", playRussian);
     $("#bj-deal").addEventListener("click", blackjackDeal);

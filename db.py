@@ -209,6 +209,45 @@ _SCHEMA = [
         worn    INTEGER NOT NULL DEFAULT 0,
         PRIMARY KEY (chat_id, user_id, skin)
     ) WITHOUT ROWID""",
+    # Золотой казан — общий джекпот слотов беседы и кто сорвал его последним
+    """CREATE TABLE IF NOT EXISTS jackpots (
+        chat_id INTEGER PRIMARY KEY,
+        amount  INTEGER NOT NULL,
+        winner  INTEGER,
+        won     INTEGER,
+        won_at  TEXT
+    )""",
+    # Мины: поле, которое игрок сейчас открывает (где мины — знает только сервер)
+    """CREATE TABLE IF NOT EXISTS mines_games (
+        chat_id    INTEGER NOT NULL,
+        user_id    INTEGER NOT NULL,
+        bet        INTEGER NOT NULL,
+        mines      INTEGER NOT NULL,
+        layout     TEXT NOT NULL,
+        opened     TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL,
+        PRIMARY KEY (chat_id, user_id)
+    ) WITHOUT ROWID""",
+    # Толян Эйр: ставки на рейсы. Множители хранятся ×100 (1.85 → 185)
+    """CREATE TABLE IF NOT EXISTS crash_bets (
+        chat_id    INTEGER NOT NULL,
+        round      INTEGER NOT NULL,
+        user_id    INTEGER NOT NULL,
+        amount     INTEGER NOT NULL,
+        auto       INTEGER,
+        cashed     INTEGER,
+        payout     INTEGER,
+        status     TEXT NOT NULL DEFAULT 'open',
+        created_at TEXT NOT NULL,
+        PRIMARY KEY (chat_id, round, user_id)
+    ) WITHOUT ROWID""",
+    # Когда человек впервые появился в беседе — для круглых дат
+    """CREATE TABLE IF NOT EXISTS member_since (
+        chat_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        since   TEXT NOT NULL,
+        PRIMARY KEY (chat_id, user_id)
+    ) WITHOUT ROWID""",
     # Рекорды в бесконечных играх: у каждого свой лучший результат
     """CREATE TABLE IF NOT EXISTS arcade_records (
         chat_id INTEGER NOT NULL,
@@ -1600,6 +1639,233 @@ class Database:
                 c.execute("UPDATE bum_skins SET worn = 1 WHERE chat_id = ? AND user_id = ? AND skin = ?",
                           (chat_id, user_id, skin))
             return True
+
+    # ── Золотой казан ─────────────────────────────────────────────────────────
+
+    def get_jackpot(self, chat_id: int, seed: int) -> dict:
+        row = self.conn.execute("SELECT * FROM jackpots WHERE chat_id = ?", (chat_id,)).fetchone()
+        return dict(row) if row else {"chat_id": chat_id, "amount": seed, "winner": None, "won": None, "won_at": None}
+
+    def add_to_jackpot(self, chat_id: int, amount: int, seed: int):
+        with self._tx() as c:
+            c.execute(
+                "INSERT INTO jackpots (chat_id, amount) VALUES (?, ?) "
+                "ON CONFLICT(chat_id) DO UPDATE SET amount = amount + ?",
+                (chat_id, seed + amount, amount),
+            )
+
+    def take_jackpot(self, chat_id: int, user_id: int, seed: int) -> int:
+        """Забирает казан целиком и начинает копить заново с seed. Возвращает, сколько в нём было."""
+        with self._tx(important=True) as c:
+            row = c.execute("SELECT amount FROM jackpots WHERE chat_id = ?", (chat_id,)).fetchone()
+            amount = row["amount"] if row else seed
+            c.execute(
+                "INSERT INTO jackpots (chat_id, amount, winner, won, won_at) VALUES (?, ?, ?, ?, ?) "
+                "ON CONFLICT(chat_id) DO UPDATE SET amount = excluded.amount, winner = excluded.winner, "
+                "won = excluded.won, won_at = excluded.won_at",
+                (chat_id, seed, user_id, amount, utcnow_iso()),
+            )
+            return amount
+
+    # ── Мины ───────────────────────────────────────────────────────────────────
+
+    @staticmethod
+    def _cells(value: str) -> list[int]:
+        return [int(cell) for cell in value.split(",") if cell != ""]
+
+    def get_mines(self, chat_id: int, user_id: int) -> Optional[dict]:
+        row = self.conn.execute(
+            "SELECT * FROM mines_games WHERE chat_id = ? AND user_id = ?", (chat_id, user_id)
+        ).fetchone()
+        if row is None:
+            return None
+        return {"bet": row["bet"], "mines": row["mines"], "layout": self._cells(row["layout"]),
+                "opened": self._cells(row["opened"]), "created_at": row["created_at"]}
+
+    def start_mines(self, chat_id: int, user_id: int, bet: int, mines: int, layout: list[int]) -> Optional[bool]:
+        """Списывает ставку и раскладывает поле одной транзакцией. None — поле уже идёт, False — нет денег."""
+        with self._tx() as c:
+            if c.execute("SELECT 1 FROM mines_games WHERE chat_id = ? AND user_id = ?", (chat_id, user_id)).fetchone():
+                return None
+            self._ensure_wallet(c, chat_id, user_id)
+            cursor = c.execute(
+                "UPDATE wallets SET balance = balance - ? WHERE chat_id = ? AND user_id = ? AND balance >= ?",
+                (bet, chat_id, user_id, bet),
+            )
+            if cursor.rowcount != 1:
+                return False
+            c.execute(
+                "INSERT INTO mines_games (chat_id, user_id, bet, mines, layout, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+                (chat_id, user_id, bet, mines, ",".join(map(str, layout)), utcnow_iso()),
+            )
+            return True
+
+    def save_mines_opened(self, chat_id: int, user_id: int, opened: list[int]):
+        with self._tx() as c:
+            c.execute("UPDATE mines_games SET opened = ? WHERE chat_id = ? AND user_id = ?",
+                      (",".join(map(str, opened)), chat_id, user_id))
+
+    def finish_mines(self, chat_id: int, user_id: int, bet: int, payout: int, special: bool) -> Optional[int]:
+        """Убирает поле и выплачивает выигрыш одной транзакцией. None — поле уже закрыто (второе нажатие)."""
+        with self._tx() as c:
+            cursor = c.execute("DELETE FROM mines_games WHERE chat_id = ? AND user_id = ?", (chat_id, user_id))
+            if cursor.rowcount != 1:
+                return None
+            self._ensure_wallet(c, chat_id, user_id)
+            c.execute("UPDATE wallets SET balance = balance + ? WHERE chat_id = ? AND user_id = ?",
+                      (payout, chat_id, user_id))
+            self._record_game(c, chat_id, user_id, "mines", bet, payout, special)
+            return self._balance(c, chat_id, user_id)
+
+    # ── Толян Эйр ──────────────────────────────────────────────────────────────
+
+    def add_crash_bet(self, chat_id: int, round_no: int, user_id: int, amount: int,
+                      auto: Optional[int]) -> Optional[bool]:
+        """Ставка на рейс. None — не хватает денег, False — на этот рейс уже поставлено."""
+        with self._tx() as c:
+            if c.execute("SELECT 1 FROM crash_bets WHERE chat_id = ? AND round = ? AND user_id = ?",
+                         (chat_id, round_no, user_id)).fetchone():
+                return False
+            self._ensure_wallet(c, chat_id, user_id)
+            cursor = c.execute(
+                "UPDATE wallets SET balance = balance - ? WHERE chat_id = ? AND user_id = ? AND balance >= ?",
+                (amount, chat_id, user_id, amount),
+            )
+            if cursor.rowcount != 1:
+                return None
+            c.execute(
+                "INSERT INTO crash_bets (chat_id, round, user_id, amount, auto, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+                (chat_id, round_no, user_id, amount, auto, utcnow_iso()),
+            )
+            return True
+
+    def crash_round_bets(self, chat_id: int, round_no: int) -> list[dict]:
+        rows = self.conn.execute(
+            "SELECT * FROM crash_bets WHERE chat_id = ? AND round = ? ORDER BY created_at, user_id",
+            (chat_id, round_no),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def has_crash_bets(self, chat_id: int, round_no: int) -> bool:
+        return self.conn.execute(
+            "SELECT 1 FROM crash_bets WHERE chat_id = ? AND round = ? LIMIT 1", (chat_id, round_no)
+        ).fetchone() is not None
+
+    def last_crash_round(self, chat_id: int) -> int:
+        row = self.conn.execute("SELECT MAX(round) FROM crash_bets WHERE chat_id = ?", (chat_id,)).fetchone()
+        history = self.get_history(chat_id, "crash", 1)
+        return max(row[0] or 0, history[0].get("round", 0) if history else 0)
+
+    def _cash_crash(self, c: sqlite3.Connection, bet: dict, value: int) -> dict:
+        payout = bet["amount"] * value // 100
+        c.execute(
+            "UPDATE crash_bets SET status = 'cashed', cashed = ?, payout = ? "
+            "WHERE chat_id = ? AND round = ? AND user_id = ?",
+            (value, payout, bet["chat_id"], bet["round"], bet["user_id"]),
+        )
+        self._ensure_wallet(c, bet["chat_id"], bet["user_id"])
+        c.execute("UPDATE wallets SET balance = balance + ? WHERE chat_id = ? AND user_id = ?",
+                  (payout, bet["chat_id"], bet["user_id"]))
+        self._record_game(c, bet["chat_id"], bet["user_id"], "crash", bet["amount"], payout, value >= 1000)
+        return bet | {"status": "cashed", "cashed": value, "payout": payout}
+
+    def cash_out_crash_bet(self, chat_id: int, round_no: int, user_id: int, value: int) -> Optional[dict]:
+        """Игрок выпрыгнул на множителе value (×100). None — ставки нет или он уже вышел."""
+        with self._tx() as c:
+            row = c.execute(
+                "SELECT * FROM crash_bets WHERE chat_id = ? AND round = ? AND user_id = ? AND status = 'open'",
+                (chat_id, round_no, user_id),
+            ).fetchone()
+            return self._cash_crash(c, dict(row), value) if row else None
+
+    def cash_crash_autos(self, chat_id: int, round_no: int, value: int) -> list[dict]:
+        """Автовыходы, до которых самолёт уже долетел: каждый — на своём множителе."""
+        with self._tx() as c:
+            rows = c.execute(
+                "SELECT * FROM crash_bets WHERE chat_id = ? AND round = ? AND status = 'open' "
+                "AND auto IS NOT NULL AND auto <= ?",
+                (chat_id, round_no, value),
+            ).fetchall()
+            return [self._cash_crash(c, dict(row), row["auto"]) for row in rows]
+
+    def settle_crash_round(self, chat_id: int, round_no: int, crash: int) -> list[dict]:
+        """Самолёт упал на crash (×100): автовыходы ниже — выплачены, остальные ставки сгорели."""
+        with self._tx() as c:
+            rows = [dict(row) for row in c.execute(
+                "SELECT * FROM crash_bets WHERE chat_id = ? AND round = ? AND status = 'open'", (chat_id, round_no)
+            ).fetchall()]
+            settled = []
+            for bet in rows:
+                if bet["auto"] is not None and bet["auto"] <= crash:
+                    settled.append(self._cash_crash(c, bet, bet["auto"]))
+                    continue
+                c.execute("UPDATE crash_bets SET status = 'lost', payout = 0 "
+                          "WHERE chat_id = ? AND round = ? AND user_id = ?", (chat_id, round_no, bet["user_id"]))
+                self._record_game(c, chat_id, bet["user_id"], "crash", bet["amount"], 0, False)
+                settled.append(bet | {"status": "lost", "payout": 0})
+            return settled
+
+    def refund_open_crash_bets(self, chat_id: int) -> int:
+        """Бот перезапустился посреди рейса — ставки, которые не долетели, возвращаются владельцам."""
+        with self._tx(important=True) as c:
+            rows = c.execute(
+                "SELECT * FROM crash_bets WHERE chat_id = ? AND status = 'open'", (chat_id,)
+            ).fetchall()
+            for row in rows:
+                self._ensure_wallet(c, chat_id, row["user_id"])
+                c.execute("UPDATE wallets SET balance = balance + ? WHERE chat_id = ? AND user_id = ?",
+                          (row["amount"], chat_id, row["user_id"]))
+                c.execute("UPDATE crash_bets SET status = 'refunded', payout = amount "
+                          "WHERE chat_id = ? AND round = ? AND user_id = ?", (chat_id, row["round"], row["user_id"]))
+            return len(rows)
+
+    def prune_crash_bets(self, before: str):
+        with self._tx() as c:
+            c.execute("DELETE FROM crash_bets WHERE status != 'open' AND created_at < ?", (before,))
+
+    # ── Круглые даты в беседе ──────────────────────────────────────────────────
+
+    def seed_member_since(self, chat_id: int, dates: dict[int, str]):
+        with self._tx() as c:
+            c.executemany("INSERT OR IGNORE INTO member_since (chat_id, user_id, since) VALUES (?, ?, ?)",
+                          [(chat_id, user_id, since) for user_id, since in dates.items()])
+
+    def remember_member_since(self, chat_id: int, user_id: int, since: str):
+        with self._tx() as c:
+            c.execute("INSERT OR IGNORE INTO member_since (chat_id, user_id, since) VALUES (?, ?, ?)",
+                      (chat_id, user_id, since))
+
+    def members_since(self, chat_id: int) -> list[dict]:
+        """С какого дня в беседе те, кто сейчас в ней (без ботов)."""
+        rows = self.conn.execute(
+            """
+            SELECT s.user_id, s.since FROM member_since s
+            JOIN chat_members cm ON cm.chat_id = s.chat_id AND cm.user_id = s.user_id AND cm.is_member = 1
+            LEFT JOIN users u ON u.user_id = s.user_id
+            WHERE s.chat_id = ? AND COALESCE(u.is_bot, 0) = 0
+            ORDER BY s.since, s.user_id
+            """,
+            (chat_id,),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    # ── Фразы для «Кто это сказал?» ────────────────────────────────────────────
+
+    _PHRASE_MEMBERS = (
+        "FROM phrases p JOIN chat_members cm ON cm.chat_id = p.chat_id AND cm.user_id = p.user_id "
+        "AND cm.is_member = 1 LEFT JOIN users u ON u.user_id = p.user_id "
+        "WHERE p.chat_id = ? AND COALESCE(u.is_bot, 0) = 0"
+    )
+
+    def phrase_authors(self, chat_id: int) -> list[int]:
+        rows = self.conn.execute(f"SELECT DISTINCT p.user_id {self._PHRASE_MEMBERS}", (chat_id,)).fetchall()
+        return [row[0] for row in rows]
+
+    def random_member_phrase(self, chat_id: int) -> Optional[dict]:
+        row = self.conn.execute(
+            f"SELECT p.id, p.user_id, p.text {self._PHRASE_MEMBERS} ORDER BY RANDOM() LIMIT 1", (chat_id,)
+        ).fetchone()
+        return dict(row) if row else None
 
     def prune_deposits(self, before: int):
         """Закрытые вклады старше месяца уже никому не интересны."""

@@ -12,7 +12,9 @@ from aiogram.types import (
 )
 
 import backup
+import anniversaries
 import casino_bank
+import casino_crash
 import casino_tables
 import multiplayer
 import members
@@ -78,6 +80,10 @@ async def setup_commands():
 
 async def on_startup():
     try:
+        anniversaries.seed()   # когда кто пришёл в беседу — из экспорта истории; уже известное не трогает
+    except Exception:
+        logger.exception("Не смог записать даты прихода в беседу")
+    try:
         await bot.me()  # кэшируем юзернейм бота: по нему сглыпа понимает, что к ней обращаются
         await setup_commands()
     except Exception as e:
@@ -92,6 +98,8 @@ async def on_startup():
     _background_tasks.append(asyncio.create_task(scheduler.spam_day_loop()))
     _background_tasks.append(asyncio.create_task(scheduler.arcade_prize_loop()))
     _background_tasks.append(asyncio.create_task(casino_tables.loop()))  # раунды рулетки и скачек со ставками
+    _background_tasks.append(asyncio.create_task(casino_crash.loop()))   # рейсы Толян Эйр со ставками
+    _background_tasks.append(asyncio.create_task(scheduler.anniversary_loop()))
     _background_tasks.append(asyncio.create_task(casino_bank.loop()))
     _background_tasks.append(asyncio.create_task(multiplayer.loop()))    # столы мультиплеера    # выплата вкладов, у которых вышел срок
 

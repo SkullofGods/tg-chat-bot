@@ -18,6 +18,9 @@ import achievements
 import casino_arcade as arcade
 import casino_bank as bank
 import casino_bum as bum
+import casino_crash as crash
+import casino_mines as mines
+import casino_quote as quote
 import casino_engine as engine
 import casino_tables as tables
 import casino_walk as walk
@@ -124,7 +127,8 @@ async def _errors(request: web.Request, handler):
 
 AWARDS_POLL_SECONDS = 15   # на опросах состояния ачивки пересчитываем не чаще
 _awards_checked: dict[tuple[int, int], float] = {}
-_POLLING = ("/api/state", "/api/table", "/api/walk", "/api/arcade", "/api/bank", "/api/bum", "/api/work")
+_POLLING = ("/api/state", "/api/table", "/api/walk", "/api/arcade", "/api/bank", "/api/bum", "/api/work",
+            "/api/mines", "/api/crash")
 
 
 def _needs_check(request: web.Request, player: tuple[int, int]) -> bool:
@@ -336,6 +340,54 @@ async def api_achievements(request: web.Request) -> web.Response:
     return _json(achievements.state(chat_id, user_id))
 
 
+# Мины, Толян Эйр, «Кто это сказал?»
+
+
+async def api_mines(request: web.Request) -> web.Response:
+    chat_id, user_id = await _player(request)
+    return _json(mines.state(chat_id, user_id))
+
+
+async def api_mines_action(request: web.Request) -> web.Response:
+    chat_id, user_id = await _player(request)
+    body = await _body(request)
+    action = request.match_info["action"]
+    if action == "start":
+        return _json(mines.start(chat_id, user_id, body.get("bet"), body.get("mines")))
+    if action == "open":
+        return _json(mines.open_cell(chat_id, user_id, body.get("cell")))
+    if action == "cashout":
+        return _json(mines.cash_out(chat_id, user_id))
+    raise web.HTTPNotFound()
+
+
+async def api_crash(request: web.Request) -> web.Response:
+    chat_id, user_id = await _player(request)
+    return _json(crash.state(chat_id, user_id))
+
+
+async def api_crash_action(request: web.Request) -> web.Response:
+    chat_id, user_id = await _player(request)
+    body = await _body(request)
+    action = request.match_info["action"]
+    if action == "bet":
+        return _json(crash.place_bet(chat_id, user_id, body.get("amount"), body.get("auto")))
+    if action == "cashout":
+        return _json(crash.cash_out(chat_id, user_id))
+    raise web.HTTPNotFound()
+
+
+async def api_quote(request: web.Request) -> web.Response:
+    chat_id, user_id = await _player(request)
+    body = await _body(request)
+    action = request.match_info["action"]
+    if action == "start":
+        return _json(quote.start(chat_id, user_id))
+    if action == "answer":
+        return _json(quote.answer(chat_id, user_id, body.get("choice")))
+    raise web.HTTPNotFound()
+
+
 # Бомж
 
 
@@ -421,6 +473,11 @@ def build_app() -> web.Application:
         app.router.add_post(f"{prefix}/api/walk", api_walk)
         app.router.add_post(f"{prefix}/api/walk/start", api_walk_start)
         app.router.add_post(f"{prefix}/api/walk/go", api_walk_go)
+        app.router.add_post(f"{prefix}/api/mines", api_mines)
+        app.router.add_post(f"{prefix}/api/mines/{{action}}", api_mines_action)
+        app.router.add_post(f"{prefix}/api/crash", api_crash)
+        app.router.add_post(f"{prefix}/api/crash/{{action}}", api_crash_action)
+        app.router.add_post(f"{prefix}/api/quote/{{action}}", api_quote)
         app.router.add_post(f"{prefix}/api/bum", api_bum)
         app.router.add_post(f"{prefix}/api/bum/{{action}}", api_bum_action)
         app.router.add_post(f"{prefix}/api/bank", api_bank)

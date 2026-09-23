@@ -11,6 +11,7 @@ from aiogram.enums import ChatMemberStatus
 from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError, TelegramRetryAfter
 from aiogram.types import Chat, ChatMemberRestricted, Message, User
 
+from config import LOCAL_TZ
 from db import parse_utc
 from loader import bot, db
 
@@ -56,6 +57,7 @@ def remember_user(user: User):
 def remember_member(chat_id: int, user_id: int):
     if (chat_id, user_id) not in _member_cache:
         db.set_member(chat_id, user_id, True)
+        db.remember_member_since(chat_id, user_id, datetime.now(LOCAL_TZ).date().isoformat())  # для круглых дат
         _member_cache.add((chat_id, user_id))
 
 

@@ -8,6 +8,7 @@ from datetime import datetime
 
 from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 
+import anniversaries
 import casino_arcade as arcade
 import casino_walk as walk
 import limits
@@ -65,6 +66,34 @@ async def arcade_prize_loop():
         except Exception:
             logger.exception("Премия рекордсменам не выдалась")
         await asyncio.sleep(300)
+
+
+async def congratulate_if_needed(force: bool = False):
+    """Раз в день после полудня — поздравления с круглыми датами в беседе."""
+    now = datetime.now(LOCAL_TZ)
+    if not force and not anniversaries.due(now):
+        return
+    for chat_id in db.get_known_chats():
+        key = f"anniversary_run:{chat_id}:{now.date().isoformat()}"
+        if db.get_meta(key):
+            continue
+        db.set_meta(key, "1")
+        text = anniversaries.celebrate(chat_id, now.date())
+        if not text:
+            continue
+        try:
+            await bot.send_message(chat_id, text)
+        except Exception as e:
+            logger.warning("Не смог поздравить беседу %s: %s", chat_id, e)
+
+
+async def anniversary_loop():
+    while True:
+        try:
+            await congratulate_if_needed()
+        except Exception:
+            logger.exception("Поздравления с круглыми датами не отправились")
+        await asyncio.sleep(600)
 
 
 async def spam_day_loop():
