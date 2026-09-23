@@ -1973,30 +1973,100 @@ button:disabled { cursor: default; }
   border-radius: 14px;
   filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.5));
 }
-.bum-art .skin { fill: #e7b08a; }
-.bum-art .hair { fill: #4a3524; }
-.bum-art .beard { fill: #5b412c; }
-.bum-art .pants { fill: #4a4033; }
-.bum-art .shoe { fill: #2f3338; }
-.bum-art .coat { fill: #6b5433; }
-.bum-art .arm { fill: #6b5433; }
-.bum-art .coat-dark { stroke: rgba(0, 0, 0, 0.25); }
+/* Цвета Толяна — переменные: их меняют уровень (data-stage) и образ (JS ставит их прямо на svg) */
+.bum-look {
+  --skin: #e7b08a;
+  --hair: #4a3524;
+  --beard: #5b412c;
+  --pants: #4a4033;
+  --shoe: #2f3338;
+  --coat: #6b5433;
+  --arm: var(--coat);
+}
+.bum-look .skin { fill: var(--skin); }
+.bum-look .hair { fill: var(--hair); }
+.bum-look .beard { fill: var(--beard); }
+.bum-look .pants { fill: var(--pants); }
+.bum-look .shoe { fill: var(--shoe); }
+.bum-look .coat { fill: var(--coat); }
+.bum-look .arm { fill: var(--arm); }
+.bum-look .coat-dark { stroke: rgba(0, 0, 0, 0.25); }
+.bum-look .c-hat { fill: var(--hat, #2b2b2b); }
+.bum-look .c-hat2 { fill: var(--hat2, #444); }
+.bum-look .c-trim { fill: var(--trim, #f5c542); }
+.bum-look .s-trim { stroke: var(--trim, #f5c542); }
+.bum-look .c-shirt { fill: var(--shirt, #f4f4f4); }
+.bum-look .c-tie { fill: var(--tie, #8b1e2d); }
+.bum-look .c-belt { fill: var(--belt, #f4f1ea); }
+.bum-look .s-stripe { stroke: var(--stripe, #d4a017); }
+.bum-look .s-stripe2 { stroke: var(--stripe2, #c0392b); }
+.bum-look .s-pants { stroke: var(--pants); }
+.bum-look [data-part]:not(.on) { display: none; }
 /* чем выше уровень, тем чище и дороже одет */
-.bum-art[data-stage="ok"] .coat, .bum-art[data-stage="ok"] .arm { fill: #4f6b4a; }
-.bum-art[data-stage="ok"] .pants { fill: #3d4a5a; }
-.bum-art[data-stage="ok"] .shoe { fill: #e8e8e8; }
-.bum-art[data-stage="ok"] .beard { fill: #4a3524; }
-.bum-art[data-stage="good"] .coat, .bum-art[data-stage="good"] .arm { fill: #2f5d7a; }
-.bum-art[data-stage="good"] .pants { fill: #33383f; }
-.bum-art[data-stage="good"] .shoe { fill: #f2f2f2; }
-.bum-art[data-stage="good"] .hair { fill: #3a2a1c; }
-.bum-art[data-stage="good"] .beard { fill: #3a2a1c; }
-.bum-art[data-stage="rich"] .coat, .bum-art[data-stage="rich"] .arm { fill: #1f2a44; }
-.bum-art[data-stage="rich"] .pants { fill: #1a2236; }
-.bum-art[data-stage="rich"] .shoe { fill: #14161a; }
-.bum-art[data-stage="rich"] .hair { fill: #241a12; }
-.bum-art[data-stage="rich"] .beard { fill: #241a12; }
-.bum-art.hungry .bum-guy { animation: wobble 2.4s ease-in-out infinite; transform-origin: 120px 160px; }
+.bum-look[data-stage="ok"] { --coat: #4f6b4a; --pants: #3d4a5a; --shoe: #e8e8e8; --beard: #4a3524; }
+.bum-look[data-stage="good"] { --coat: #2f5d7a; --pants: #33383f; --shoe: #f2f2f2; --hair: #3a2a1c; --beard: #3a2a1c; }
+.bum-look[data-stage="rich"] { --coat: #1f2a44; --pants: #1a2236; --shoe: #14161a; --hair: #241a12; --beard: #241a12; }
+.bum-look[data-stage="boss"] { --coat: #ece6d6; --pants: #e2dccb; --shoe: #6b4a2a; --hair: #241a12; --beard: #241a12; }
+.bum-look[data-fx="ghost"] .bum-guy { opacity: 0.55; }
+.bum-look[data-fx="gold"] .bum-guy { filter: url(#bum-glow); }
+.bum-look[data-fx="thin"] .bum-body { transform: scaleX(0.8); transform-box: fill-box; transform-origin: center; }
+.bum-look [data-part="sparkles"] { animation: twinkle 1.6s ease-in-out infinite; }
+@keyframes twinkle { 50% { opacity: 0.25; } }
+/* голодный шатается: вокруг ног, а не вокруг угла картинки */
+.bum-art.hungry .bum-guy {
+  animation: wobble 2.4s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+.bum-rays { animation: rays-spin 60s linear infinite; transform-box: view-box; transform-origin: 120px 62px; }
+@keyframes rays-spin { to { transform: rotate(360deg); } }
+.bum-plane { animation: plane-bob 4s ease-in-out infinite; }
+@keyframes plane-bob { 50% { transform: translateY(-3px); } }
+.bum-look-name { margin-top: 2px; color: var(--muted); font-size: 13px; }
+.bum-look-name:empty { display: none; }
+
+/* Гардероб */
+.wardrobe-count { margin-left: 6px; color: var(--muted); font-size: 13px; font-weight: 700; }
+.wardrobe-now { display: flex; align-items: center; gap: 10px; padding: 10px 12px; font-size: 14px; }
+.wardrobe-now span { flex: 1; min-width: 0; }
+.wardrobe-now button {
+  flex: none;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 13px;
+  background: var(--card-strong);
+  border: 1px solid var(--line);
+}
+.wardrobe-kind { margin: 14px 2px 8px; color: var(--muted); font-size: 13px; font-weight: 800; }
+.wardrobe-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+@media (min-width: 440px) { .wardrobe-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.skin-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+  padding: 8px 8px 10px;
+  border-radius: 16px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  color: inherit;
+  font: inherit;
+  text-align: center;
+}
+.skin-card svg { display: block; width: 84px; height: 104px; margin-bottom: 2px; pointer-events: none; }
+.skin-card b { font-size: 13px; line-height: 1.2; }
+.skin-card small { color: var(--muted); font-size: 11px; line-height: 1.3; overflow-wrap: anywhere; }
+.skin-card .price { color: var(--gold); font-weight: 800; font-size: 13px; }
+.skin-card .state { color: var(--gold-2); font-weight: 700; font-size: 12px; }
+.skin-card .lock { position: absolute; top: 6px; right: 8px; font-size: 13px; }
+.skin-card.worn { border-color: var(--gold-2); background: rgba(245, 197, 66, 0.1); }
+.skin-card.locked svg { filter: grayscale(1) brightness(0.6); opacity: 0.75; }
+.skin-card.confirm { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(245, 197, 66, 0.35); }
+.skin-card .bar { width: 80%; height: 4px; margin-top: 3px; border-radius: 4px; overflow: hidden; background: rgba(255, 255, 255, 0.08); }
+.skin-card .bar i { display: block; height: 100%; border-radius: 4px; background: var(--gold-2); }
 .bum-art .smoke { animation: smoke 3s ease-in-out infinite; }
 @keyframes smoke { 50% { opacity: 0.15; transform: translateY(-4px); } }
 @keyframes wobble { 50% { transform: rotate(-3deg); } }
@@ -2886,7 +2956,7 @@ body.dead::after {
       <!-- ─── Толян ─── -->
       <section class="screen" data-screen="bum">
         <div class="card bum-scene">
-          <svg class="bum-art" id="bum-art" viewBox="0 0 240 200" role="img" aria-label="Толян">
+          <svg class="bum-art bum-look" id="bum-art" viewBox="0 0 240 200" role="img" aria-label="Толян">
             <defs>
               <linearGradient id="bum-sky" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stop-color="#1b2a3a"/>
@@ -2896,13 +2966,63 @@ body.dead::after {
                 <stop offset="0%" stop-color="#2b1a46"/>
                 <stop offset="100%" stop-color="#7a4a12"/>
               </linearGradient>
+              <linearGradient id="bum-gold-sky" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#4a2a08"/>
+                <stop offset="60%" stop-color="#b8741a"/>
+                <stop offset="100%" stop-color="#e8b140"/>
+              </linearGradient>
+              <radialGradient id="bum-glory" cx="0.5" cy="0.5" r="0.5">
+                <stop offset="0%" stop-color="#fff3b0" stop-opacity="0.85"/>
+                <stop offset="100%" stop-color="#fff3b0" stop-opacity="0"/>
+              </radialGradient>
+              <filter id="bum-glow" x="-30%" y="-30%" width="160%" height="160%">
+                <feDropShadow dx="0" dy="0" stdDeviation="2.4" flood-color="#ffd35a" flood-opacity="0.9"/>
+              </filter>
+              <!-- по этим формам обрезаются узоры на одежде -->
+              <clipPath id="bum-coat-clip"><path d="M100 96 q20 -12 40 0 l6 44 q-26 10 -52 0 z"/></clipPath>
+              <clipPath id="bum-robe-clip"><path d="M95 138 Q120 148 145 138 L148 154 Q120 160 92 154 Z"/></clipPath>
             </defs>
 
             <!-- небо и земля -->
             <rect class="sky" x="0" y="0" width="240" height="200" fill="url(#bum-sky)"/>
             <rect class="sky rich" x="0" y="0" width="240" height="200" fill="url(#bum-rich-sky)" data-from="9"/>
+            <rect class="sky gold" x="0" y="0" width="240" height="200" fill="url(#bum-gold-sky)" data-from="15"/>
+            <!-- лучи славы самого богатого человека Таджикистана -->
+            <g data-from="15">
+              <circle cx="120" cy="62" r="80" fill="url(#bum-glory)"/>
+              <g class="bum-rays" fill="#fff3b0" opacity="0.2">
+                <path d="M120 62 L110 -70 L130 -70 Z" transform="rotate(0 120 62)"/>
+                <path d="M120 62 L110 -70 L130 -70 Z" transform="rotate(30 120 62)"/>
+                <path d="M120 62 L110 -70 L130 -70 Z" transform="rotate(60 120 62)"/>
+                <path d="M120 62 L110 -70 L130 -70 Z" transform="rotate(90 120 62)"/>
+                <path d="M120 62 L110 -70 L130 -70 Z" transform="rotate(120 120 62)"/>
+                <path d="M120 62 L110 -70 L130 -70 Z" transform="rotate(150 120 62)"/>
+                <path d="M120 62 L110 -70 L130 -70 Z" transform="rotate(180 120 62)"/>
+                <path d="M120 62 L110 -70 L130 -70 Z" transform="rotate(210 120 62)"/>
+                <path d="M120 62 L110 -70 L130 -70 Z" transform="rotate(240 120 62)"/>
+                <path d="M120 62 L110 -70 L130 -70 Z" transform="rotate(270 120 62)"/>
+                <path d="M120 62 L110 -70 L130 -70 Z" transform="rotate(300 120 62)"/>
+                <path d="M120 62 L110 -70 L130 -70 Z" transform="rotate(330 120 62)"/>
+              </g>
+            </g>
             <rect x="0" y="163" width="240" height="37" fill="#20262c"/>
             <rect x="0" y="163" width="240" height="3" fill="#39424b"/>
+
+            <!-- своя авиакомпания -->
+            <g data-from="14">
+              <g class="bum-plane">
+                <path d="M-24 26 Q-6 24 8 25" stroke="rgba(255,255,255,0.35)" stroke-width="2" fill="none"
+                      stroke-linecap="round"/>
+                <path d="M9 21 L3 9 L11 9 L20 21 Z" fill="#c0392b"/>
+                <path d="M8 22 L78 20 Q90 20 92 25 Q90 30 78 30 L12 30 Q7 26 8 22 Z" fill="#eef2f6"/>
+                <path d="M52 24 L62 11 L69 11 L64 24 Z" fill="#c0392b"/>
+                <path d="M54 28 L66 40 L73 40 L66 28 Z" fill="#a33227"/>
+                <path d="M82 21 Q89 22 91 25 L82 25 Z" fill="#5a7fa8"/>
+                <g fill="#5a7fa8"><circle cx="70" cy="24.5" r="1.3"/><circle cx="74" cy="24.5" r="1.3"/>
+                  <circle cx="78" cy="24.5" r="1.3"/></g>
+                <text x="32" y="27.6" text-anchor="middle" font-size="5" font-weight="900" fill="#1f2a44">ТОЛЯН ЭЙР</text>
+              </g>
+            </g>
 
             <!-- стена подъезда, пока он бомж -->
             <g data-until="5" opacity="0.85">
@@ -2921,13 +3041,62 @@ body.dead::after {
               <path d="M34 163 L44 126 L54 163 Z" fill="#12261c"/>
             </g>
 
+            <!-- свой базар -->
+            <g data-from="12">
+              <rect x="0" y="70" width="92" height="40" fill="#4a3a28"/>
+              <rect x="30" y="47" width="32" height="10" rx="2" fill="#f5c542"/>
+              <text x="46" y="54.6" text-anchor="middle" font-size="6.4" font-weight="900" fill="#5a3410">БАЗАР</text>
+              <rect x="2" y="59" width="28" height="9" fill="#f4efe2"/>
+              <rect x="2" y="59" width="7" height="9" fill="#c0392b"/><rect x="16" y="59" width="7" height="9" fill="#c0392b"/>
+              <rect x="32" y="59" width="28" height="9" fill="#f4efe2"/>
+              <rect x="32" y="59" width="7" height="9" fill="#27ae60"/><rect x="46" y="59" width="7" height="9" fill="#27ae60"/>
+              <rect x="62" y="59" width="28" height="9" fill="#f5d76e"/>
+              <rect x="62" y="59" width="7" height="9" fill="#2e86de"/><rect x="76" y="59" width="7" height="9" fill="#2e86de"/>
+              <g fill="#f39c12"><circle cx="8" cy="76" r="3.4"/><circle cx="15" cy="76" r="3.4"/><circle cx="11.5" cy="71" r="3.4"/></g>
+              <g fill="#c0392b"><circle cx="22" cy="76" r="3.2"/><circle cx="27" cy="72" r="3.2"/></g>
+              <g fill="#9acd32"><ellipse cx="40" cy="75" rx="6" ry="4.5"/><ellipse cx="52" cy="75" rx="6" ry="4.5"/></g>
+              <g fill="#8e44ad"><circle cx="68" cy="75" r="2.6"/><circle cx="72" cy="72" r="2.6"/><circle cx="76" cy="75" r="2.6"/></g>
+              <g fill="#e67e22"><circle cx="83" cy="75" r="3.2"/><circle cx="87" cy="71" r="3"/></g>
+            </g>
+
+            <!-- чайхана -->
+            <g data-from="11">
+              <rect x="2" y="106" width="74" height="57" rx="2" fill="#7a5230"/>
+              <path d="M0 108 Q39 78 78 108 Z" fill="#2e8b6a"/>
+              <circle cx="39" cy="91" r="2.6" fill="#f5c542"/>
+              <rect x="9" y="110" width="60" height="10" rx="2" fill="#f2d98c"/>
+              <text x="39" y="117.6" text-anchor="middle" font-size="7" font-weight="900" fill="#5a3410">ЧАЙХАНА</text>
+              <path d="M26 163 V140 Q39 126 52 140 V163 Z" fill="#2a1a0e"/>
+              <path d="M29 140 Q39 130 49 140" stroke="#e6b85c" stroke-width="1.5" fill="none"/>
+              <rect x="8" y="128" width="12" height="14" rx="6" fill="#f6e7a1" opacity="0.75"/>
+              <rect x="58" y="128" width="12" height="14" rx="6" fill="#f6e7a1" opacity="0.75"/>
+            </g>
+
             <!-- ящик со стеклотарой -->
-            <g data-from="7">
+            <g data-from="7" data-until="10">
               <rect x="6" y="136" width="46" height="27" rx="3" fill="#4a3a24"/>
               <path d="M6 148 h46" stroke="#33261a" stroke-width="2"/>
               <rect x="10" y="126" width="8" height="12" rx="2" fill="#5b8f4a"/>
               <rect x="22" y="123" width="8" height="15" rx="2" fill="#7a9a3a"/>
               <rect x="34" y="127" width="8" height="11" rx="2" fill="#4a7f6a"/>
+            </g>
+
+            <!-- бюро переводов за шаурмичной -->
+            <g data-from="13">
+              <rect x="168" y="14" width="68" height="62" fill="#3d4756"/>
+              <rect x="168" y="14" width="68" height="10" fill="#27303c"/>
+              <text x="202" y="21.4" text-anchor="middle" font-size="5.2" font-weight="900" fill="#f5c542">БЮРО ПЕРЕВОДОВ</text>
+              <g fill="#f6e7a1" opacity="0.8">
+                <rect x="172" y="30" width="8" height="8"/><rect x="185" y="30" width="8" height="8"/>
+                <rect x="198" y="30" width="8" height="8" opacity="0.4"/><rect x="211" y="30" width="8" height="8"/>
+                <rect x="224" y="30" width="8" height="8"/>
+                <rect x="172" y="44" width="8" height="8" opacity="0.4"/><rect x="185" y="44" width="8" height="8"/>
+                <rect x="198" y="44" width="8" height="8"/><rect x="211" y="44" width="8" height="8"/>
+                <rect x="224" y="44" width="8" height="8" opacity="0.4"/>
+                <rect x="172" y="58" width="8" height="8"/><rect x="185" y="58" width="8" height="8" opacity="0.4"/>
+                <rect x="198" y="58" width="8" height="8"/><rect x="211" y="58" width="8" height="8"/>
+                <rect x="224" y="58" width="8" height="8"/>
+              </g>
             </g>
 
             <!-- шаурмичная -->
@@ -2942,6 +3111,8 @@ body.dead::after {
             <g data-from="10">
               <rect x="86" y="104" width="52" height="59" rx="3" fill="#33251a" opacity="0.9"/>
               <rect x="86" y="104" width="52" height="11" fill="#a33227" opacity="0.9"/>
+            </g>
+            <g data-from="10" data-until="10">
               <rect x="12" y="112" width="48" height="51" rx="3" fill="#2d2118" opacity="0.8"/>
               <rect x="12" y="112" width="48" height="10" fill="#8f2c22" opacity="0.8"/>
             </g>
@@ -2981,44 +3152,455 @@ body.dead::after {
               <path d="M140 94 q7 7 11 0" fill="none" stroke="#6b4a2a" stroke-width="3"/>
             </g>
 
-            <!-- Толян -->
-            <g class="bum-guy" transform="translate(-18 -25) scale(1.15)">
-              <!-- ноги -->
-              <rect class="pants" x="106" y="128" width="12" height="34" rx="4"/>
-              <rect class="pants" x="122" y="128" width="12" height="34" rx="4"/>
-              <rect class="shoe" x="100" y="156" width="20" height="10" rx="4"/>
-              <rect class="shoe" x="120" y="156" width="20" height="10" rx="4"/>
-              <!-- пальто -->
-              <path class="coat" d="M100 96 q20 -12 40 0 l6 44 q-26 10 -52 0 z"/>
-              <path class="coat-dark" d="M120 90 l0 54" stroke-width="2" fill="none"/>
-              <rect class="arm" x="90" y="96" width="12" height="42" rx="6"/>
-              <rect class="arm" x="138" y="96" width="12" height="42" rx="6"/>
-              <!-- грязь на пальто, пока он бомж -->
-              <g class="dirt" data-until="3" opacity="0.5">
-                <ellipse cx="110" cy="118" rx="7" ry="5" fill="#4a3a20"/>
-                <ellipse cx="132" cy="132" rx="6" ry="4" fill="#4a3a20"/>
-                <path d="M104 106 l8 6" stroke="#4a3a20" stroke-width="2"/>
-              </g>
-              <!-- галстук и цепь на вершине карьеры -->
-              <g data-from="10">
-                <path d="M120 92 l-5 6 l5 26 l5 -26 z" fill="#c0392b"/>
-                <path d="M108 94 q12 14 24 0" fill="none" stroke="#f5c542" stroke-width="3"/>
-              </g>
-              <!-- голова -->
-              <circle class="skin" cx="120" cy="72" r="20"/>
-              <path class="beard" d="M104 84 q16 20 32 0 q-2 19 -16 19 q-14 0 -16 -19 z"/>
-              <path class="hair" d="M100 66 q3 -28 20 -28 q17 0 20 28 q-9 -13 -20 -9 q-11 -4 -20 9 z"/>
-              <circle class="eye" cx="113" cy="69" r="2.6" fill="#1b1b1f"/>
-              <circle class="eye" cx="127" cy="69" r="2.6" fill="#1b1b1f"/>
-              <path class="nose" d="M120 70 l-2 7 h5" fill="none" stroke="#c98a63" stroke-width="2"
-                    stroke-linecap="round" stroke-linejoin="round"/>
-              <path class="mouth" d="M112 82 q8 6 16 0" fill="none" stroke="#7a3b2a" stroke-width="2.4"
-                    stroke-linecap="round"/>
-              <!-- очки директора -->
-              <g data-from="10">
-                <rect x="105" y="65" width="13" height="9" rx="2" fill="#15171b"/>
-                <rect x="122" y="65" width="13" height="9" rx="2" fill="#15171b"/>
-                <path d="M118 69 h4" stroke="#15171b" stroke-width="2"/>
+            <!-- Толян: снаружи — место на сцене, внутри — сам он (шатается, худеет), детали образов — data-part -->
+            <g transform="translate(-18 -25) scale(1.15)">
+              <g class="bum-guy">
+                <g class="bum-body">
+                  <!-- за спиной -->
+                  <g data-part="cape">
+                    <path d="M94 96 Q120 84 146 96 L158 162 Q120 172 82 162 Z" fill="#8c1622"/>
+                    <path d="M83 161 Q120 171 157 161" stroke="#f7f3ea" stroke-width="4" fill="none"/>
+                  </g>
+                  <g data-part="backpack">
+                    <rect x="92" y="80" width="56" height="50" rx="10" fill="#3d6b44"/>
+                    <rect x="98" y="76" width="44" height="10" rx="5" fill="#335a39"/>
+                  </g>
+                  <g data-part="tail">
+                    <path d="M106 134 Q82 138 64 160 Q88 158 112 146 Z" fill="#4f9d3a"/>
+                    <path d="M84 145 l-2 -7 l6 4 z M74 152 l-4 -6 l7 3 z" fill="#2f6e22"/>
+                  </g>
+                  <g data-part="hood">
+                    <path class="coat" d="M97 98 Q92 70 120 66 Q148 70 143 98 Z"/>
+                    <path d="M102 96 Q98 76 120 73 Q142 76 138 96" fill="none" stroke="rgba(0,0,0,0.25)" stroke-width="2"/>
+                  </g>
+                  <!-- ноги -->
+                  <rect class="pants" x="106" y="128" width="12" height="34" rx="4"/>
+                  <rect class="pants" x="122" y="128" width="12" height="34" rx="4"/>
+                  <rect class="shoe" x="100" y="156" width="20" height="10" rx="4"/>
+                  <rect class="shoe" x="120" y="156" width="20" height="10" rx="4"/>
+                  <g data-part="shorts">
+                    <rect class="skin" x="107" y="146" width="10" height="11"/>
+                    <rect class="skin" x="123" y="146" width="10" height="11"/>
+                    <rect x="107" y="152" width="10" height="4" fill="#f4f4f4"/>
+                    <rect x="123" y="152" width="10" height="4" fill="#f4f4f4"/>
+                  </g>
+                  <g data-part="valenki" fill="#6f6a64">
+                    <rect x="104" y="143" width="15" height="23" rx="4"/>
+                    <rect x="121" y="143" width="15" height="23" rx="4"/>
+                  </g>
+                  <g data-part="stripes-legs" fill="none" stroke="#f4f4f4" stroke-width="1.2">
+                    <path d="M107.5 132 V156 M110 131 V156 M112.5 131 V156"/>
+                    <path d="M127.5 131 V156 M130 131 V156 M132.5 132 V156"/>
+                  </g>
+                  <g data-part="robe">
+                    <path class="coat" d="M95 138 Q120 148 145 138 L148 154 Q120 160 92 154 Z"/>
+                    <g clip-path="url(#bum-robe-clip)" fill="none" stroke-width="2.4">
+                      <path class="s-stripe" d="M98 130 V170 M110 130 V170 M122 130 V170 M134 130 V170 M146 130 V170"/>
+                      <path class="s-stripe2" d="M104 130 V170 M116 130 V170 M128 130 V170 M140 130 V170"/>
+                    </g>
+                  </g>
+                  <!-- пальто -->
+                  <path class="coat" d="M100 96 q20 -12 40 0 l6 44 q-26 10 -52 0 z"/>
+                  <g data-part="belly">
+                    <path class="coat" d="M91 110 Q88 150 120 151 Q152 150 149 110 Q142 95 120 96 Q98 95 91 110 Z"/>
+                  </g>
+                  <path class="coat-dark" d="M120 90 l0 54" stroke-width="2" fill="none"/>
+                  <g data-part="chapan">
+                    <g clip-path="url(#bum-coat-clip)" fill="none" stroke-width="2.4">
+                      <path class="s-stripe" d="M98 84 V150 M110 84 V150 M122 84 V150 M134 84 V150 M146 84 V150"/>
+                      <path class="s-stripe2" d="M104 84 V150 M116 84 V150 M128 84 V150 M140 84 V150"/>
+                    </g>
+                    <rect class="c-belt" x="96" y="116" width="48" height="6" rx="2"/>
+                  </g>
+                  <g data-part="quilt" clip-path="url(#bum-coat-clip)" fill="none" stroke="rgba(0,0,0,0.32)" stroke-width="1.2">
+                    <path d="M92 104 H148 M92 112 H148 M92 120 H148 M92 128 H148 M92 136 H148"/>
+                  </g>
+                  <g data-part="vest-stripes" clip-path="url(#bum-coat-clip)" fill="none" stroke="#e8eef0" stroke-width="3">
+                    <path d="M92 114 H148 M92 127 H148"/>
+                  </g>
+                  <g data-part="leather">
+                    <path d="M113 92 L127 144" stroke="#b9bec4" stroke-width="1.4"/>
+                    <path d="M109 91 L117 105 L113 91 Z M131 91 L124 103 L128 91 Z" fill="#050506"/>
+                    <path d="M104 108 Q106 120 104 134" stroke="rgba(255,255,255,0.14)" stroke-width="3" fill="none"/>
+                  </g>
+                  <g data-part="apron">
+                    <path d="M106 102 H134 L137 146 H103 Z" fill="#f4f1ea"/>
+                    <path d="M106 102 Q120 86 134 102" fill="none" stroke="#e0dccf" stroke-width="2"/>
+                    <path d="M103 118 H96 M137 118 H144" stroke="#e0dccf" stroke-width="2"/>
+                    <rect x="113" y="124" width="14" height="9" rx="1.5" fill="#e6e1d2"/>
+                  </g>
+                  <g data-part="chefbuttons" fill="#c9c4b5">
+                    <circle cx="113" cy="104" r="1.6"/><circle cx="113" cy="114" r="1.6"/><circle cx="113" cy="124" r="1.6"/>
+                    <circle cx="127" cy="104" r="1.6"/><circle cx="127" cy="114" r="1.6"/><circle cx="127" cy="124" r="1.6"/>
+                  </g>
+                  <g data-part="overalls">
+                    <rect class="pants" x="108" y="104" width="24" height="40" rx="2"/>
+                    <path class="s-pants" d="M109 106 L104 92 M131 106 L136 92" stroke-width="3.2" fill="none"/>
+                    <circle cx="110" cy="107" r="1.6" fill="#d4a017"/><circle cx="130" cy="107" r="1.6" fill="#d4a017"/>
+                    <rect x="114" y="113" width="12" height="8" rx="1" fill="rgba(0,0,0,0.18)"/>
+                  </g>
+                  <g data-part="dino-belly">
+                    <ellipse cx="120" cy="121" rx="12" ry="17" fill="#b9e08a"/>
+                    <path d="M110 113 H130 M109 121 H131 M110 129 H130" stroke="#9cc46e" stroke-width="1" fill="none"/>
+                  </g>
+                  <g data-part="ribs">
+                    <path class="skin" d="M109 104 Q120 100 131 104 L129 130 Q120 134 111 130 Z"/>
+                    <path d="M111 110 q9 -4 18 0 M110 117 q10 -4 20 0 M111 124 q9 -4 18 0" fill="none"
+                          stroke="rgba(0,0,0,0.35)" stroke-width="1.3"/>
+                    <path d="M109 104 l3 4 l2 -3 l3 4 l3 -4 l3 4 l3 -4 l2 3 l3 -4" fill="none" stroke="#3a2e1c" stroke-width="1"/>
+                  </g>
+                  <g data-part="patches">
+                    <rect x="103" y="111" width="10" height="9" fill="#8a7a5a" transform="rotate(-8 108 115)"/>
+                    <rect x="127" y="126" width="9" height="8" fill="#5f6b52" transform="rotate(10 131 130)"/>
+                    <path d="M104 112 l8 7 M127 127 l8 6" stroke="#2b2418" stroke-width="0.8"/>
+                  </g>
+                  <g data-part="shirt">
+                    <path class="c-shirt" d="M112 91 L120 110 L128 91 Q120 88 112 91 Z"/>
+                    <path class="c-tie" d="M120 93 l-3 4 l3 17 l3 -17 z"/>
+                    <path d="M112 91 L120 110 L110 104 Z M128 91 L120 110 L130 104 Z" fill="rgba(0,0,0,0.22)"/>
+                  </g>
+                  <g data-part="open-shirt">
+                    <path class="c-shirt" d="M113 92 Q104 124 113 149 H127 Q136 124 127 92 Q120 89 113 92 Z"/>
+                    <path class="c-tie" d="M120 94 l-3.5 4 l3.5 21 l3.5 -21 z"/>
+                    <circle cx="120" cy="128" r="1.4" fill="#b9b9b9"/><circle cx="120" cy="138" r="1.4" fill="#b9b9b9"/>
+                  </g>
+                  <g data-part="tux">
+                    <path class="c-shirt" d="M112 91 L120 118 L128 91 Q120 88 112 91 Z"/>
+                    <path d="M112 91 L120 118 L108 106 Z M128 91 L120 118 L132 106 Z" fill="#2a2a30"/>
+                    <circle cx="120" cy="104" r="1" fill="#111"/><circle cx="120" cy="110" r="1" fill="#111"/>
+                  </g>
+                  <g data-part="medals">
+                    <rect x="103" y="100" width="4" height="5" fill="#c0392b"/><circle cx="105" cy="107.5" r="2.6" fill="#f5c542"/>
+                    <rect x="108.5" y="100" width="4" height="5" fill="#2e86de"/><circle cx="110.5" cy="107.5" r="2.6" fill="#d9d9d9"/>
+                    <rect x="114" y="100" width="4" height="5" fill="#27ae60"/><circle cx="116" cy="107.5" r="2.6" fill="#f5c542"/>
+                    <rect x="103" y="112" width="4" height="5" fill="#8e44ad"/><circle cx="105" cy="119.5" r="2.6" fill="#cd7f32"/>
+                    <rect x="108.5" y="112" width="4" height="5" fill="#f39c12"/><circle cx="110.5" cy="119.5" r="2.6" fill="#f5c542"/>
+                    <rect x="114" y="112" width="4" height="5" fill="#c0392b"/><circle cx="116" cy="119.5" r="2.6" fill="#d9d9d9"/>
+                    <path d="M130 100 l2 4.2 l4.6 .6 l-3.4 3.2 l.9 4.6 l-4.1 -2.2 l-4.1 2.2 l.9 -4.6 l-3.4 -3.2 l4.6 -.6 z"
+                          fill="#f5c542"/>
+                  </g>
+                  <g data-part="kazan">
+                    <path d="M116 92 v9 M124 92 v9" stroke="#f4f1ea" stroke-width="1.2"/>
+                    <path d="M110 110 H130 Q130 125 120 125 Q110 125 110 110 Z" fill="#1b1b1f"/>
+                    <rect x="108" y="107" width="24" height="4" rx="2" fill="#f5c542"/>
+                    <path d="M114 105 q2 -3 0 -6 M120 105 q2 -3 0 -6 M126 105 q2 -3 0 -6" stroke="#f4f1ea" stroke-width="1.2"
+                          fill="none"/>
+                    <path d="M110 134 H130" stroke="rgba(0,0,0,0.25)" stroke-width="7" stroke-linecap="round"/>
+                  </g>
+                  <g data-part="clover" fill="#3fbf5f">
+                    <circle cx="129" cy="103" r="2.8"/><circle cx="135" cy="103" r="2.8"/>
+                    <circle cx="129" cy="109" r="2.8"/><circle cx="135" cy="109" r="2.8"/>
+                    <path d="M132 106 l2 8" stroke="#2e8b57" stroke-width="1.3"/>
+                  </g>
+                  <g data-part="wings" fill="#f5c542">
+                    <path d="M133 106 q-3 -2.5 -7 -1 q3 2 7 1 z"/>
+                    <path d="M133 106 q3 -2.5 7 -1 q-3 2 -7 1 z"/>
+                    <circle cx="133" cy="106" r="1.5"/>
+                  </g>
+                  <g data-part="zip"><path d="M120 92 V143" stroke="#f4f4f4" stroke-width="1"/></g>
+                  <g data-part="belt">
+                    <rect class="c-belt" x="96" y="118" width="48" height="5" rx="2"/>
+                    <path class="c-belt" d="M118 122 l-4 10 h3 l3 -7 l3 7 h3 l-4 -10 z"/>
+                  </g>
+                  <g data-part="ermine">
+                    <path d="M96 97 Q120 84 144 97 L144 104 Q120 92 96 104 Z" fill="#f7f3ea"/>
+                    <path d="M120 100 V146" stroke="#f7f3ea" stroke-width="5"/>
+                    <path d="M104 97 l1 3 l1 -3 z M114 93 l1 3 l1 -3 z M125 93 l1 3 l1 -3 z M135 97 l1 3 l1 -3 z
+                             M119 112 l1 3 l1 -3 z M119 126 l1 3 l1 -3 z M119 140 l1 3 l1 -3 z" fill="#1b1b1f"/>
+                  </g>
+                  <!-- руки -->
+                  <rect class="arm" x="90" y="96" width="12" height="42" rx="6"/>
+                  <rect class="arm" x="138" y="96" width="12" height="42" rx="6"/>
+                  <g data-part="stripes-arms" fill="none" stroke="#f4f4f4" stroke-width="1.2">
+                    <path d="M92 101 V134 M94.5 100 V136 M97 100 V136"/>
+                    <path d="M143 100 V136 M145.5 100 V136 M148 101 V134"/>
+                  </g>
+                  <g data-part="chapan-arms" fill="none" stroke-width="2">
+                    <path class="s-stripe" d="M94 99 V136 M146 99 V136"/>
+                    <path class="s-stripe2" d="M98.5 99 V136 M141.5 99 V136"/>
+                  </g>
+                  <g data-part="quilt-arms" fill="none" stroke="rgba(0,0,0,0.32)" stroke-width="1.2">
+                    <path d="M90 106 H102 M90 116 H102 M90 126 H102 M138 106 H150 M138 116 H150 M138 126 H150"/>
+                  </g>
+                  <g data-part="cuffs" class="s-trim" fill="none" stroke-width="1.4">
+                    <path d="M90 128 H102 M90 131.5 H102 M138 128 H150 M138 131.5 H150"/>
+                  </g>
+                  <g data-part="fur-cuffs" fill="#b08a62">
+                    <rect x="88" y="128" width="16" height="9" rx="4.5"/><rect x="136" y="128" width="16" height="9" rx="4.5"/>
+                  </g>
+                  <g data-part="garters" fill="#1c1d22">
+                    <rect x="90" y="110" width="12" height="3"/><rect x="138" y="110" width="12" height="3"/>
+                  </g>
+                  <g data-part="epaulettes" class="c-trim">
+                    <rect x="96" y="91" width="12" height="4.5" rx="1.5"/><rect x="132" y="91" width="12" height="4.5" rx="1.5"/>
+                  </g>
+                  <g data-part="fur" fill="#b08a62">
+                    <circle cx="99" cy="97" r="5.5"/><circle cx="107" cy="92.5" r="5.5"/><circle cx="115" cy="90.5" r="5.5"/>
+                    <circle cx="125" cy="90.5" r="5.5"/><circle cx="133" cy="92.5" r="5.5"/><circle cx="141" cy="97" r="5.5"/>
+                    <path d="M95 141 Q120 151 145 141" stroke="#b08a62" stroke-width="6" fill="none" stroke-linecap="round"/>
+                    <path d="M120 96 V144" stroke="#b08a62" stroke-width="5"/>
+                  </g>
+                  <g data-part="towel">
+                    <path d="M97 91 L106 89 L105 124 L96 122 Z" fill="#f4f1ea"/>
+                    <path d="M96.5 115 h8.5 M96.3 118.5 h8.6" stroke="#c0392b" stroke-width="1.2"/>
+                  </g>
+                  <g data-part="straps" fill="none" stroke="#5a3d22" stroke-width="3">
+                    <path d="M106 92 Q103 106 106 124 M134 92 Q137 106 134 124"/>
+                  </g>
+                  <!-- грязь на пальто, пока он бомж (в образе не видна) -->
+                  <g class="dirt base" data-until="3" opacity="0.5">
+                    <ellipse cx="110" cy="118" rx="7" ry="5" fill="#4a3a20"/>
+                    <ellipse cx="132" cy="132" rx="6" ry="4" fill="#4a3a20"/>
+                    <path d="M104 106 l8 6" stroke="#4a3a20" stroke-width="2"/>
+                  </g>
+                  <!-- галстук и цепь на вершине карьеры -->
+                  <g class="base" data-from="10">
+                    <path d="M120 92 l-5 6 l5 26 l5 -26 z" fill="#c0392b"/>
+                    <path d="M108 94 q12 14 24 0" fill="none" stroke="#f5c542" stroke-width="3"/>
+                  </g>
+                  <g data-part="goldchain">
+                    <path d="M106 93 Q120 116 134 93" fill="none" stroke="#f5c542" stroke-width="3" stroke-dasharray="3 1.4"/>
+                    <circle cx="120" cy="106" r="4.2" fill="#f5c542" stroke="#b8860b" stroke-width="1"/>
+                  </g>
+                  <g data-part="bowtie">
+                    <path d="M112 93 L120 97 L128 93 L128 101 L120 97 L112 101 Z" fill="#111"/>
+                    <circle cx="120" cy="97" r="1.8" fill="#2a2a2a"/>
+                  </g>
+                  <g data-part="camera">
+                    <path d="M108 92 Q112 102 114 108 M132 92 Q128 102 126 108" stroke="#222" stroke-width="1.2" fill="none"/>
+                    <rect x="111" y="106" width="18" height="12" rx="2" fill="#2b2b2b"/>
+                    <circle cx="120" cy="112" r="4" fill="#555" stroke="#9a9a9a" stroke-width="1"/>
+                    <rect x="113" y="104" width="5" height="3" fill="#2b2b2b"/>
+                  </g>
+                  <!-- голова -->
+                  <circle class="skin" cx="120" cy="72" r="20"/>
+                  <g data-part="cheeks">
+                    <circle class="skin" cx="102" cy="79" r="7"/><circle class="skin" cx="138" cy="79" r="7"/>
+                    <circle cx="104" cy="80" r="3.2" fill="#e0776b" opacity="0.35"/>
+                    <circle cx="136" cy="80" r="3.2" fill="#e0776b" opacity="0.35"/>
+                  </g>
+                  <g data-part="hollow" fill="none" stroke="rgba(0,0,0,0.28)" stroke-width="1.2">
+                    <path d="M106 74 q2 5 0 9 M134 74 q-2 5 0 9 M109 73 q4 2 8 0 M123 73 q4 2 8 0"/>
+                  </g>
+                  <path class="beard" d="M104 84 q16 20 32 0 q-2 19 -16 19 q-14 0 -16 -19 z"/>
+                  <path class="hair" d="M100 66 q3 -28 20 -28 q17 0 20 28 q-9 -13 -20 -9 q-11 -4 -20 9 z"/>
+                  <g data-part="bruise"><ellipse cx="113" cy="69.5" rx="5.8" ry="4.6" fill="#6a3d8a" opacity="0.55"/></g>
+                  <circle class="eye" cx="113" cy="69" r="2.6" fill="#1b1b1f"/>
+                  <circle class="eye" cx="127" cy="69" r="2.6" fill="#1b1b1f"/>
+                  <path class="nose" d="M120 70 l-2 7 h5" fill="none" stroke="#c98a63" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round"/>
+                  <path class="mouth" d="M112 82 q8 6 16 0" fill="none" stroke="#7a3b2a" stroke-width="2.4"
+                        stroke-linecap="round"/>
+                  <!-- очки директора -->
+                  <g class="base" data-from="10">
+                    <rect x="105" y="65" width="13" height="9" rx="2" fill="#15171b"/>
+                    <rect x="122" y="65" width="13" height="9" rx="2" fill="#15171b"/>
+                    <path d="M118 69 h4" stroke="#15171b" stroke-width="2"/>
+                  </g>
+                  <!-- на лице и на голове -->
+                  <g data-part="plaster" transform="rotate(-20 131 81)">
+                    <rect x="125" y="78.5" width="12" height="5" rx="1.5" fill="#e8c9a0"/>
+                    <rect x="129" y="78.5" width="4" height="5" fill="#d9b88c"/>
+                  </g>
+                  <g data-part="shades">
+                    <rect x="104" y="64" width="14" height="8" rx="3" fill="#111"/>
+                    <rect x="122" y="64" width="14" height="8" rx="3" fill="#111"/>
+                    <path d="M118 67 h4" stroke="#111" stroke-width="2"/>
+                    <path d="M106 66.5 h5 M124 66.5 h5" stroke="#5a5a5a" stroke-width="1"/>
+                  </g>
+                  <g data-part="monocle">
+                    <circle cx="127" cy="69" r="5" fill="rgba(200, 230, 255, 0.25)" stroke="#d4a017" stroke-width="1.6"/>
+                    <path d="M131 73 Q136 84 133 94" stroke="#d4a017" stroke-width="0.9" fill="none"/>
+                  </g>
+                  <g data-part="trusy">
+                    <path d="M99 79 Q96 43 120 39 Q144 43 141 79 Q130 85 120 81 Q110 85 99 79 Z" fill="#f6f3ec"/>
+                    <path d="M101 51 Q120 38 139 51" stroke="#d9d3c4" stroke-width="3" fill="none"/>
+                    <ellipse cx="113" cy="69" rx="5" ry="3.6" fill="#1b1b1f"/>
+                    <ellipse cx="127" cy="69" rx="5" ry="3.6" fill="#1b1b1f"/>
+                    <circle cx="113.6" cy="68.6" r="1.3" fill="#fff"/>
+                    <circle cx="127.6" cy="68.6" r="1.3" fill="#fff"/>
+                    <path d="M120 43 l3.2 4 l-3.2 4 l-3.2 -4 z" fill="#d4a017"/>
+                  </g>
+                  <g data-part="dinohood">
+                    <path d="M95 84 Q91 39 120 35 Q149 39 145 84 L137 84 Q139 55 120 53 Q101 55 103 84 Z" fill="#4f9d3a"/>
+                    <path d="M104 43 l4 -10 l5 8 l7 -12 l7 12 l5 -8 l4 10 z" fill="#2f6e22"/>
+                    <circle cx="110" cy="46" r="3.6" fill="#fff"/><circle cx="130" cy="46" r="3.6" fill="#fff"/>
+                    <circle cx="110.6" cy="46.4" r="1.7" fill="#111"/><circle cx="130.6" cy="46.4" r="1.7" fill="#111"/>
+                  </g>
+                  <g data-part="bandage">
+                    <path d="M99 56 Q120 45 141 56 L141 63 Q120 52 99 63 Z" fill="#f2efe6"/>
+                    <path d="M137 54 l8 -5 l0 8 z" fill="#f2efe6"/>
+                    <circle cx="128" cy="55.5" r="2" fill="#c0392b" opacity="0.7"/>
+                  </g>
+                  <g data-part="cap">
+                    <path class="c-hat" d="M99 59 Q99 40 120 40 Q141 40 141 59 Z"/>
+                    <path class="c-hat2" d="M97 59 Q120 52 143 59 L147 64 Q120 57 93 64 Z"/>
+                    <circle class="c-hat2" cx="120" cy="41" r="2"/>
+                  </g>
+                  <g data-part="tubeteika">
+                    <path d="M101 57 L104 43 Q120 37 136 43 L139 57 Q120 53 101 57 Z" fill="#17181c"/>
+                    <path d="M104 43 Q120 37 136 43" fill="none" stroke="#e9e3d0" stroke-width="1.2"/>
+                    <path d="M109 53 q-3 -4 0 -7 q3 3 0 7 z M120 51.5 q-3 -4 0 -7 q3 3 0 7 z M131 53 q-3 -4 0 -7 q3 3 0 7 z"
+                          fill="#f2ecdc"/>
+                  </g>
+                  <g data-part="ushanka">
+                    <rect x="93" y="57" width="10" height="24" rx="5" fill="#6d5a45"/>
+                    <rect x="137" y="57" width="10" height="24" rx="5" fill="#6d5a45"/>
+                    <path d="M97 58 Q97 34 120 34 Q143 34 143 58 Z" fill="#5a4a38"/>
+                    <rect x="95" y="50" width="50" height="11" rx="5.5" fill="#7d6850"/>
+                  </g>
+                  <g data-part="bandana">
+                    <path d="M100 60 Q100 39 120 39 Q140 39 140 60 Q120 54 100 60 Z" fill="#b3202a"/>
+                    <path d="M139 56 l9 -3 l-3 7 z M139 58 l8 4 l-7 2 z" fill="#b3202a"/>
+                    <g fill="#f4f1ea">
+                      <circle cx="110" cy="50" r="1.3"/><circle cx="120" cy="45" r="1.3"/><circle cx="130" cy="50" r="1.3"/>
+                      <circle cx="115" cy="54" r="1"/><circle cx="125" cy="54" r="1"/>
+                    </g>
+                  </g>
+                  <g data-part="crown">
+                    <path d="M103 50 L105 33 L112 42 L120 29 L128 42 L135 33 L137 50 Z" fill="#f5c542" stroke="#b8860b"
+                          stroke-width="1"/>
+                    <rect x="103" y="47" width="34" height="6" rx="1.5" fill="#d4a017"/>
+                    <circle cx="120" cy="50" r="2.2" fill="#c0392b"/>
+                    <circle cx="110" cy="50" r="1.6" fill="#2e86de"/><circle cx="130" cy="50" r="1.6" fill="#2e86de"/>
+                  </g>
+                  <g data-part="hardhat">
+                    <path d="M100 58 Q100 36 120 36 Q140 36 140 58 Z" fill="#f2c230"/>
+                    <rect x="96" y="56" width="48" height="5" rx="2.5" fill="#e0ad1c"/>
+                    <rect x="117" y="37" width="6" height="19" rx="2" fill="#e0ad1c"/>
+                  </g>
+                  <g data-part="chef">
+                    <circle cx="108" cy="40" r="9" fill="#f7f7f5"/><circle cx="132" cy="40" r="9" fill="#f7f7f5"/>
+                    <circle cx="120" cy="35" r="11" fill="#ffffff"/>
+                    <rect x="103" y="42" width="34" height="14" rx="2" fill="#f2f2ef"/>
+                    <path d="M103 50 h34" stroke="#dcdcd6" stroke-width="1"/>
+                  </g>
+                  <g data-part="panama">
+                    <ellipse cx="120" cy="56" rx="27" ry="5" fill="#b9a878"/>
+                    <path d="M102 56 Q103 38 120 38 Q137 38 138 56 Z" fill="#cbbb8a"/>
+                    <path d="M103 51 Q120 47 137 51" stroke="#7d6e44" stroke-width="2.5" fill="none"/>
+                  </g>
+                  <g data-part="pilotcap">
+                    <ellipse class="c-hat" cx="120" cy="45" rx="24" ry="7"/>
+                    <rect class="c-hat2" x="102" y="45" width="36" height="11"/>
+                    <path d="M101 56 Q120 63 139 56 L139 58 Q120 67 101 58 Z" fill="#15171b"/>
+                    <circle class="c-trim" cx="120" cy="49.5" r="3"/>
+                    <path class="s-trim" d="M104 55 h32" stroke-width="1.2"/>
+                  </g>
+                  <g data-part="turban">
+                    <path d="M98 60 Q96 36 120 33 Q144 36 142 60 Q120 52 98 60 Z" fill="#f4efe2"/>
+                    <path d="M100 52 Q120 40 140 52 M99 46 Q118 36 138 44" stroke="#d8cfb8" stroke-width="2" fill="none"/>
+                    <path d="M121 40 q6 -10 2 -16 q-3 8 -6 12 z" fill="#2e8b57"/>
+                    <circle cx="120" cy="45" r="3.5" fill="#d4a017" stroke="#8a6508" stroke-width="1"/>
+                    <circle cx="120" cy="45" r="1.4" fill="#c0392b"/>
+                  </g>
+                  <g data-part="visor">
+                    <path d="M100 56 Q120 49 140 56 L140 59 Q120 52 100 59 Z" fill="#2b2b2b"/>
+                    <path d="M99 58 Q120 51 141 58 L145 66 Q120 58 95 66 Z" fill="#2fa36b" opacity="0.85"/>
+                  </g>
+                  <g data-part="bowler">
+                    <ellipse class="c-hat" cx="120" cy="56" rx="24" ry="4.5"/>
+                    <path class="c-hat" d="M104 56 Q103 36 120 36 Q137 36 136 56 Z"/>
+                    <path class="c-hat2" d="M104 51 Q120 48 136 51 L136 55 Q120 52 104 55 Z"/>
+                  </g>
+                  <g data-part="straw">
+                    <ellipse cx="120" cy="56" rx="31" ry="6" fill="#e3c26b"/>
+                    <path d="M104 56 Q104 38 120 38 Q136 38 136 56 Z" fill="#edd083"/>
+                    <path d="M104 51 Q120 47 136 51 L136 55 Q120 51 104 55 Z" fill="#b3202a"/>
+                    <path d="M92 57 h56 M97 60 h46" stroke="#c9a24a" stroke-width="0.8"/>
+                  </g>
+                  <g data-part="beanie">
+                    <path d="M100 58 Q100 37 120 37 Q140 37 140 58 Z" fill="#e8671c"/>
+                    <rect x="98" y="52" width="44" height="8" rx="4" fill="#c9530f"/>
+                    <circle cx="120" cy="36" r="4" fill="#f08a3c"/>
+                  </g>
+                  <g data-part="halo">
+                    <ellipse cx="120" cy="30" rx="15" ry="4" fill="none" stroke="#ffe27a" stroke-width="2.6"/>
+                  </g>
+                  <!-- в руках -->
+                  <g data-part="broom">
+                    <path d="M149 90 L152 152" stroke="#8a5a2b" stroke-width="3" stroke-linecap="round"/>
+                    <path d="M143 150 H161 L164 166 H140 Z" fill="#c9a24a"/>
+                    <path d="M144 156 H160 M143 161 H162" stroke="#a8842f" stroke-width="1" fill="none"/>
+                    <circle class="skin" cx="146" cy="136" r="4.5"/>
+                  </g>
+                  <g data-part="briefcase">
+                    <path d="M147 136 v-3 h9 v3" fill="none" stroke="#3b2616" stroke-width="2"/>
+                    <rect x="140" y="136" width="24" height="17" rx="2" fill="#5a3a22"/>
+                    <rect x="150" y="142" width="4" height="3" fill="#d4a017"/>
+                    <circle class="skin" cx="146" cy="135" r="4.5"/>
+                  </g>
+                  <g data-part="skewer">
+                    <path d="M140 142 L172 106" stroke="#b9b9b9" stroke-width="1.8"/>
+                    <g fill="#8b3a1a"><circle cx="153" cy="127" r="3.8"/><circle cx="159.5" cy="120" r="3.8"/>
+                      <circle cx="166" cy="113" r="3.8"/></g>
+                    <circle cx="156.3" cy="123.6" r="2.6" fill="#e8d9a8"/>
+                    <circle class="skin" cx="145" cy="136" r="4.5"/>
+                  </g>
+                  <g data-part="shawarma-wrap">
+                    <path d="M141 116 L153 111 L159 133 L147 138 Z" fill="#e8c88e"/>
+                    <path d="M147 138 L159 133 L161 141 L150 146 Z" fill="#c9ccd1"/>
+                    <path d="M142 115 l3 -5 l3 4 l3 -6 l3 4" stroke="#5fa04a" stroke-width="2" fill="none" stroke-linejoin="round"/>
+                    <circle class="skin" cx="145" cy="136" r="4.5"/>
+                  </g>
+                  <g data-part="folder">
+                    <rect x="137" y="120" width="21" height="27" rx="1.5" fill="#2e5fa3"/>
+                    <rect x="140" y="117" width="16" height="4" fill="#f4f1ea"/>
+                    <path d="M141 128 H154 M141 132 H154 M141 136 H151" stroke="#9ab8e0" stroke-width="1" fill="none"/>
+                    <circle cx="151" cy="142" r="3.2" fill="none" stroke="#c0392b" stroke-width="1.2"/>
+                    <circle class="skin" cx="144" cy="136" r="4.5"/>
+                  </g>
+                  <g data-part="cards">
+                    <rect x="143" y="116" width="12" height="17" rx="1.5" fill="#fff" stroke="#999" stroke-width="0.6"
+                          transform="rotate(-22 149 133)"/>
+                    <rect x="143" y="116" width="12" height="17" rx="1.5" fill="#fff" stroke="#999" stroke-width="0.6"
+                          transform="rotate(22 149 133)"/>
+                    <rect x="143" y="116" width="12" height="17" rx="1.5" fill="#fff" stroke="#999" stroke-width="0.6"/>
+                    <circle cx="149" cy="121" r="1.8" fill="#c0392b"/>
+                    <circle class="skin" cx="146" cy="136" r="4.5"/>
+                  </g>
+                  <g data-part="scepter">
+                    <path d="M146 146 L155 96" stroke="#d4a017" stroke-width="3" stroke-linecap="round"/>
+                    <circle cx="155.5" cy="92.5" r="5" fill="#f5c542" stroke="#b8860b" stroke-width="1"/>
+                    <circle cx="155.5" cy="92.5" r="2" fill="#c0392b"/>
+                    <circle class="skin" cx="147" cy="136" r="4.5"/>
+                  </g>
+                  <g data-part="corn-cob">
+                    <g transform="rotate(18 151 124)">
+                      <ellipse cx="151" cy="122" rx="5" ry="12" fill="#f2c94c"/>
+                      <path d="M147 116 h8 M146.5 120 h9 M146.5 124 h9 M147 128 h8" stroke="#d9a520" stroke-width="0.8"/>
+                      <path d="M146 130 Q142 140 147 146 Q148 136 151 132 Q154 136 155 146 Q160 140 156 130 Z" fill="#5fa04a"/>
+                    </g>
+                    <circle class="skin" cx="145" cy="137" r="4.5"/>
+                  </g>
+                  <g data-part="nunchaku">
+                    <rect x="144" y="116" width="7" height="19" rx="3" fill="#f4f1ea"/>
+                    <path d="M144 121 h7 M144 125 h7" stroke="#c0392b" stroke-width="1.4"/>
+                    <path d="M147.5 116 Q152 104 160 104" stroke="#8a8a8a" stroke-width="1.2" fill="none" stroke-dasharray="1.6 1"/>
+                    <g transform="rotate(-40 164 110)">
+                      <rect x="160.5" y="100" width="7" height="19" rx="3" fill="#f4f1ea"/>
+                      <path d="M160.5 105 h7 M160.5 109 h7" stroke="#2e86de" stroke-width="1.4"/>
+                    </g>
+                    <circle class="skin" cx="147" cy="136" r="4.5"/>
+                  </g>
+                  <g data-part="wrench">
+                    <path d="M146 138 L161 110" stroke="#9aa2ab" stroke-width="3.5" stroke-linecap="round"/>
+                    <circle cx="162.5" cy="107" r="5" fill="#9aa2ab"/>
+                    <circle cx="164.5" cy="104.5" r="2.2" fill="#2a2f35"/>
+                    <circle class="skin" cx="145" cy="137" r="4.5"/>
+                  </g>
+                  <g data-part="horseshoe">
+                    <path d="M144 116 v6 a8 8 0 0 0 16 0 v-6 h-4 v6 a4 4 0 0 1 -8 0 v-6 z" fill="#b9b9b9"/>
+                    <circle cx="146" cy="119" r="0.9" fill="#555"/><circle cx="158" cy="119" r="0.9" fill="#555"/>
+                    <circle class="skin" cx="146" cy="136" r="4.5"/>
+                  </g>
+                  <g data-part="sparkles" fill="#fff6c9">
+                    <path d="M90 60 l2 5 l5 2 l-5 2 l-2 5 l-2 -5 l-5 -2 l5 -2 z"/>
+                    <path d="M153 80 l1.6 4 l4 1.6 l-4 1.6 l-1.6 4 l-1.6 -4 l-4 -1.6 l4 -1.6 z"/>
+                    <path d="M94 124 l1.4 3.5 l3.5 1.4 l-3.5 1.4 l-1.4 3.5 l-1.4 -3.5 l-3.5 -1.4 l3.5 -1.4 z"/>
+                    <path d="M154 140 l1.4 3.5 l3.5 1.4 l-3.5 1.4 l-1.4 3.5 l-1.4 -3.5 l-3.5 -1.4 l3.5 -1.4 z"/>
+                  </g>
+                </g>
               </g>
             </g>
 
@@ -3035,6 +3617,7 @@ body.dead::after {
           </svg>
           <div class="bum-name" id="bum-name">…</div>
           <div class="bum-level" id="bum-level"></div>
+          <div class="bum-look-name" id="bum-look"></div>
           <div class="bum-mood" id="bum-mood"></div>
         </div>
         <div class="card bum-income">
@@ -3050,6 +3633,10 @@ body.dead::after {
           <button id="bum-upgrade" type="button">📦 Вложиться</button>
         </div>
         <p class="hint" id="bum-hint">Выручка копится, пока тебя нет, но не больше шести часов. Голодный работает вполсилы.</p>
+
+        <h2 class="section-title">👕 Гардероб<span class="wardrobe-count" id="bum-wardrobe-count"></span></h2>
+        <div class="card wardrobe-now" id="bum-wardrobe-now"></div>
+        <div id="bum-wardrobe"></div>
 
         <h2 class="section-title">📈 Куда он может вырасти</h2>
         <ul class="card bum-levels" id="bum-levels"></ul>
@@ -3272,6 +3859,7 @@ body.dead::after {
     }
     if (!response.ok) throw new ApiError(data.error || "Казино временно закрыто", response.status);
     if (Array.isArray(data.unlocked) && data.unlocked.length) celebrate(data.unlocked);
+    if (Array.isArray(data.skins_unlocked) && data.skins_unlocked.length) celebrateSkins(data.skins_unlocked);
     return data;
   }
 
@@ -4337,6 +4925,16 @@ body.dead::after {
     if (!awards.showing) nextAward();
   }
 
+  // Толяну открылись образы: показываем в той же всплывашке, что и ачивки. Много сразу — одной строкой.
+  function celebrateSkins(list) {
+    const items = list.length > 2
+      ? [{ skin: true, emoji: "👕", title: `Новых образов: ${list.length}`, count: list.length }]
+      : list.map((item) => ({ ...item, skin: true }));
+    awards.queue.push(...items);
+    if (state.screen === "bum") loadBum();            // в гардеробе они уже открыты
+    if (!awards.showing) nextAward();
+  }
+
   function nextAward() {
     const item = awards.queue.shift();
     const box = $("#award-toast");
@@ -4349,9 +4947,15 @@ body.dead::after {
     box.replaceChildren();
     box.append(el("span", "emoji", item.emoji || "🏅"));
     const body = el("div", "body");
-    body.append(el("b", "", `${item.title} · ${stars(item.star, item.stars)}`),
-                el("small", "", item.star >= item.stars ? "Ачивка закрыта полностью!" : "Новая звезда"));
-    box.append(body, el("span", "reward", `+${fmt(item.reward)}`));
+    if (item.skin) {
+      body.append(el("b", "", item.count ? item.title : `Образ «${item.title}»`),
+                  el("small", "", "Толян уже примеряет — загляни в гардероб"));
+      box.append(body);
+    } else {
+      body.append(el("b", "", `${item.title} · ${stars(item.star, item.stars)}`),
+                  el("small", "", item.star >= item.stars ? "Ачивка закрыта полностью!" : "Новая звезда"));
+      box.append(body, el("span", "reward", `+${fmt(item.reward)}`));
+    }
     box.classList.add("show");
     haptic.notify("success");
     audio.play("star");
@@ -9311,7 +9915,60 @@ body.dead::after {
 
   // ─── Толян ─────────────────────────────────────────────────────────────────
 
-  const bum = { data: null, offset: 0, sending: false };
+  const bum = { data: null, offset: 0, sending: false, confirm: "", confirmUntil: 0 };
+
+  // Образы: цвета одежды и детали рисунка (data-part в svg). Ключи — как в casino_bum.SKINS.
+  const SKIN_LOOKS = {
+    adidas: { colors: { coat: "#1c1d22", pants: "#1c1d22", shoe: "#f2f2f2", hat: "#1c1d22", hat2: "#111214" },
+              parts: ["cap", "stripes-legs", "stripes-arms", "zip"] },
+    ushanka: { colors: { coat: "#3f463b", pants: "#2e3136" }, parts: ["ushanka", "quilt", "quilt-arms", "valenki"] },
+    chapan: { colors: { coat: "#26398a", stripe: "#d4a017", stripe2: "#c0392b", belt: "#c0392b", pants: "#2d2d33",
+                        shoe: "#5a3a22" },
+              parts: ["tubeteika", "robe", "chapan", "chapan-arms"] },
+    biker: { colors: { coat: "#141416", pants: "#2c3440", shoe: "#141416" }, parts: ["bandana", "shades", "leather"] },
+    boss: { colors: { coat: "#3c4046", pants: "#3c4046", shoe: "#141416", tie: "#8b1e2d" }, parts: ["shirt", "briefcase"] },
+    king: { colors: { coat: "#a31d2b", pants: "#6b1019", shoe: "#d4a017" },
+            parts: ["cape", "ermine", "goldchain", "crown", "scepter"] },
+    janitor: { colors: { coat: "#f07b1a", arm: "#4b5a6a", pants: "#3a4652" }, parts: ["beanie", "vest-stripes", "broom"] },
+    tourist: { colors: { coat: "#8a7f55", pants: "#6e6447", shoe: "#6b4a2a" },
+               parts: ["backpack", "shorts", "straps", "camera", "panama"] },
+    griller: { colors: { coat: "#2d2f33", pants: "#2d2f33" }, parts: ["apron", "towel", "skewer"] },
+    shawarma: { colors: { coat: "#f2f2ef", pants: "#2d2f33" }, parts: ["chefbuttons", "chef", "shawarma-wrap"] },
+    pilot: { colors: { coat: "#1f2a44", pants: "#1f2a44", shoe: "#141416", hat: "#f4f4f4", hat2: "#1f2a44",
+                       tie: "#111214" },
+             parts: ["shirt", "wings", "cuffs", "epaulettes", "pilotcap"] },
+    bai: { colors: { coat: "#c9951c", stripe: "#8a5a08", stripe2: "#f5d76e", belt: "#7a1520", pants: "#5a3a0a",
+                     shoe: "#7a1520" },
+           parts: ["robe", "chapan", "chapan-arms", "goldchain", "turban"] },
+    lenya: { colors: { coat: "#2f3136", pants: "#2f3136", shoe: "#141416", tie: "#2e5fa3" },
+             parts: ["belly", "open-shirt", "cheeks", "folder"] },
+    ludoman: { colors: { coat: "#8b1e2d", arm: "#f4f4f4", pants: "#1c1d22", shoe: "#141416" },
+               parts: ["garters", "visor", "cards"] },
+    worker: { colors: { coat: "#2e5a8a", pants: "#2e5a8a", shoe: "#3a2a1c" }, parts: ["vest-stripes", "hardhat", "wrench"] },
+    general: { colors: { coat: "#3f5a3a", pants: "#2f4230", shoe: "#141416", hat: "#3f5a3a", hat2: "#b3202a" },
+               parts: ["medals", "epaulettes", "pilotcap"] },
+    mecenat: { colors: { coat: "#141416", pants: "#141416", shoe: "#141416", hat: "#141416", hat2: "#3a3a3a" },
+               parts: ["tux", "bowtie", "monocle", "bowler"] },
+    oligarch: { colors: { coat: "#5a3b26", pants: "#1c1d22", shoe: "#141416" },
+                parts: ["fur", "fur-cuffs", "goldchain", "shades"] },
+    sponsor: { colors: { coat: "#5b2a86", pants: "#1c1d22", shoe: "#f2f2f2" }, parts: ["hood", "kazan"] },
+    golden: { colors: { coat: "#d4a017", pants: "#b8860b", shoe: "#8a6508", hair: "#b8860b", beard: "#b8860b",
+                        skin: "#f0c75e" },
+              parts: ["goldchain", "sparkles"], fx: "gold" },
+    ghost: { colors: { coat: "#cdd6e0", pants: "#b7c2ce", shoe: "#9aa6b3", hair: "#aab6c2", beard: "#aab6c2",
+                       skin: "#e8eef4" },
+             parts: ["halo"], fx: "ghost" },
+    lucky: { colors: { coat: "#2e8b57", pants: "#1f6b40", shoe: "#3a2a1c", hat: "#2e8b57", hat2: "#d4a017" },
+             parts: ["clover", "bowler", "horseshoe"] },
+    ninja: { colors: { coat: "#16171b", pants: "#16171b", shoe: "#16171b", belt: "#f4f1ea" },
+             parts: ["belt", "trusy", "nunchaku"] },
+    dino: { colors: { coat: "#4f9d3a", pants: "#4f9d3a", shoe: "#2f6e22" }, parts: ["tail", "dino-belly", "dinohood"] },
+    corn: { colors: { coat: "#e8c547", pants: "#3b5a8a", shoe: "#5a3a22" }, parts: ["overalls", "straw", "corn-cob"] },
+    beaten: { stage: "poor", parts: ["patches", "bruise", "plaster", "bandage"], mouth: "sad" },
+    skinny: { stage: "poor", parts: ["ribs", "hollow"], fx: "thin", mouth: "sad" },
+  };
+  const BUM_COLORS = ["skin", "hair", "beard", "coat", "arm", "pants", "shoe", "hat", "hat2", "trim", "shirt", "tie",
+                      "stripe", "stripe2", "belt"];
 
   async function loadBum() {
     try {
@@ -9326,6 +9983,7 @@ body.dead::after {
     bum.offset = data.now - Date.now() / 1000;
     setBalance(data.balance, state.loaded);
     renderBum();
+    renderWardrobe();
     if (data.story) $("#bum-story").textContent = data.story;
   }
 
@@ -9339,26 +9997,61 @@ body.dead::after {
     return Math.floor(data.level.income * (fed + (hours - fed) * data.hungry_rate));
   }
 
-  function drawBum(level, hungry) {
-    const art = $("#bum-art");
-    art.dataset.stage = level >= 9 ? "rich" : level >= 6 ? "good" : level >= 3 ? "ok" : "poor";
-    art.classList.toggle("hungry", hungry);
-    // пока он бомж — рот грустный, с деньгами появляется улыбка
-    $("#bum-art .mouth").setAttribute("d", level >= 3 ? "M112 82 q8 6 16 0" : "M112 85 q8 -6 16 0");
-    $$("#bum-art [data-from], #bum-art [data-until]").forEach((node) => {
-      const from = Number(node.dataset.from || 0);
-      const until = node.dataset.until === undefined ? 99 : Number(node.dataset.until);
-      node.style.display = level >= from && level <= until ? "" : "none";
+  function bumStage(level) {
+    return level >= 13 ? "boss" : level >= 9 ? "rich" : level >= 6 ? "good" : level >= 3 ? "ok" : "poor";
+  }
+
+  function byLevel(node, level) {
+    const from = Number(node.dataset.from || 0);
+    const until = node.dataset.until === undefined ? 99 : Number(node.dataset.until);
+    return level >= from && level <= until;
+  }
+
+  // Одевает Толяна: в образ, а без образа — по уровню. Годится и для сцены, и для превью в гардеробе.
+  function dressBum(svg, skin, level) {
+    const look = skin && SKIN_LOOKS[skin] ? SKIN_LOOKS[skin] : null;
+    const colors = (look && look.colors) || {};
+    svg.dataset.stage = look ? look.stage || "" : bumStage(level);
+    svg.dataset.fx = (look && look.fx) || "";
+    BUM_COLORS.forEach((name) => {
+      if (colors[name]) svg.style.setProperty(`--${name}`, colors[name]);
+      else svg.style.removeProperty(`--${name}`);
     });
+    const parts = new Set(look ? look.parts : []);
+    svg.querySelectorAll("[data-part]").forEach((node) => node.classList.toggle("on", parts.has(node.dataset.part)));
+    // обычная одежда по уровню (грязь, галстук, очки) под образом не видна
+    svg.querySelectorAll(".bum-guy .base").forEach((node) => {
+      node.style.display = !look && byLevel(node, level) ? "" : "none";
+    });
+    // пока он бомж — рот грустный, с деньгами появляется улыбка; побитый и голодный не улыбаются
+    const sad = look ? look.mouth === "sad" : level < 3;
+    svg.querySelector(".mouth").setAttribute("d", sad ? "M112 85 q8 -6 16 0" : "M112 82 q8 6 16 0");
+  }
+
+  function drawBum(level, hungry, skin) {
+    const art = $("#bum-art");
+    art.classList.toggle("hungry", hungry);
+    $$("#bum-art [data-from], #bum-art [data-until]").forEach((node) => {
+      node.style.display = byLevel(node, level) ? "" : "none";
+    });
+    dressBum(art, skin, level);
+  }
+
+  function wornSkin() {
+    const wardrobe = bum.data && bum.data.wardrobe;
+    if (!wardrobe || !wardrobe.skin) return null;
+    return wardrobe.skins.find((skin) => skin.key === wardrobe.skin) || null;
   }
 
   function renderBum() {
     const data = bum.data;
     if (!data) return;
     const pending = bumPending();
-    drawBum(data.level.level, data.hungry);
+    const worn = wornSkin();
+    drawBum(data.level.level, data.hungry, worn ? worn.key : null);
     $("#bum-name").textContent = data.name;
     $("#bum-level").textContent = data.level.title;
+    $("#bum-look").textContent = worn ? `${worn.emoji} ${worn.title}` : "";
     $("#bum-mood").textContent = data.mood;
     $("#bum-rate").textContent = `${fmt(data.level.income)}/ч`;
     $("#bum-pending").textContent = fmt(pending);
@@ -9371,7 +10064,7 @@ body.dead::after {
     $("#bum-feed").textContent = `🍲 Покормить · ${fmt(data.feed_cost)}`;
     $("#bum-feed").disabled = bum.sending;
     const next = data.next;
-    $("#bum-upgrade").textContent = next ? `${next.emoji} Вложить · ${fmt(next.cost)}` : "🏪 Выше некуда";
+    $("#bum-upgrade").textContent = next ? `${next.emoji} Вложить · ${fmt(next.cost)}` : "👑 Выше некуда";
     $("#bum-upgrade").disabled = !next || bum.sending;
     $("#bum-levels").replaceChildren(...data.levels.map((level) => {
       const row = el("li", level.level < data.level.level ? "done" : level.level === data.level.level ? "now" : "");
@@ -9382,6 +10075,128 @@ body.dead::after {
       );
       return row;
     }));
+  }
+
+  // ── Гардероб ──
+
+  function skinPreview(skin, level) {
+    const svg = document.createElementNS(SVG_NS, "svg");
+    svg.setAttribute("viewBox", "62 22 116 148");
+    svg.setAttribute("aria-hidden", "true");
+    svg.classList.add("bum-look");
+    const guy = $("#bum-art .bum-guy").cloneNode(true);
+    svg.append(guy);
+    dressBum(svg, skin, level);
+    guy.querySelectorAll("[data-part]:not(.on)").forEach((node) => node.remove());   // чужие детали превью ни к чему
+    return svg;
+  }
+
+  function skinCard(skin, level) {
+    const card = el("button", "skin-card");
+    card.type = "button";
+    card.dataset.skin = skin.key;
+    const confirm = bum.confirm === skin.key && Date.now() < bum.confirmUntil;
+    card.classList.toggle("worn", skin.worn);
+    card.classList.toggle("locked", !skin.owned && skin.kind !== "coins");
+    card.classList.toggle("confirm", confirm);
+    card.append(skinPreview(skin.key, level), el("b", "", skin.title));
+    if (skin.worn) {
+      card.append(el("small", "state", "✓ Надет"));
+    } else if (skin.owned) {
+      card.append(el("small", "state", "Надеть"));
+    } else if (skin.kind === "coins") {
+      card.append(el("span", "price", confirm ? `Купить за ${fmt(skin.price)}?` : `${fmt(skin.price)} 🪙`));
+    } else {
+      card.append(el("span", "lock", "🔒"), el("small", "", skin.need));
+      if (skin.kind === "award") {
+        card.append(el("small", "", stars(skin.value, skin.goal)));
+      } else if (skin.goal > 1) {
+        const bar = el("div", "bar");
+        const fill = el("i");
+        fill.style.width = `${Math.round((skin.value / skin.goal) * 100)}%`;
+        bar.append(fill);
+        card.append(bar);
+        if (skin.kind === "deed") card.append(el("small", "", `${fmt(skin.value)} из ${fmt(skin.goal)}`));
+      }
+    }
+    return card;
+  }
+
+  function renderWardrobe() {
+    const box = $("#bum-wardrobe");
+    const wardrobe = bum.data && bum.data.wardrobe;
+    if (!wardrobe) {
+      box.replaceChildren();
+      return;
+    }
+    const level = bum.data.level.level;
+    const worn = wornSkin();
+    $("#bum-wardrobe-count").textContent = `${wardrobe.owned} из ${wardrobe.total}`;
+    const label = el("span");
+    label.append("Сейчас: ", el("b", "", worn ? `${worn.emoji} ${worn.title}` : "свой вид, по уровню"));
+    const now = $("#bum-wardrobe-now");
+    now.replaceChildren(label);
+    if (worn) {
+      const off = el("button", "", "Снять");
+      off.type = "button";
+      off.dataset.skinOff = "1";
+      now.append(off);
+    }
+    box.replaceChildren(...wardrobe.kinds.flatMap((kind) => {
+      const grid = el("div", "wardrobe-grid");
+      grid.append(...wardrobe.skins.filter((skin) => skin.kind === kind.key).map((skin) => skinCard(skin, level)));
+      return [el("div", "wardrobe-kind", `${kind.emoji} ${kind.title}`), grid];
+    }));
+  }
+
+  function wardrobeTap(key) {
+    const wardrobe = bum.data && bum.data.wardrobe;
+    const skin = wardrobe && wardrobe.skins.find((item) => item.key === key);
+    if (!skin || bum.sending) return;
+    if (skin.worn) {
+      toast(`${skin.emoji} ${skin.about}`);
+      return;
+    }
+    if (skin.owned) {
+      bumSkin("wear", key);
+      return;
+    }
+    if (skin.kind !== "coins") {
+      haptic.notify("warning");
+      toast(`🔒 ${skin.need}`);
+      return;
+    }
+    if (bum.confirm !== key || Date.now() > bum.confirmUntil) {   // покупка — со второго нажатия
+      bum.confirm = key;
+      bum.confirmUntil = Date.now() + 4000;
+      haptic.impact("light");
+      renderWardrobe();
+      setTimeout(() => {
+        if (bum.confirm === key && Date.now() >= bum.confirmUntil) renderWardrobe();
+      }, 4100);
+      return;
+    }
+    bum.confirm = "";
+    bumSkin("buy", key);
+  }
+
+  async function bumSkin(action, key) {
+    if (bum.sending) return;
+    bum.sending = true;
+    renderBum();
+    try {
+      const data = await api(`bum/${action}`, { skin: key });
+      applyBum(data);
+      haptic.notify("success");
+      audio.play(action === "buy" ? "cash" : "pick");
+      if (data.story) toast(data.story, "win");
+      if (action === "buy") confetti.burst(90);
+    } catch (error) {
+      showError(error);
+    } finally {
+      bum.sending = false;
+      renderBum();
+    }
   }
 
   function tickBum() {
@@ -9703,6 +10518,13 @@ body.dead::after {
     $("#bum-collect").addEventListener("click", () => bumAction("collect"));
     $("#bum-feed").addEventListener("click", () => bumAction("feed"));
     $("#bum-upgrade").addEventListener("click", () => bumAction("upgrade"));
+    $("#bum-wardrobe").addEventListener("click", (event) => {
+      const card = event.target.closest("[data-skin]");
+      if (card) wardrobeTap(card.dataset.skin);
+    });
+    $("#bum-wardrobe-now").addEventListener("click", (event) => {
+      if (event.target.closest("[data-skin-off]")) bumSkin("wear", "");
+    });
     $("#bank-deposit").addEventListener("click", makeDeposit);
     $("#deposits").addEventListener("click", (event) => {
       const button = event.target.closest("[data-withdraw]");

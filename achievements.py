@@ -114,7 +114,11 @@ ACHIEVEMENTS = (
 
     # ── Толян ─────────────────────────────────────────────────────────────────
     ("bum_level", "bum", "🧔", f"{texts.BUM_NAME} растёт", "Поднимать его уровень",
-     (3, 7, len(bum.LEVELS) - 1), (300, 1000, 5000), lambda s: s["bum"].get("level", 0)),
+     (3, 7, 10), (300, 1000, 5000), lambda s: s["bum"].get("level", 0)),   # 10 — сеть шаурмичных
+    ("bum_empire", "bum", "👑", f"Империя {texts.BUM_NAME}а", "Вывести его дальше шаурмичных",
+     (11, 13, len(bum.LEVELS) - 1), (2_000, 6_000, 20_000), lambda s: s["bum"].get("level", 0)),
+    ("bum_skins", "bum", "👕", "Модник", "Собрать образы для него",
+     (3, 10, len(bum.SKINS)), (200, 800, 3000), lambda s: s["skins"]),
     ("bum_invest", "bum", "💼", "Меценат", "Вложить в него",
      (1_000, 10_000, 50_000), (150, 600, 2500), lambda s: s["bum"].get("invested", 0)),
     ("bum_feed", "bum", "🍜", "Кормилец", "Кормить его",
@@ -196,6 +200,7 @@ def _snapshot(chat_id: int, user_id: int) -> dict:
         "stats": {row["game"]: row for row in db.get_casino_stats(chat_id, user_id)},
         "counters": db.get_counters(chat_id, user_id),
         "bum": db.peek_bum(chat_id, user_id) or {},
+        "skins": len(db.get_bum_skins(chat_id, user_id)),
         "earned": earned,
         "found": found,
         "stars": sum(level for key, level in earned.items() if not key.startswith("end:")),

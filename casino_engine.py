@@ -292,6 +292,7 @@ def pull_trigger(chat_id: int, user_id: int) -> dict:
                  else f"🔫 {name} — щёлк! Шанс был 1/{chance}, {signed(delta)}")
     if survived_all:
         news(chat_id, texts.RR_EMPTY.format(name=f"<b>{members.display_name(user_id)}</b>", reward=signed(delta)))
+        db.bump_counter(chat_id, user_id, "rr:empty")   # особое действие: образ «Везунчик» для Толяна
     if dead or survived_all:
         _revolvers.pop(chat_id)
         db.add_history(chat_id, "rr", {"bullet": shot + 1 if dead else None, "name": name})

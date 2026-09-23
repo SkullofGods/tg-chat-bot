@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "miniapp-dev",
+      "runtimeExecutable": "C:/Users/user/AppData/Local/Temp/claude/E--tg-chat-bot/ffce5333-b96a-4401-8ab9-2de2198dd292/scratchpad/venv312/Scripts/python.exe",
+      "runtimeArgs": ["C:/Users/user/AppData/Local/Temp/claude/E--tg-chat-bot/ffce5333-b96a-4401-8ab9-2de2198dd292/scratchpad/dev_server.py"],
+      "port": 8765
+    }
+  ]
+}

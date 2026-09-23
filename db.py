@@ -200,6 +200,15 @@ _SCHEMA = [
         collected_at INTEGER NOT NULL,
         PRIMARY KEY (chat_id, user_id)
     ) WITHOUT ROWID""",
+    # Образы Толяна: какие открыты у игрока и какой из них надет (worn = 1 — не больше одного)
+    """CREATE TABLE IF NOT EXISTS bum_skins (
+        chat_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        skin    TEXT NOT NULL,
+        got_at  INTEGER NOT NULL,
+        worn    INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (chat_id, user_id, skin)
+    ) WITHOUT ROWID""",
     # Рекорды в бесконечных играх: у каждого свой лучший результат
     """CREATE TABLE IF NOT EXISTS arcade_records (
         chat_id INTEGER NOT NULL,
@@ -1537,6 +1546,53 @@ class Database:
                 "WHERE chat_id = ? AND user_id = ?",
                 (cost, pending, now, chat_id, user_id),
             )
+            return True
+
+    def get_bum_skins(self, chat_id: int, user_id: int) -> dict[str, dict]:
+        """Открытые образы Толяна: ключ → когда получен и надет ли."""
+        rows = self.conn.execute(
+            "SELECT skin, got_at, worn FROM bum_skins WHERE chat_id = ? AND user_id = ?", (chat_id, user_id)
+        ).fetchall()
+        return {row["skin"]: {"got_at": row["got_at"], "worn": bool(row["worn"])} for row in rows}
+
+    def add_bum_skin(self, chat_id: int, user_id: int, skin: str, now: int) -> bool:
+        """Открывает образ. False — он уже был (например, его выдали из соседней вкладки)."""
+        with self._tx() as c:
+            cursor = c.execute(
+                "INSERT OR IGNORE INTO bum_skins (chat_id, user_id, skin, got_at) VALUES (?, ?, ?, ?)",
+                (chat_id, user_id, skin, now),
+            )
+            return cursor.rowcount == 1
+
+    def buy_bum_skin(self, chat_id: int, user_id: int, skin: str, price: int, now: int) -> Optional[bool]:
+        """Покупка образа одной транзакцией. None — уже куплен, False — не хватило денег."""
+        with self._tx(important=True) as c:
+            self._ensure_wallet(c, chat_id, user_id)
+            if c.execute("SELECT 1 FROM bum_skins WHERE chat_id = ? AND user_id = ? AND skin = ?",
+                         (chat_id, user_id, skin)).fetchone():
+                return None
+            cursor = c.execute(
+                "UPDATE wallets SET balance = balance - ? WHERE chat_id = ? AND user_id = ? AND balance >= ?",
+                (price, chat_id, user_id, price),
+            )
+            if cursor.rowcount != 1:
+                return False
+            c.execute("INSERT INTO bum_skins (chat_id, user_id, skin, got_at) VALUES (?, ?, ?, ?)",
+                      (chat_id, user_id, skin, now))
+            return True
+
+    def wear_bum_skin(self, chat_id: int, user_id: int, skin: Optional[str]) -> bool:
+        """Надевает образ (None — снимает всё). False — такого образа у игрока нет."""
+        with self._tx() as c:
+            if skin is not None and not c.execute(
+                "SELECT 1 FROM bum_skins WHERE chat_id = ? AND user_id = ? AND skin = ?", (chat_id, user_id, skin)
+            ).fetchone():
+                return False
+            c.execute("UPDATE bum_skins SET worn = 0 WHERE chat_id = ? AND user_id = ? AND worn = 1",
+                      (chat_id, user_id))
+            if skin is not None:
+                c.execute("UPDATE bum_skins SET worn = 1 WHERE chat_id = ? AND user_id = ? AND skin = ?",
+                          (chat_id, user_id, skin))
             return True
 
     def prune_deposits(self, before: int):

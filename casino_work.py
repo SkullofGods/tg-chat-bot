@@ -555,6 +555,8 @@ def finish(chat_id: int, user_id: int, answer) -> dict:
     balance = db.casino_settle(chat_id, user_id, "work", 0, pay, special=bool(shift["shout"]))
     db.bump_counter(chat_id, user_id, f"work:{job}")   # ачивке «мастер на все руки» нужны разные работы
     db.bump_counter(chat_id, user_id, "work:any")
+    if shift["shout"]:
+        db.bump_counter(chat_id, user_id, f"work:top:{job}")   # смена на максимум — особое действие для образов
     name = engine.player_name(user_id)
     if shift["shout"]:
         engine.add_feed(chat_id, f"{JOBS[job]['emoji']} {name}: {shift['shout']}! {signed(pay)}")

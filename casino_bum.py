@@ -2,7 +2,11 @@
 
 Доход капает сам по себе и копится, пока его не заберут, но не больше CAP_HOURS часов — так что
 заходить приходится. Голодный работает вполсилы. Вложения поднимают уровень: от картонной коробки
-до сети шаурмичных. Поначалу приносит гроши, изредка — находку до 500, а вот с вложениями доход растёт всерьёз.
+до самого богатого человека Таджикистана. Поначалу приносит гроши, изредка — находку до 500, а вот с вложениями
+доход растёт всерьёз.
+
+Образы — одежда для Толяна, чисто для красоты. Одни покупаются, другие открываются сами: за уровень,
+за ачивку или за особое действие где-нибудь в казино.
 """
 
 import random
@@ -12,6 +16,7 @@ import casino_engine as engine
 import texts
 from casino_engine import GameError, money
 from loader import db
+from textstats import fmt_num
 
 # Уровень: (название, эмодзи, цена подъёма на него, доход в час)
 LEVELS = [
@@ -26,6 +31,12 @@ LEVELS = [
     ("Мангал", "🔥", 18_000, 1_300),
     ("Шаурмичная", "🌯", 31_000, 2_300),
     ("Сеть шаурмичных", "🏪", 53_000, 4_200),
+    # дальше доход растёт медленнее цены: это уже не про окупаемость, а про статус
+    ("Чайхана", "🫖", 90_000, 6_500),
+    ("Свой базар", "🏬", 150_000, 9_000),
+    ("Бюро переводов", "📜", 250_000, 12_000),
+    ("Своя авиакомпания", "🛩", 420_000, 15_500),
+    ("Самый богатый человек Таджикистана", "👑", 700_000, 20_000),
 ]
 CAP_HOURS = 6              # больше шести часов выручка не копится
 FEED_COST = 100
@@ -36,6 +47,59 @@ TROUBLE_CHANCE = 0.08      # …и шанс, что часть выручки о
 TROUBLE_SHARE = 0.6
 MIN_HOURS_FOR_LUCK = 1 / 6  # за десять минут ничего интересного не случается
 FEED_FROM = 400            # с какой находки о ней узнаёт беседа
+STARVED_HOURS = 24         # столько проголодал — и «Доходяга» твой
+SKIN_FEED_FROM = 25_000    # о покупке образа дороже этого узнаёт лента
+
+# Образы. Как открыть: ("coins", цена) — купить; ("level", уровень) — дорастить Толяна;
+# ("award", ачивка, звёзд) — взять ачивку; ("deed", что сделать, откуда число, сколько нужно) — особое действие.
+# Откуда число: ("stat", игра, поле) — статистика казино, ("counter", ключ) — счётчик игрока,
+# ("ending", история, концовка) — найденная концовка, ("arcade", игра) — личный рекорд.
+SKIN_KINDS = (
+    ("coins", "💰", "За монетки"),
+    ("level", "📈", "За прокачку"),
+    ("award", "🏅", "За ачивки"),
+    ("deed", "⚡", "За особые действия"),
+)
+SKINS = (
+    ("adidas", ("coins", 2_500), "Адидас с рынка", "🏃", "Три полоски, как у настоящего пацана. Четвёртая отклеилась"),
+    ("ushanka", ("coins", 4_000), "Ушанка и телогрейка", "🧤", "Подъезд не отапливается, а Толян — да"),
+    ("chapan", ("coins", 6_000), "Чапан и тюбетейка", "🧣", "Как на свадьбе у двоюродного брата"),
+    ("biker", ("coins", 12_000), "Байкер", "🏍", "Мотоцикла нет, зато кожанка настоящая"),
+    ("boss", ("coins", 25_000), "Деловой", "💼", "Костюм одолжил у Лёни. Ушивали вчетвером"),
+    ("king", ("coins", 150_000), "Царь подъезда", "🤴", "Корона из фольги от шаурмы, мантия из занавески"),
+
+    ("janitor", ("level", 3), "Дворник", "🧹", "Метёт двор, пока никто не видит, и берёт за это чаевые"),
+    ("tourist", ("level", 6), "Турист", "🎒", "Живёт в палатке и называет это глэмпингом"),
+    ("griller", ("level", 8), "Шашлычник", "🍢", "Мясо от заказчика, дым от Толяна"),
+    ("shawarma", ("level", 9), "Шаурмен", "🌯", "Заворачивает быстрее, чем ты успеешь передумать"),
+    ("pilot", ("level", 14), "Командир воздушного судна", "👨‍✈️", "Москва — Душанбе без пересадок и без документов"),
+    ("bai", ("level", 15), "Бай", "💰", "Самый богатый человек Таджикистана, и это официально"),
+
+    ("lenya", ("award", "bum_feed", 3), "Как Лёня", "🫃", "Столько плова ещё никто не съедал. Пиджак не сходится"),
+    ("ludoman", ("award", "games", 2), "Лудоман", "🎰", "Ещё одна ставка — и точно отыграется"),
+    ("worker", ("award", "work_shift", 3), "Ударник труда", "⛑", "Двести смен без перекура. Ну, почти"),
+    ("general", ("award", "stars", 2), "Генерал ачивок", "🎖", "Медалей больше, чем у всего подъезда вместе"),
+    ("mecenat", ("award", "bum_invest", 3), "Меценат", "🎩", "В него вложили столько, что он теперь сам вкладывает"),
+    ("oligarch", ("award", "rich", 2), "Олигарх", "🥂", "Шуба, цепь и ни одного налога"),
+    ("sponsor", ("award", "donate", 1), "Спонсор казана", "☕", "Скинулся на казан — казан скинулся на худи"),
+
+    ("golden", ("deed", "Сорвать джекпот 7️⃣7️⃣7️⃣ в слотах", ("stat", "slots", "special"), 1),
+     "Золотой Толян", "✨", "Три семёрки — и Толян позолотел целиком"),
+    ("ghost", ("deed", "Поймать патрон в русской рулетке", ("stat", "rr", "special"), 1),
+     "Едва присутствует", "👻", "Вроде тут, а вроде уже и нет"),
+    ("lucky", ("deed", "Пройти пустой барабан до шестого щелчка", ("counter", "rr:empty"), 1),
+     "Везунчик", "🍀", "Шесть щелчков — и ни одной дырки"),
+    ("ninja", ("deed", "Стать ниндзя в истории «Клан Трусыгава»", ("ending", "trusygava", "end_ninja"), 1),
+     "Ниндзя Трусыгава", "🥷", "Трусы на голове, нунчаки из гольфов"),
+    ("dino", ("deed", "Набрать 50 очков в «Ногозавре»", ("arcade", "nogozavr"), 50),
+     "Ногозавр", "🦖", "Пришельцы украли ему ноги, он украл у них плиту"),
+    ("corn", ("deed", "Наебать Ярика по полной: все шесть сделок", ("counter", "work:top:yarik"), 1),
+     "Кукурузный король", "🌽", "Ярик до сих пор пересчитывает сдачу"),
+    ("beaten", ("deed", "Пережить пять ограблений Толяна", ("counter", "bum:robbed"), 5),
+     "Побитый жизнью", "🩹", "Опять отжали выручку. Опять пластырь"),
+    ("skinny", ("deed", f"Не кормить Толяна больше {STARVED_HOURS} часов", ("counter", "bum:starved"), 1),
+     "Доходяга", "🦴", "Сутки без плова. Ветром сдувает"),
+)
 
 
 def _now() -> int:
@@ -63,11 +127,12 @@ def _level_view(index: int) -> dict:
     return {"level": index, "title": title, "emoji": emoji, "cost": cost, "income": income}
 
 
-def _state(bum: dict, story: str | None = None) -> dict:
+def _state(bum: dict, story: str | None = None, wardrobe: bool = False) -> dict:
     now = _now()
     pending, hours = _pending(bum, now)
     view = _level_view(bum["level"])
-    return {
+    extra = {"wardrobe": _wardrobe(bum)} if wardrobe else {}
+    return extra | {
         "name": texts.BUM_NAME,
         "now": now,
         "level": view,
@@ -91,9 +156,10 @@ def _state(bum: dict, story: str | None = None) -> dict:
     }
 
 
-def bum_state(chat_id: int, user_id: int) -> dict:
+def bum_state(chat_id: int, user_id: int, wardrobe: bool = False) -> dict:
+    """Толян игрока. Гардероб нужен только его экрану — лобби обходится без него."""
     now = _now()
-    return _state(_bum(chat_id, user_id, now))
+    return _state(_bum(chat_id, user_id, now), wardrobe=wardrobe)
 
 
 def collect(chat_id: int, user_id: int) -> dict:
@@ -118,20 +184,26 @@ def collect(chat_id: int, user_id: int) -> dict:
             lost = pending - int(pending * TROUBLE_SHARE)
             pending -= lost
             story = f"😔 {random.choice(texts.BUM_TROUBLES)}: −{money(lost)}"
+            db.bump_counter(chat_id, user_id, "bum:robbed")   # пять ограблений — и образ «Побитый жизнью»
     if pending <= 0:  # время не обнуляем: пусть копится дальше
-        return _state(bum, story or "Пока пусто — зайди попозже")
+        return _state(bum, story or "Пока пусто — зайди попозже", wardrobe=True)
     db.collect_bum(chat_id, user_id, pending, now)
-    return _state(_bum(chat_id, user_id, now), story or f"💰 Выручка в кармане: +{money(pending)}")
+    return _state(_bum(chat_id, user_id, now), story or f"💰 Выручка в кармане: +{money(pending)}", wardrobe=True)
 
 
 def feed(chat_id: int, user_id: int) -> dict:
     engine.throttle(chat_id, user_id)
     now = _now()
     bum = _bum(chat_id, user_id, now)
+    starved = now - bum["fed_until"] >= STARVED_HOURS * 3600
     if not db.feed_bum(chat_id, user_id, FEED_COST, max(now, bum["fed_until"]) + FEED_HOURS * 3600):
         raise engine.not_enough_money(chat_id, user_id)
     db.bump_counter(chat_id, user_id, "bum:feed")
-    return _state(_bum(chat_id, user_id, now), f"🍲 Поел плова. Сыт ещё {FEED_HOURS} часов")
+    if starved:
+        db.bump_counter(chat_id, user_id, "bum:starved")
+        return _state(_bum(chat_id, user_id, now), f"🍲 Набросился на плов: голодал больше {STARVED_HOURS} часов",
+                      wardrobe=True)
+    return _state(_bum(chat_id, user_id, now), f"🍲 Поел плова. Сыт ещё {FEED_HOURS} часов", wardrobe=True)
 
 
 def upgrade(chat_id: int, user_id: int) -> dict:
@@ -146,4 +218,142 @@ def upgrade(chat_id: int, user_id: int) -> dict:
         raise engine.not_enough_money(chat_id, user_id)
     if cost >= 10_000:
         engine.add_feed(chat_id, f"{emoji} {texts.BUM_NAME} у {engine.player_name(user_id)} дорос до «{title}»")
-    return _state(_bum(chat_id, user_id, now), f"{emoji} Теперь это {title.lower()}: {income} 🪙/час")
+    title = title[:1].lower() + title[1:]   # «Собака Шарик» → «собака Шарик», имена остаются с большой
+    return _state(_bum(chat_id, user_id, now), f"{emoji} Теперь это {title}: {fmt_num(income)} 🪙/час", wardrobe=True)
+
+
+# ── Образы ────────────────────────────────────────────────────────────────────
+
+
+def _find_skin(key) -> tuple:
+    skin = next((item for item in SKINS if item[0] == key), None) if isinstance(key, str) else None
+    if skin is None:
+        raise GameError("Такого образа нет", 404)
+    return skin
+
+
+def _skin_facts(chat_id: int, user_id: int, bum: dict) -> dict:
+    """Всё, от чего зависят образы: уровень, ачивки, счётчики, статистика и рекорды игрока."""
+    return {
+        "level": bum["level"],
+        "earned": db.get_achievements(chat_id, user_id),
+        "counters": db.get_counters(chat_id, user_id),
+        "stats": {row["game"]: row for row in db.get_casino_stats(chat_id, user_id)},
+        "arcade": lambda game: db.arcade_best(chat_id, game, user_id),
+    }
+
+
+def _skin_progress(rule: tuple, facts: dict) -> tuple[int, int]:
+    """Сколько уже сделано и сколько нужно. Покупной образ заработать нельзя — только купить."""
+    kind = rule[0]
+    if kind == "coins":
+        return 0, 1
+    if kind == "level":
+        return facts["level"], rule[1]
+    if kind == "award":
+        return facts["earned"].get(rule[1], 0), rule[2]
+    source, goal = rule[2], rule[3]
+    if source[0] == "stat":
+        value = facts["stats"].get(source[1], {}).get(source[2], 0)
+    elif source[0] == "counter":
+        value = facts["counters"].get(source[1], 0)
+    elif source[0] == "ending":
+        value = int(f"end:{source[1]}:{source[2]}" in facts["earned"])
+    else:
+        value = facts["arcade"](source[1])
+    return value, goal
+
+
+def _award_titles() -> dict[str, tuple[str, str]]:
+    import achievements  # здесь, а не наверху модуля: ачивки сами смотрят на уровень Толяна
+    return {item[0]: (item[2], item[3]) for item in achievements.ACHIEVEMENTS}
+
+
+def _skin_need(rule: tuple, titles: dict[str, tuple[str, str]]) -> str:
+    """Что сделать, чтобы открыть образ — одной строкой для карточки."""
+    if rule[0] == "level":
+        return f"Дорастить до «{LEVELS[rule[1]][0]}»"
+    if rule[0] == "award":
+        emoji, title = titles.get(rule[1], ("🏅", rule[1]))
+        return f"Ачивка {emoji} «{title}» на {'★' * rule[2]}"
+    return rule[1]
+
+
+def _wardrobe(bum: dict) -> dict:
+    chat_id, user_id = bum["chat_id"], bum["user_id"]
+    owned = db.get_bum_skins(chat_id, user_id)
+    facts = _skin_facts(chat_id, user_id, bum)
+    titles = _award_titles()
+    items = []
+    for key, rule, title, emoji, about in SKINS:
+        mine = owned.get(key)
+        view = {"key": key, "kind": rule[0], "title": title, "emoji": emoji, "about": about,
+                "owned": mine is not None, "worn": bool(mine and mine["worn"])}
+        if rule[0] == "coins":
+            view["price"] = rule[1]
+        elif mine is None:
+            value, goal = _skin_progress(rule, facts)
+            view |= {"need": _skin_need(rule, titles), "value": min(value, goal), "goal": goal}
+        items.append(view)
+    return {
+        "skin": next((key for key, mine in owned.items() if mine["worn"]), None),
+        "skins": items,
+        "kinds": [{"key": key, "emoji": emoji, "title": title} for key, emoji, title in SKIN_KINDS],
+        "owned": len(owned),
+        "total": len(SKINS),
+    }
+
+
+def claim_skins(chat_id: int, user_id: int) -> list[dict]:
+    """Выдаёт образы, условия которых уже выполнены. Возвращает только что открытые."""
+    bum = db.peek_bum(chat_id, user_id)
+    if bum is None:                      # Толяна ещё не заводили — образы подождут его
+        return []
+    owned = db.get_bum_skins(chat_id, user_id)
+    waiting = [skin for skin in SKINS if skin[0] not in owned and skin[1][0] != "coins"]
+    if not waiting:
+        return []
+    facts = _skin_facts(chat_id, user_id, bum)
+    fresh = []
+    for key, rule, title, emoji, about in waiting:
+        value, goal = _skin_progress(rule, facts)
+        if value < goal or not db.add_bum_skin(chat_id, user_id, key, _now()):
+            continue
+        fresh.append({"key": key, "title": title, "emoji": emoji})
+        if rule[0] == "deed":
+            engine.add_feed(chat_id, f"{emoji} {texts.BUM_NAME} у {engine.player_name(user_id)} "
+                                     f"получает образ «{title}»")
+    return fresh
+
+
+def wear(chat_id: int, user_id: int, key) -> dict:
+    """Надеть открытый образ. Пустой ключ — снять и вернуть обычный вид по уровню."""
+    engine.throttle(chat_id, user_id)
+    bum = _bum(chat_id, user_id, _now())
+    if key is None or key == "":
+        db.wear_bum_skin(chat_id, user_id, None)
+        return _state(bum, "👕 Снова в своём", wardrobe=True)
+    skin = _find_skin(key)
+    if not db.wear_bum_skin(chat_id, user_id, key):
+        raise GameError("Этот образ ещё не открыт", 409)
+    return _state(bum, f"{skin[3]} Образ «{skin[2]}» надет", wardrobe=True)
+
+
+def buy(chat_id: int, user_id: int, key) -> dict:
+    """Покупка образа за таджикоины. Купленный сразу надевается."""
+    engine.throttle(chat_id, user_id)
+    key, rule, title, emoji, about = _find_skin(key)
+    if rule[0] != "coins":
+        raise GameError("Этот образ не продаётся — его надо заслужить", 409)
+    now = _now()
+    bum = _bum(chat_id, user_id, now)
+    bought = db.buy_bum_skin(chat_id, user_id, key, rule[1], now)
+    if bought is None:
+        raise GameError("Этот образ уже куплен", 409)
+    if not bought:
+        raise engine.not_enough_money(chat_id, user_id)
+    db.wear_bum_skin(chat_id, user_id, key)
+    if rule[1] >= SKIN_FEED_FROM:
+        engine.add_feed(chat_id, f"{emoji} {texts.BUM_NAME} у {engine.player_name(user_id)} "
+                                 f"теперь в образе «{title}»")
+    return _state(bum, f"{emoji} Куплено и надето: «{title}»", wardrobe=True)

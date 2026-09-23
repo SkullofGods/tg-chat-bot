@@ -150,12 +150,20 @@ async def _awards(request: web.Request, handler):
         unlocked = achievements.check(*player)
     except Exception:
         logger.exception("Не смог проверить ачивки")
-        return response
-    if not unlocked:
+        unlocked = []
+    try:
+        skins = bum.claim_skins(*player)     # после ачивок: за некоторые из них открываются образы
+    except Exception:
+        logger.exception("Не смог выдать образы Толяна")
+        skins = []
+    if not unlocked and not skins:
         return response
     data = json.loads(response.text)
-    data["unlocked"] = unlocked
-    data["balance"] = db.get_balance(*player)  # награды уже в кошельке
+    if unlocked:
+        data["unlocked"] = unlocked
+        data["balance"] = db.get_balance(*player)  # награды уже в кошельке
+    if skins:
+        data["skins_unlocked"] = skins
     return _json(data)
 
 
@@ -333,13 +341,16 @@ async def api_achievements(request: web.Request) -> web.Response:
 
 async def api_bum(request: web.Request) -> web.Response:
     chat_id, user_id = await _player(request)
-    return _json(bum.bum_state(chat_id, user_id))
+    return _json(bum.bum_state(chat_id, user_id, wardrobe=True))
 
 
 async def api_bum_action(request: web.Request) -> web.Response:
     chat_id, user_id = await _player(request)
-    actions = {"collect": bum.collect, "feed": bum.feed, "upgrade": bum.upgrade}
     action = request.match_info["action"]
+    if action in ("wear", "buy"):          # гардероб: какой образ — в теле запроса
+        body = await _body(request)
+        return _json((bum.wear if action == "wear" else bum.buy)(chat_id, user_id, body.get("skin")))
+    actions = {"collect": bum.collect, "feed": bum.feed, "upgrade": bum.upgrade}
     if action not in actions:
         raise web.HTTPNotFound()
     return _json(actions[action](chat_id, user_id))
