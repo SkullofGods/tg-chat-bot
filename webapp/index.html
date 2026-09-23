@@ -2954,8 +2954,31 @@ body.dead::after {
       turn: () => { tone({ freq: 740, dur: 0.14, gain: 0.1 }); tone({ freq: 1108, at: 0.12, dur: 0.18, gain: 0.09 }); },
       miss: () => tone({ freq: 220, to: 120, dur: 0.14, type: "square", gain: 0.09 }),
       step: () => tone({ freq: 500, dur: 0.06, gain: 0.1, type: "square" }),
-      spin: () => { noise({ dur: 0.5, gain: 0.08, cut: 1200 }); tone({ freq: 180, to: 320, dur: 0.5, gain: 0.05, type: "sawtooth" }); },
-      reel: () => { tone({ freq: 300, dur: 0.05, gain: 0.14, type: "square" }); noise({ dur: 0.04, gain: 0.08, cut: 3000, type: "highpass" }); },
+      spin: (seconds = 2.6) => {
+        tone({ freq: 62, dur: seconds, type: "sawtooth", gain: 0.05 });          // мотор
+        tone({ freq: 124, dur: seconds, type: "triangle", gain: 0.03 });
+        let at = 0;
+        let gap = 0.042;
+        while (at < seconds) {                                                    // треск барабана
+          noise({ at, dur: 0.02, gain: 0.13, cut: 3800, type: "highpass" });
+          tone({ freq: 780, at, dur: 0.02, gain: 0.05, type: "square" });
+          at += gap;
+          gap *= 1.028;                                                           // барабан замедляется
+        }
+      },
+      reel: () => {                                                               // чанк остановки
+        tone({ freq: 200, to: 65, dur: 0.16, type: "square", gain: 0.24 });
+        noise({ dur: 0.1, gain: 0.2, cut: 1500 });
+        noise({ at: 0.04, dur: 0.05, gain: 0.12, cut: 4500, type: "highpass" });
+      },
+      coins: (count = 12) => {
+        for (let index = 0; index < count; index += 1) {
+          const at = index * 0.052 + Math.random() * 0.02;
+          tone({ freq: 900 + Math.random() * 800, at, dur: 0.09, gain: 0.12 });
+          tone({ freq: 1500 + Math.random() * 700, at: at + 0.03, dur: 0.07, gain: 0.08 });
+        }
+      },
+      lever: () => { tone({ freq: 320, to: 120, dur: 0.18, type: "square", gain: 0.18 }); noise({ dur: 0.12, gain: 0.14, cut: 1200 }); },
       flip: () => tone({ freq: 500, to: 1400, dur: 0.35, gain: 0.12 }),
       drop: () => { tone({ freq: 900, to: 300, dur: 0.22, gain: 0.14 }); noise({ at: 0.2, dur: 0.06, gain: 0.1, cut: 2600, type: "highpass" }); },
       tick: () => noise({ dur: 0.03, gain: 0.07, cut: 5200, type: "highpass" }),
@@ -4781,8 +4804,9 @@ body.dead::after {
   }
 
   async function playSlots() {
-    audio.play("spin");
     if (state.busy) return;
+    audio.play("lever");
+    audio.play("spin");
     const machine = $(".machine");
     const message = $("#slots-message");
     const bet = state.bet;
@@ -4798,7 +4822,10 @@ body.dead::after {
       message.textContent = "Крутим…";
       const strips = $$("#reels .strip");
       await Promise.all(strips.map((strip, index) =>
-        spinReel(strip, result.reels[index], 1400 + index * 550).then(() => haptic.impact("light"))));
+        spinReel(strip, result.reels[index], 1400 + index * 550).then(() => {
+          haptic.impact("light");
+          audio.play("reel");                        // каждый барабан встаёт со стуком
+        })));
       machine.classList.remove("spinning");
       showSlotsResult(result, strips);
     } catch (error) {
@@ -4832,6 +4859,7 @@ body.dead::after {
     if (result.combo === "pair") {
       message.className = "machine-message";
       message.textContent = "Пара — ставка вернулась";
+      audio.play("pick");
       return;
     }
     $(".machine").classList.add("win");
@@ -4839,11 +4867,13 @@ body.dead::after {
       message.className = "machine-message jackpot";
       message.textContent = `💎 ДЖЕКПОТ! ${signedCoins(result.net)}`;
       audio.play("jackpot");
+      audio.play("coins");
       confetti.burst(220);
       setTimeout(() => confetti.burst(160), 600);
     } else {
       message.className = "machine-message win";
       message.textContent = `${result.combo === "sevens" ? "Две семёрки" : "Три в ряд"} ×${result.multiplier} · ${signedCoins(result.net)}`;
+      audio.play("coins");
       confetti.burst(result.multiplier >= 20 ? 160 : 70);
     }
     setTimeout(() => $(".machine").classList.remove("win"), 2500);
