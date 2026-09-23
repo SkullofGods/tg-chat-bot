@@ -16,6 +16,13 @@ SIDE = 10
 CELLS = SIDE * SIDE
 FLEET = (4, 3, 3, 2, 2, 2, 1, 1, 1, 1)
 EMPTY, SHIP, MISS, HIT = 0, 1, 2, 3
+LETTERS = "АБВГДЕЖЗИК"
+
+
+def spot(cell: int) -> str:
+    """Человеческое имя клетки: Ж-7."""
+    row, col = divmod(cell, SIDE)
+    return f"{LETTERS[col]}-{row + 1}"
 
 
 def _place() -> list[int]:
@@ -57,7 +64,7 @@ def setup(players: list[int]) -> dict:
         "players": players,
         "boards": {str(player): _place() for player in players},
         "shots": {str(player): [EMPTY] * CELLS for player in players},
-        "side": 0, "winner": None, "shuffled": [], "sunk": {}, "feed": [],
+        "side": 0, "winner": None, "shuffled": [], "sunk": {}, "last": None, "feed": [],
     }
     return feed(state, "Флоты в море")
 
@@ -141,7 +148,10 @@ def move(state: dict, user_id: int, action: dict) -> dict:
     state = state | {"shots": state["shots"] | {str(user_id): shots},
                      "boards": state["boards"] | {str(enemy): board},
                      "sunk": sunk}
-    state = feed(state, "Убил!" if killed else "Попал!" if hit else "Мимо")
+    mark = "убил!" if killed else "попал!" if hit else "мимо"
+    state = state | {"last": {"by": user_id, "cell": cell, "hit": hit, "killed": killed,
+                              "text": f"{spot(cell)} — {mark}"}}
+    state = feed(state, f"{spot(cell)} — {mark}")
     if hit and not _left(state, enemy):
         return feed(state | {"winner": user_id}, "Флот потоплен")
     if not hit:
@@ -172,6 +182,8 @@ def view(state: dict, user_id: int) -> dict:
         "my_sunk": state.get("sunk", {}).get(str(user_id), []),      # корабли, которые я убил
         "lost": state.get("sunk", {}).get(str(enemy), []),           # мои утонувшие
         "fleet": len(FLEET),
+        "last": state.get("last"),          # последний выстрел: и куда, и с каким исходом
+        "letters": LETTERS,
         "can_shuffle": user_id not in state["shuffled"] and not any(state["shots"][str(user_id)]),
         "turn_side": state["side"],
         "me": state["players"].index(user_id) if user_id in state["players"] else 0,

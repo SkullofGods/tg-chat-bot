@@ -1802,6 +1802,32 @@ button:disabled { cursor: default; }
 .board div.piece-w { color: #fbf6e9; text-shadow: 0 0 2px #2b1d10, 0 1px 2px rgba(0, 0, 0, 0.6); }
 .board div.piece-b { color: #14100c; text-shadow: 0 0 2px rgba(255, 255, 255, 0.5); }
 .board div.way { box-shadow: inset 0 0 0 3px rgba(76, 175, 80, 0.85); }
+.board div.was::after {
+  content: "";
+  position: absolute;
+  inset: 12%;
+  border-radius: 50%;
+  background: rgba(245, 197, 66, 0.22);
+}
+.board div.now { box-shadow: inset 0 0 0 3px rgba(245, 197, 66, 0.9); }
+.board div { position: relative; }
+.mp-last {
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  background: rgba(245, 197, 66, 0.1);
+  border: 1px solid rgba(245, 197, 66, 0.25);
+}
+.mp-last b { color: var(--gold-2); }
+.mp-count { display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; color: var(--muted); }
+.mp-count b { color: var(--text); }
+.taken-row { font-size: 17px; letter-spacing: 1px; }
+.sea-wrap { display: grid; grid-template-columns: 14px 1fr; grid-template-rows: 13px 1fr; gap: 2px; margin-top: 6px; }
+.sea-letters { display: grid; grid-template-columns: repeat(10, 1fr); gap: 1px; font-size: 9px; color: var(--muted); text-align: center; }
+.sea-digits { display: grid; grid-template-rows: repeat(10, 1fr); gap: 1px; font-size: 9px; color: var(--muted); align-items: center; text-align: center; }
+.sea-wrap .sea { margin: 0; }
+.sea div.now { box-shadow: 0 0 0 2px var(--gold); z-index: 1; }
 .board .man { width: 68%; height: 68%; border-radius: 50%; }
 .board .man.w { background: radial-gradient(circle at 35% 30%, #fdf6e6, #b9ab90); }
 .board .man.b { background: radial-gradient(circle at 35% 30%, #5a5a5a, #171717); }
@@ -2851,7 +2877,7 @@ body.dead::after {
       master.gain.value = prefs.volume;
       master.connect(ctx.destination);
       sfxBus = ctx.createGain();
-      sfxBus.gain.value = 0.9;
+      sfxBus.gain.value = 1.5;          // эффекты слышно поверх музыки
       sfxBus.connect(master);
       musicBus = ctx.createGain();
       musicBus.gain.value = 0;
@@ -2917,7 +2943,19 @@ body.dead::after {
       bang: () => { noise({ dur: 0.45, gain: 0.3, cut: 900 }); tone({ freq: 150, to: 40, dur: 0.4, type: "sawtooth", gain: 0.2 }); },
       turn: () => { tone({ freq: 740, dur: 0.14, gain: 0.1 }); tone({ freq: 1108, at: 0.12, dur: 0.18, gain: 0.09 }); },
       miss: () => tone({ freq: 220, to: 120, dur: 0.14, type: "square", gain: 0.09 }),
-      step: () => tone({ freq: 500, dur: 0.05, gain: 0.07, type: "square" }),
+      step: () => tone({ freq: 500, dur: 0.06, gain: 0.1, type: "square" }),
+      spin: () => { noise({ dur: 0.5, gain: 0.08, cut: 1200 }); tone({ freq: 180, to: 320, dur: 0.5, gain: 0.05, type: "sawtooth" }); },
+      reel: () => { tone({ freq: 300, dur: 0.05, gain: 0.14, type: "square" }); noise({ dur: 0.04, gain: 0.08, cut: 3000, type: "highpass" }); },
+      flip: () => tone({ freq: 500, to: 1400, dur: 0.35, gain: 0.12 }),
+      drop: () => { tone({ freq: 900, to: 300, dur: 0.22, gain: 0.14 }); noise({ at: 0.2, dur: 0.06, gain: 0.1, cut: 2600, type: "highpass" }); },
+      tick: () => noise({ dur: 0.03, gain: 0.07, cut: 5200, type: "highpass" }),
+      hop: () => tone({ freq: 380, to: 620, dur: 0.1, gain: 0.11, type: "square" }),
+      grab: () => { tone({ freq: 700, dur: 0.06, gain: 0.12 }); tone({ freq: 1040, at: 0.05, dur: 0.08, gain: 0.1 }); },
+      crack: () => { noise({ dur: 0.16, gain: 0.2, cut: 2200 }); tone({ freq: 240, to: 90, dur: 0.16, gain: 0.1, type: "square" }); },
+      splash: () => noise({ dur: 0.3, gain: 0.14, cut: 1400 }),
+      stamp: () => { tone({ freq: 160, dur: 0.08, gain: 0.16, type: "square" }); noise({ dur: 0.07, gain: 0.1, cut: 900 }); },
+      level: () => [0, 7, 12].forEach((s, i) => tone({ freq: 440 * Math.pow(2, s / 12), at: i * 0.09, dur: 0.24, gain: 0.13 })),
+      cash: () => [0, 5].forEach((s, i) => tone({ freq: 700 * Math.pow(2, s / 12), at: i * 0.07, dur: 0.16, gain: 0.12, type: "triangle" })),
     };
 
     // ── Фоновый луп ──
@@ -2956,7 +2994,7 @@ body.dead::after {
         return;
       }
       if (!ready()) return;
-      musicBus.gain.setTargetAtTime(0.5, ctx.currentTime, 0.6);
+      musicBus.gain.setTargetAtTime(0.42, ctx.currentTime, 0.6);
       if (clock) return;
       nextAt = ctx.currentTime + 0.1;
       clock = setInterval(schedule, 120);
@@ -3011,6 +3049,9 @@ body.dead::after {
     slider.value = String(Math.round(audio.prefs.volume * 100));
     slider.addEventListener("input", () => audio.setVolume(Number(slider.value) / 100));
     document.addEventListener("pointerdown", () => audio.wake(), { once: true });
+    document.addEventListener("click", (event) => {              // любая кнопка отзывается
+      if (event.target.closest("button") && !event.target.closest("#sound-panel")) audio.play("tap");
+    }, true);
     renderSoundPanel();
   }
 
@@ -3021,6 +3062,17 @@ body.dead::after {
   const MP_SUITS = ["♠", "♥", "♦", "♣"];
   const MP_RANKS = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "В", "Д", "К", "Т"];
   const CHESS_GLYPHS = ["", "♟", "♞", "♝", "♜", "♛", "♚"];   // белых и чёрных красим стилем, не символом
+
+  function seaGrid(cells, letters) {
+    // Поле с буквами сверху и цифрами слева — чтобы можно было сказать «Ж-7»
+    const wrap = el("div", "sea-wrap");
+    const top = el("div", "sea-letters");
+    letters.split("").forEach((letter) => top.append(el("span", "", letter)));
+    const side = el("div", "sea-digits");
+    for (let row = 1; row <= 10; row += 1) side.append(el("span", "", String(row)));
+    wrap.append(el("div", ""), top, side, cells);
+    return wrap;
+  }
 
   function paintPicks(board, steps, cellOf) {
     // Подсветка выбранной фигуры и её ходов: трогаем только классы, доска остаётся на месте
@@ -3316,6 +3368,15 @@ body.dead::after {
     });
     root.append(seats);
 
+    const last = view.play && view.play.last;
+    if (last && last.text) {
+      const who = last.by === state.userId ? "Ты"
+        : (view.seats.find((seat) => seat.id === last.by) || {}).name || "Соперник";
+      const line = el("div", "mp-last");
+      line.append(el("b", "", `${who}: `), document.createTextNode(last.text));
+      root.append(line);
+    }
+
     const pot = el("div", "mp-pot");
     if (view.pot) pot.append(document.createTextNode("В банке "), el("b", "", `${fmt(view.pot)} 🪙`));
     else pot.textContent = view.stake ? "Ставки собираются" : "Играем за респект";
@@ -3485,6 +3546,16 @@ body.dead::after {
         });
     },
     checkers: (game, view, area) => {
+      const count = el("div", "mp-count");
+      const left = game.left || [0, 0];
+      const eaten = game.eaten || [0, 0];
+      count.append(el("span", "", `Твоих шашек: `), el("b", "", `${left[game.me]}`),
+                   el("span", "", ` · съел ${eaten[game.me]}`));
+      const other = el("span", "");
+      other.append(document.createTextNode("У соперника: "), el("b", "", `${left[1 - game.me]}`),
+                   document.createTextNode(` · съел ${eaten[1 - game.me]}`));
+      count.append(other);
+      area.append(count);
       const board = el("div", "board");
       board.style.gridTemplateColumns = `repeat(${game.side}, 1fr)`;
       board.style.maxWidth = "340px";
@@ -3504,6 +3575,8 @@ body.dead::after {
           const man = el("div", `man ${piece <= 2 ? "w" : "b"}${piece === 2 || piece === 4 ? " king" : ""}`);
           box.append(man);
         }
+        if (game.last && cell === game.last.from) box.classList.add("was");
+        if (game.last && cell === game.last.to) box.classList.add("now");
         box.addEventListener("click", () => {
           const picked = multi.pickFrom;
           const canGo = steps.some((step) => step.from === picked && step.to === cell);
@@ -3534,6 +3607,8 @@ body.dead::after {
           + `${piece ? (piece > 6 ? " piece-b" : " piece-w") : ""}`, CHESS_GLYPHS[kind] || "");
         if (cell === from) box.classList.add("on");
         if (targets.has(cell)) box.classList.add("way");
+        if (game.last && cell === game.last.from) box.classList.add("was");
+        if (game.last && cell === game.last.to) box.classList.add("now");
         box.addEventListener("click", () => {
           const picked = multi.pickFrom;
           const canGo = steps.some((step) => step.from === picked && step.to === cell);
@@ -3544,35 +3619,46 @@ body.dead::after {
         board.append(box);
       }
       area.append(board);
+      const taken = game.taken || [[], []];
+      if (taken[0].length || taken[1].length) {
+        const rows = el("div", "mp-count");
+        const mineRow = el("span", "taken-row", taken[game.me].map((kind) => CHESS_GLYPHS[kind]).join(""));
+        const theirRow = el("span", "taken-row", taken[1 - game.me].map((kind) => CHESS_GLYPHS[kind]).join(""));
+        rows.append(el("span", "", "Ты съел: "), mineRow, el("span", "", " · у тебя съели: "), theirRow);
+        area.append(rows);
+      }
       if (game.check) area.append(el("p", "hint", "Шах!"));
     },
     seabattle: (game, view, area) => {
       const killed = new Set((game.my_sunk || []).flat());
       const lost = new Set((game.lost || []).flat());
-      area.append(el("div", "mp-label", `Стреляем: потоплено ${(game.my_sunk || []).length} из ${game.fleet}, `
-        + `у врага осталось ${game.enemy_left} палуб`));
-      const enemy = el("div", "sea");
+      const last = game.last || null;
+      const myShot = last && last.by === state.userId ? last.cell : null;       // куда стрелял я
+      const theirShot = last && last.by !== state.userId ? last.cell : null;    // куда стреляли в меня
+      area.append(el("div", "mp-label", `Поле соперника · потоплено ${(game.my_sunk || []).length} `
+        + `из ${game.fleet}, осталось ${game.enemy_left} палуб`));
       const open = new Set((view.moves || {}).cells || []);
+      const enemy = el("div", "sea");
       for (let cell = 0; cell < 100; cell += 1) {
         const mark = game.my_shots[cell];
-        const box = el("div", mark === 3 ? (killed.has(cell) ? "hit sunk" : "hit")
-                       : mark === 2 ? "miss" : open.has(cell) ? "free" : "",
+        const box = el("div", `${mark === 3 ? (killed.has(cell) ? "hit sunk" : "hit")
+                       : mark === 2 ? "miss" : open.has(cell) ? "free" : ""}${cell === myShot ? " now" : ""}`.trim(),
                        mark === 3 ? "✕" : mark === 2 ? "·" : "");
         if (open.has(cell)) box.addEventListener("click", () => multiMove({ type: "shot", cell }));
         enemy.append(box);
       }
-      area.append(enemy);
-      area.append(el("div", "mp-label", `Твой флот: ${game.my_left} палуб цело, `
+      area.append(seaGrid(enemy, game.letters || "АБВГДЕЖЗИК"));
+      area.append(el("div", "mp-label", `Твоё поле · цело ${game.my_left} палуб, `
         + `потоплено ${(game.lost || []).length} из ${game.fleet}`));
       const mine = el("div", "sea");
       for (let cell = 0; cell < 100; cell += 1) {
         const own = game.my_board[cell];
         const shot = game.enemy_shots[cell];
-        mine.append(el("div", own === 3 ? (lost.has(cell) ? "hit sunk" : "hit")
-                       : shot === 2 ? "miss" : own === 1 ? "ship" : "",
+        mine.append(el("div", `${own === 3 ? (lost.has(cell) ? "hit sunk" : "hit")
+                       : shot === 2 ? "miss" : own === 1 ? "ship" : ""}${cell === theirShot ? " now" : ""}`.trim(),
                        own === 3 ? "✕" : shot === 2 ? "·" : ""));
       }
-      area.append(mine);
+      area.append(seaGrid(mine, game.letters || "АБВГДЕЖЗИК"));
     },
     backgammon: (game, view, area) => {
       const dice = el("div", "dice");
@@ -3588,8 +3674,10 @@ body.dead::after {
       const drawPoint = (point) => {
         order.push(point);
         const count = game.board[point];
+        const was = game.last && game.last.from === point ? " was" : "";
+        const now = game.last && game.last.to === point ? " now" : "";
         const box = el("div", `bg-point${count > 0 ? " p0" : count < 0 ? " p1" : ""}`
-          + `${point === from ? " on" : ""}${targets.has(point) ? " way" : ""}`);
+          + `${point === from ? " on" : ""}${targets.has(point) ? " way" : ""}${was}${now}`);
         box.append(el("b", "", `${point + 1}`), document.createTextNode(count ? `${Math.abs(count)}●` : ""));
         box.addEventListener("click", () => {
           const picked = multi.pickFrom;
@@ -4671,6 +4759,7 @@ body.dead::after {
   }
 
   async function playSlots() {
+    audio.play("spin");
     if (state.busy) return;
     const machine = $(".machine");
     const message = $("#slots-message");
@@ -4764,7 +4853,7 @@ body.dead::after {
   }
 
   async function playCoin() {
-    audio.play("chip");
+    audio.play("flip");
     if (state.busy) return;
     const bet = state.bet;
     const side = state.coinSide;
@@ -5536,6 +5625,8 @@ body.dead::after {
     here.text.textContent = "Ждём поклёвку…";
     $("#job-clock").textContent = `Заброс ${here.cast + 1}/${here.casts}`;
     try {
+      audio.play("grab");
+      audio.play("stamp");
       const data = await api("work/step", {});
       later(() => {
         if (!work.state) return;
@@ -5561,6 +5652,7 @@ body.dead::after {
     here.float.classList.remove("bite");
     work.sending = true;
     try {
+      audio.play("splash");
       const data = await api("work/step", { reaction });
       const [emoji, title] = FISH[data.catch] || FISH.miss;
       here.cast = data.cast;
@@ -6426,6 +6518,8 @@ body.dead::after {
   function openArcade(key) {
     const game = arcade.games.find((item) => item.key === key);
     stopArcade();
+    arcade.lastPoints = 0;
+    arcade.lastLives = 99;
     arcade.game = key;
     $("#arcade-list").hidden = true;
     $(".arcade-hero").hidden = true;
@@ -6452,6 +6546,10 @@ body.dead::after {
   }
 
   function arcadeScore(points, lives) {
+    if (points > (arcade.lastPoints || 0)) audio.play("grab");            // очко засчитали
+    if (typeof lives === "number" && lives < arcade.lastLives) audio.play("miss");
+    arcade.lastPoints = points;
+    arcade.lastLives = typeof lives === "number" ? lives : arcade.lastLives;
     const game = arcade.games.find((item) => item.key === arcade.game);
     $("#arcade-score").textContent = game ? `${fmt(points)} ${plural(points, game.units)}` : fmt(points);
     if (typeof lives === "number") {
@@ -7638,6 +7736,7 @@ body.dead::after {
   }
 
   async function bumAction(action) {
+    audio.play(action === "feed" ? "grab" : action === "upgrade" ? "level" : "cash");
     if (bum.sending || !bum.data) return;
     bum.sending = true;
     renderBum();

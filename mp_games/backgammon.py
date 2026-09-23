@@ -33,7 +33,7 @@ def _start_board() -> list[int]:
 
 def setup(players: list[int]) -> dict:
     state = {"players": players, "board": _start_board(), "bar": [0, 0], "off": [0, 0],
-             "side": 0, "dice": [], "winner": None, "step": 0, "feed": []}
+             "side": 0, "dice": [], "winner": None, "step": 0, "last": None, "feed": []}
     return feed(_roll(state), "Первый ход за белыми")
 
 
@@ -129,7 +129,11 @@ def move(state: dict, user_id: int, action: dict) -> dict:
         board[step["to"]] += sign
     dice = list(state["dice"])
     dice.remove(step["die"])
-    state = state | {"board": board, "bar": bar, "off": off, "dice": dice, "step": state["step"] + 1}
+    where = "с бара" if step["from"] == -1 else str(step["from"] + 1)
+    target = "домой" if step["to"] in (POINTS, -1) else str(step["to"] + 1)
+    state = state | {"board": board, "bar": bar, "off": off, "dice": dice, "step": state["step"] + 1,
+                     "last": {"by": user_id, "from": step["from"], "to": step["to"],
+                              "text": f"{where} → {target}"}}
     if off[side] >= CHECKERS:
         return feed(state | {"winner": state["players"][side]}, "Все фишки дома")
     if not dice or not legal(state):
@@ -160,6 +164,7 @@ def view(state: dict, user_id: int) -> dict:
         "me": side,
         "turn_side": state["side"],
         "home_ready": _home_ready(state, side),
+        "last": state.get("last"),
         "winner": state.get("winner"),
     }
 

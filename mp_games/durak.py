@@ -32,7 +32,7 @@ def setup(players: list[int]) -> dict:
     state = {
         "players": players, "hands": hands, "talon": talon, "trump": trump, "trump_card": trump_card,
         "table": [], "phase": "attack", "attacker": attacker, "defender": None,
-        "out": [], "loser": None, "beaten": 0, "feed": [],
+        "out": [], "loser": None, "beaten": 0, "last": None, "feed": [],
     }
     state["defender"] = _next_alive(state, attacker)
     return feed(state, f"Козырь {card_text(trump_card)}")
@@ -148,6 +148,7 @@ def _attack(state: dict, user_id: int, card) -> dict:
         "hands": state["hands"] | {str(user_id): hand},
         "table": state["table"] + [{"a": card, "d": None}],
         "phase": "defend",
+        "last": {"by": user_id, "text": f"ходит {card_text(card)}"},
     }
     return feed(state, f"Ходит {card_text(card)}")
 
@@ -161,7 +162,8 @@ def _beat(state: dict, user_id: int, card, slot) -> dict:
     table = [dict(pair) for pair in state["table"]]
     table[slot]["d"] = card
     hand = [item for item in _hand(state, user_id) if item != card]
-    state = state | {"hands": state["hands"] | {str(user_id): hand}, "table": table}
+    state = state | {"hands": state["hands"] | {str(user_id): hand}, "table": table,
+                     "last": {"by": user_id, "text": f"кроет {card_text(card)}"}}
     state = feed(state, f"Кроет {card_text(card)}")
     if not _unbeaten(state):
         state = state | {"phase": "attack"}       # отбился — атакующий подкидывает или говорит «бито»
@@ -173,7 +175,8 @@ def _take(state: dict, user_id: int) -> dict:
         raise GameError("Брать сейчас нечего")
     taken = [pair["a"] for pair in state["table"]] + [pair["d"] for pair in state["table"] if pair["d"] is not None]
     hand = sorted(_hand(state, user_id) + taken)
-    state = state | {"hands": state["hands"] | {str(user_id): hand}}
+    state = state | {"hands": state["hands"] | {str(user_id): hand},
+                     "last": {"by": user_id, "text": "забирает со стола"}}
     state = feed(state, f"Забирает {hand_text(taken)}")
     return _end_round(state, took=True)
 
@@ -186,6 +189,7 @@ def _done(state: dict, user_id: int) -> dict:
     if _unbeaten(state):
         raise GameError("Ещё не всё побито")
     state = feed(state, "Бито")
+    state = state | {"last": {"by": user_id, "text": "бито"}}
     return _end_round(state, took=False)
 
 
@@ -269,6 +273,7 @@ def view(state: dict, user_id: int) -> dict:
         "attacker": state["attacker"],
         "defender": state["defender"],
         "loser": state.get("loser"),
+        "last": state.get("last"),
         "players": [{"id": player, "cards": len(_hand(state, player)), "out": player in state["out"]}
                     for player in state["players"]],
     }

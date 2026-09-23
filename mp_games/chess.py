@@ -22,6 +22,15 @@ START = (
     ROOK, KNIGHT, BISHOP, QUEEN, KING, BISHOP, KNIGHT, ROOK,
 )
 PROMO = {"q": QUEEN, "r": ROOK, "b": BISHOP, "n": KNIGHT}
+FILES = "abcdefgh"
+
+
+def spot(cell: int) -> str:
+    """Клетка по-шахматному: e4."""
+    row, col = divmod(cell, SIDE)
+    return f"{FILES[col]}{row + 1}"
+
+
 STEPS = {
     KNIGHT: ((1, 2), (2, 1), (2, -1), (1, -2), (-1, -2), (-2, -1), (-2, 1), (-1, 2)),
     KING: ((0, 1), (1, 1), (1, 0), (1, -1), (0, -1), (-1, -1), (-1, 0), (-1, 1)),
@@ -65,7 +74,8 @@ def setup(players: list[int]) -> dict:
     state = {
         "players": players, "board": board, "side": 0,
         "castle": [True, True, True, True],     # белые: короткая, длинная; чёрные: короткая, длинная
-        "ep": None, "half": 0, "step": 0, "seen": {}, "winner": None, "over": None, "feed": [],
+        "ep": None, "half": 0, "step": 0, "seen": {}, "winner": None, "over": None,
+        "taken": [[], []], "last": None, "feed": [],
     }
     return feed(_remember(state), "Белые начинают")
 
@@ -233,7 +243,17 @@ def move(state: dict, user_id: int, action: dict) -> dict:
     options = [step for step in legal(state) if _same(step, wanted)]
     if not options:
         raise GameError("Так не ходят")
-    state = _apply(state, options[0])
+    step = options[0]
+    side = state["side"]
+    grabbed = state["board"][step["to"]] or (PAWN + (0 if side else BLACK) if step.get("ep") else 0)
+    state = _apply(state, step)
+    taken = [list(state["taken"][0]), list(state["taken"][1])]
+    if grabbed:
+        taken[side].append(_kind(grabbed))
+    state = state | {"taken": taken,
+                     "last": {"by": user_id, "from": step["from"], "to": step["to"],
+                              "text": f"{spot(step['from'])} → {spot(step['to'])}"
+                                      + (" ×" if grabbed else "")}}
     state = _remember(state)
     return _check_end(state)
 
@@ -288,6 +308,8 @@ def view(state: dict, user_id: int) -> dict:
         "me": side,
         "turn_side": state["side"],
         "check": bool(king is not None and _attacked(state["board"], king, 1 - state["side"])),
+        "last": state.get("last"),
+        "taken": state.get("taken", [[], []]),
         "over": state.get("over"),
         "winner": state.get("winner"),
         "step": state["step"],

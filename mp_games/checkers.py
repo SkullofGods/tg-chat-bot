@@ -15,6 +15,13 @@ TURN_SECONDS = 24 * 3600
 
 SIDE = 8
 DIRS = ((1, 1), (1, -1), (-1, 1), (-1, -1))
+FILES = "abcdefgh"
+
+
+def spot(cell: int) -> str:
+    """Имя клетки как на доске: c3."""
+    row, col = divmod(cell, SIDE)
+    return f"{FILES[col]}{row + 1}"
 
 
 def _cell(row: int, col: int) -> int:
@@ -44,7 +51,7 @@ def setup(players: list[int]) -> dict:
             if (row + col) % 2:
                 board[_cell(row, col)] = 3
     state = {"players": players, "board": board, "side": 0, "chain": None,
-             "winner": None, "steps": 0, "quiet": 0, "feed": []}
+             "winner": None, "steps": 0, "quiet": 0, "eaten": [0, 0], "last": None, "feed": []}
     return feed(state, "Расставились")
 
 
@@ -147,8 +154,14 @@ def move(state: dict, user_id: int, action: dict) -> dict:
     elif piece == 3 and row == 0:
         piece = 4
     board[step["to"]] = piece
-    state = state | {"board": board, "steps": state["steps"] + 1,
-                     "quiet": 0 if step["eat"] is not None else state["quiet"] + 1}
+    eaten = list(state.get("eaten", [0, 0]))
+    if step["eat"] is not None:
+        eaten[state["side"]] += 1
+    state = state | {"board": board, "steps": state["steps"] + 1, "eaten": eaten,
+                     "quiet": 0 if step["eat"] is not None else state["quiet"] + 1,
+                     "last": {"by": user_id, "from": step["from"], "to": step["to"], "eat": step["eat"],
+                              "text": f"{spot(step['from'])} → {spot(step['to'])}"
+                                      + (" ×" if step["eat"] is not None else "")}}
     if step["eat"] is not None:
         more = _jumps(board, step["to"], state["side"])
         if more:
@@ -182,12 +195,16 @@ def auto(state: dict, user_id: int) -> dict:
 
 def view(state: dict, user_id: int) -> dict:
     side = state["players"].index(user_id) if user_id in state["players"] else 0
+    board = state["board"]
     return {
-        "board": state["board"],
+        "board": board,
         "side": SIDE,
         "me": side,
         "turn_side": state["side"],
         "chain": state["chain"],
+        "last": state.get("last"),
+        "left": [sum(1 for piece in board if piece in (1, 2)), sum(1 for piece in board if piece in (3, 4))],
+        "eaten": state.get("eaten", [0, 0]),
         "winner": state.get("winner"),
     }
 

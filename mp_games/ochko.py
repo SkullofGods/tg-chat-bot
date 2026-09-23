@@ -76,6 +76,7 @@ def move(state: dict, user_id: int, action: dict) -> dict:
         state = state | {"deck": cards, "hands": state["hands"] | {str(user_id): hand}}
         total = points(hand)
         state = feed(state, f"Берёт {card_text(hand[-1])} — {total}")
+        state = state | {"last": {"by": user_id, "text": f"взял {card_text(hand[-1])}"}}
         if total >= TARGET:
             state = feed(state, "Перебор!" if total > TARGET else "Очко!")
             state = state | {"done": state["done"] + [user_id],
@@ -84,6 +85,7 @@ def move(state: dict, user_id: int, action: dict) -> dict:
         return state
     if kind == "stand":
         state = feed(state, f"Хватит, {points(state['hands'][str(user_id)])}")
+        state = state | {"last": {"by": user_id, "text": "больше не берёт"}}
         state = state | {"done": state["done"] + [user_id]}
         return state | {"turn": _next(state, user_id) or state["turn"]}
     raise GameError("Непонятный ход")
@@ -113,6 +115,7 @@ def view(state: dict, user_id: int) -> dict:
             "busted": player in state["busted"],
         } for player in state["players"]],
         "over": over,
+        "last": state.get("last"),
     }
 
 

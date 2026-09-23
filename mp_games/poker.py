@@ -233,11 +233,13 @@ def _put(state: dict, user_id: int, amount: int, what: str) -> dict:
     paid[str(user_id)] = paid.get(str(user_id), 0) + amount
     state = state | {"chips": chips, "hand": hand | {"bets": bets, "paid": paid}}
     if amount and not chips[str(user_id)]:
-        state = feed(state, f"Ва-банк на {bets[str(user_id)]}")
+        line = f"ва-банк на {bets[str(user_id)]}"
     elif amount:
-        state = feed(state, f"{what.capitalize()} {amount}")
+        line = f"{what} {amount}"
     else:
-        state = feed(state, "Чек")
+        line = "чек"
+    state = state | {"last": {"by": user_id, "text": line}}
+    state = feed(state, line.capitalize())
     return _acted(state, user_id)
 
 
@@ -264,6 +266,7 @@ def _fold(state: dict, user_id: int) -> dict:
         return state
     live = [player for player in hand["live"] if player != user_id]
     state = feed(state, "Сбросил")
+    state = state | {"last": {"by": user_id, "text": "пас"}}
     return state | {"hand": hand | {"live": live, "acted": [p for p in hand["acted"] if p != user_id]}}
 
 
@@ -420,6 +423,7 @@ def view(state: dict, user_id: int) -> dict:
         "my_combo": combo_name(hand["hole"][str(user_id)] + hand.get("board", []))
         if hand.get("hole", {}).get(str(user_id)) and len(hand.get("board", [])) >= 3 else None,
         "showdown": hand.get("showdown") or state.get("showdown"),
+        "last": state.get("last"),
         "winner": state.get("winner"),
     }
 
