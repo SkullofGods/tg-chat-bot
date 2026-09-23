@@ -41,10 +41,10 @@ async def announce_spam_day_if_needed() -> bool:
     return True
 
 
-async def pay_arcade_records_if_needed():
+async def pay_arcade_records_if_needed(force: bool = False):
     """Раз в день рекордсмены бесконечных игр получают премию — и держат её, пока рекорд не побьют."""
     now = datetime.now(LOCAL_TZ)
-    if now.hour < ARCADE_PRIZE_HOUR:
+    if not force and now.hour < ARCADE_PRIZE_HOUR:
         return
     for chat_id in db.get_known_chats():
         lines = arcade.pay_records(chat_id)

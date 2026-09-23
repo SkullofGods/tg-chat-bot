@@ -153,7 +153,6 @@ def pay_records(chat_id: int) -> list[str]:
     meta_key = f"arcade_prize:{chat_id}:{day}"
     if db.get_meta(meta_key) is not None:
         return []
-    db.set_meta(meta_key, "paid")
     lines = []
     for key, game in GAMES.items():
         holder = db.arcade_record(chat_id, key)
@@ -164,6 +163,11 @@ def pay_records(chat_id: int) -> list[str]:
         name = members.display_name(holder["user_id"])
         lines.append(f"{game['emoji']} <b>{game['title']}</b> — {name}: "
                      f"{count_with_word(holder['score'], game['units'])}")
-    if lines:
-        engine.add_feed(chat_id, f"🏆 Рекордсмены дня получили по {money(DAILY_PRIZE)}")
+    if not lines:
+        # Рекордов ещё нет — день не закрываем, попробуем снова, когда кто-нибудь сыграет
+        logger.info("Премия рекордсменам в %s: рекордов нет, ждём", chat_id)
+        return []
+    db.set_meta(meta_key, "paid")
+    engine.add_feed(chat_id, f"🏆 Рекордсмены дня получили по {money(DAILY_PRIZE)}")
+    logger.info("Премия рекордсменам в %s: выдано %s по %s", chat_id, len(lines), DAILY_PRIZE)
     return lines

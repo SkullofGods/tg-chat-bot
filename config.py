@@ -65,7 +65,7 @@ TZ_OFFSET_HOURS: int = _int_env("TZ_OFFSET_HOURS", 3)
 LOCAL_TZ = timezone(timedelta(hours=TZ_OFFSET_HOURS))
 
 # Во сколько рекордсмены бесконечных игр получают ежедневную премию
-ARCADE_PRIZE_HOUR: int = _int_env("ARCADE_PRIZE_HOUR", 13)
+ARCADE_PRIZE_HOUR: int = _int_env("ARCADE_PRIZE_HOUR", 10)
 
 # Кулдаун оргии в часах
 ORGY_COOLDOWN_HOURS: int = _int_env("ORGY_COOLDOWN_HOURS", 24)

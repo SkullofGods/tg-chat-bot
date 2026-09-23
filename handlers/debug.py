@@ -16,6 +16,7 @@ from aiogram.filters import Command, CommandObject
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
 import backup
+import casino_arcade as arcade
 import casino_engine
 import casino_rig
 import casino_tables
@@ -24,7 +25,7 @@ import members
 import scheduler
 import sglypa
 import texts
-from config import BACKUP_CHAT_ID, DB_PATH, LOCAL_TZ, OWNER_ID, SPAM_DAY_HOUR
+from config import ARCADE_PRIZE_HOUR, BACKUP_CHAT_ID, DB_PATH, LOCAL_TZ, OWNER_ID, SPAM_DAY_HOUR
 from loader import bot, db
 from textstats import fmt_num
 from utils import local_today, recent_logs, spawn
@@ -74,6 +75,11 @@ def _panel_text() -> str:
         )
         winner = db.get_tajik_of_day(main_chat, local_today())
         lines.append(f"🇹🇯 Таджик дня: {members.display_name(winner) if winner else 'ещё не выбран'}")
+        paid = db.get_meta(f"arcade_prize:{main_chat}:{local_today()}") is not None
+        holders = sum(1 for key in arcade.GAMES if db.arcade_record(main_chat, key))
+        when = "выдана" if paid else (f"ждёт {ARCADE_PRIZE_HOUR}:00" if now.hour < ARCADE_PRIZE_HOUR
+                                      else "ждёт рекордов" if not holders else "вот-вот")
+        lines.append(f"🏆 Премия рекордсменам: {when} · рекордов держат {holders} из {len(arcade.GAMES)}")
 
     active = limits.spam_day_active(now)
     planned = limits.next_spam_day(now.date())
@@ -92,7 +98,8 @@ def _keyboard() -> InlineKeyboardMarkup:
         [("🎰 Выключить спам-день" if spam else "🎰 Включить спам-день", "spam_off" if spam else "spam_on"),
          ("⏳ Сбросить кулдауны", "cooldowns")],
         [("🐸 Сглыпа, скажи", "sglypa"), ("👥 Сверить участников", "sync")],
-        [("🇹🇯 Перевыбрать таджика", "tajik"), ("📜 Логи", "logs")],
+        [("🇹🇯 Перевыбрать таджика", "tajik"), ("🏆 Премия рекордсменам", "prize")],
+        [("📜 Логи", "logs")],
     ]
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text=text, callback_data=f"dbg:{action}") for text, action in row] for row in rows
@@ -144,6 +151,9 @@ async def on_debug_button(callback: CallbackQuery):
         elif action == "tajik" and main_chat:
             db.delete_tajik_of_day(main_chat, local_today())
             note = "🇹🇯 Таджик дня сброшен — можно снова /tajik"
+        elif action == "prize":
+            await scheduler.pay_arcade_records_if_needed(force=True)
+            note = "🏆 Премия выдана (если было кому)"
         elif action == "logs" and isinstance(callback.message, Message):
             await callback.message.answer(_logs_text())
     except Exception as e:

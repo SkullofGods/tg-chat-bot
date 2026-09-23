@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 CURRENCY_FORMS = ("таджикоин", "таджикоина", "таджикоинов")
 MIN_BET = 10
 ACTION_INTERVAL_SECONDS = 0.8  # не чаще одной игры за столько секунд — защита от скриптов
-NEWS_TO_CHAT = True            # писать в беседу о смертях в русской рулетке и джекпотах
+NEWS_TO_CHAT = True            # в беседу — только джекпот и пустой барабан, смерти остаются в ленте
 NEWS_DELAY_SECONDS = 5         # новость приходит в беседу, когда анимация в приложении уже доиграла
 HISTORY_SHOWN = 12             # сколько последних результатов показывать в приложении
 
@@ -285,8 +285,6 @@ def pull_trigger(chat_id: int, user_id: int) -> dict:
     if dead:
         delta = -min(balance, max(RR_FUNERAL_MIN, balance * RR_FUNERAL_PERCENT // 100))
         add_feed(chat_id, f"💥 {name} — БАХ! Шанс был 1/{chance}, {signed(delta)}")
-        news(chat_id, random.choice(texts.RR_DEATH).format(name=f"<b>{members.display_name(user_id)}</b>")
-             + f"\n<i>Русская рулетка в /casino · шанс был 1/{chance}</i>")
     else:
         delta = rr_reward(shot, balance)
         revolver["fired"] += 1
