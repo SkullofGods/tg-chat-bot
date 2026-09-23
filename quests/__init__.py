@@ -27,7 +27,7 @@ SCENES = (
     "dump", "club", "field", "elevator", "balcony", "taxi", "lake", "snow", "bridge", "pitch",
 )
 
-MODULES = ("dvor", "bazar", "noch", "doroga", "rabota", "prazdnik", "dikoe", "den")
+MODULES = ("dvor", "bazar", "noch", "doroga", "rabota", "prazdnik", "dikoe", "den", "lor")
 
 QUESTS: dict[str, dict] = {}
 ENDINGS: dict[str, list[str]] = {}

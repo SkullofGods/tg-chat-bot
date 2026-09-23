@@ -8,7 +8,8 @@ from aiogram.types import Message
 
 import backup
 import texts
-from config import BACKUP_CHAT_ID, OWNER_ID
+from config import BACKUP_CHAT_ID, LORE_GIF_KEY, OWNER_ID
+from loader import db
 
 router = Router(name="service")
 
@@ -29,6 +30,13 @@ async def cmd_start(message: Message):
     if user_id == OWNER_ID:
         text += texts.OWNER_HELP
     await message.answer(text)
+
+
+@router.message(F.chat.type == "private", F.from_user.id == OWNER_ID, F.animation)
+async def save_lore_gif(message: Message):
+    """Та самая гифка. Присылаем её боту в личку один раз — дальше он шлёт её сам."""
+    db.set_meta(LORE_GIF_KEY, message.animation.file_id)
+    await message.reply("🥛 Запомнил. Теперь она иногда прилетает в беседу — там, где по лору положено.")
 
 
 @router.message(Command("chatid"))

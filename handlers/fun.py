@@ -16,7 +16,7 @@ import limits
 import members
 import sglypa
 import texts
-from config import ORGY_COOLDOWN_HOURS, ORGY_POLL_DURATION_SECONDS
+from config import LORE_GIF_KEY, ORGY_COOLDOWN_HOURS, ORGY_POLL_DURATION_SECONDS
 from loader import bot, db
 from utils import local_today, spawn
 
@@ -121,8 +121,21 @@ async def cmd_tadjikistan(message: Message):
         target_id = await members.random_member(chat_id)
         intro = intro.format(target=members.mention(target_id) if target_id else "Кто-то")
     sent = await message.reply(intro)
+    if event.get("gif"):
+        await _send_lore_gif(chat_id)
     if "followup" in event:
         spawn(_tajikistan_followup(chat_id, sent.message_id, event["followup"], message.from_user.id))
+
+
+async def _send_lore_gif(chat_id: int) -> None:
+    """Шлём ту самую гифку, если хозяин уже присылал её боту в личку."""
+    file_id = db.get_meta(LORE_GIF_KEY)
+    if not file_id:
+        return
+    try:
+        await bot.send_animation(chat_id, file_id)
+    except Exception as e:
+        logger.warning("Гифка не ушла в %s: %s", chat_id, e)
 
 
 async def _tajikistan_followup(chat_id: int, reply_to: int, template: str, caller_id: int):

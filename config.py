@@ -43,6 +43,9 @@ LEGACY_DB_PATHS: list[Path] = list(dict.fromkeys([BASE_DIR / "bot.db", Path.cwd(
 # Хозяин бота: только ему доступны скрытые /debug и /say (по умолчанию — @SkullOfGods)
 OWNER_ID: int = _int_env("OWNER_ID", 384144294)
 
+# Под этим ключом в meta лежит file_id той самой гифки (см. handlers/service.py)
+LORE_GIF_KEY = "lore_gif"
+
 
 def _backup_chat_id() -> int | None:
     raw = os.getenv("BACKUP_CHAT_ID", "").strip().lower()
