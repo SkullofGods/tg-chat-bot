@@ -1811,6 +1811,16 @@ button:disabled { cursor: default; }
 }
 .board div.now { box-shadow: inset 0 0 0 3px rgba(245, 197, 66, 0.9); }
 .board div { position: relative; }
+.mp-top { padding: 6px 0; }
+.mp-top-row { display: grid; grid-template-columns: 30px 1fr; gap: 8px; align-items: center; padding: 8px 14px; }
+.mp-top-row + .mp-top-row { border-top: 1px solid rgba(255, 255, 255, 0.05); }
+.mp-top-row .place { font-size: 15px; text-align: center; color: var(--muted); }
+.mp-top-row b { font-size: 14px; }
+.mp-top-row small { display: block; color: var(--muted); font-size: 11px; margin-top: 1px; }
+.mp-top-row.me b { color: var(--gold); }
+.mp-top-bar { height: 4px; margin-top: 5px; border-radius: 3px; background: rgba(255, 255, 255, 0.07); overflow: hidden; }
+.mp-top-bar i { display: block; height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--gold-2), var(--gold)); }
+
 .mp-last {
   margin-top: 8px;
   padding: 8px 12px;
@@ -3197,12 +3207,24 @@ body.dead::after {
 
     if (data.leaders && data.leaders.length) {
       root.append(el("h2", "section-title", "🏆 Кто чаще выигрывает"));
-      const rows = el("div", "card scores");
+      const rows = el("div", "card mp-top");
+      const most = Math.max(...data.leaders.map((row) => row.wins), 1);
       data.leaders.forEach((row, index) => {
-        const line = el("div", "");
-        line.append(el("span", "", `${["🥇", "🥈", "🥉"][index] || index + 1} ${row.name}`),
-                    el("span", "", `${fmt(row.wins)}`));
-        if (row.me) line.style.color = "var(--gold)";
+        const line = el("div", `mp-top-row${row.me ? " me" : ""}`);
+        line.append(el("span", "place", ["🥇", "🥈", "🥉"][index] || `${index + 1}`));
+        const body = el("div", "");
+        body.append(el("b", "", row.name));
+        const about = row.games
+          ? `${fmt(row.wins)} ${plural(row.wins, ["победа", "победы", "побед"])} из ${fmt(row.games)} `
+            + `${plural(row.games, ["партии", "партий", "партий"])}`
+          : `${fmt(row.wins)} ${plural(row.wins, ["победа", "победы", "побед"])}`;
+        body.append(el("small", "", row.best ? `${about} · чаще всего ${row.best}` : about));
+        const bar = el("div", "mp-top-bar");
+        const fill = el("i", "");
+        fill.style.width = `${Math.round((row.wins / most) * 100)}%`;
+        bar.append(fill);
+        body.append(bar);
+        line.append(body);
         rows.append(line);
       });
       root.append(rows);

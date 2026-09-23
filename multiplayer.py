@@ -91,11 +91,7 @@ def lobby(chat_id: int, user_id: int) -> dict:
         "mine": mine["id"] if mine else None,
         "stakes": list(STAKES),
         "balance": db.get_balance(chat_id, user_id),
-        "leaders": [
-            {"name": members.plain_name(row["user_id"], {}), "wins": row["value"],
-             "me": row["user_id"] == user_id}
-            for row in db.counter_top(chat_id, "mp:wins", 5)
-        ],
+        "leaders": _leaders(chat_id, user_id),
         "history": [
             {"game": table["game"], "title": mp_games.GAMES[table["game"]].TITLE
              if table["game"] in mp_games.GAMES else table["game"],
@@ -103,6 +99,29 @@ def lobby(chat_id: int, user_id: int) -> dict:
             for table in db.mp_done(chat_id, 5) if table["state"].get("over")
         ],
     }
+
+
+def _leaders(chat_id: int, user_id: int) -> list[dict]:
+    """Кто чаще выигрывает за столами: победы, сыгранные партии и любимая игра."""
+    rows = db.counter_top(chat_id, "mp:wins", 5)
+    names = db.get_name_rows([row["user_id"] for row in rows])
+    out = []
+    for row in rows:
+        counters = db.get_counters(chat_id, row["user_id"])
+        wins = {key[len("mp:win:"):]: value for key, value in counters.items() if key.startswith("mp:win:")}
+        best = max(wins, key=lambda key: wins[key], default=None)
+        module = mp_games.GAMES.get(best)
+        # партии считаем по каждой игре: общий счётчик появился позже, у старых игроков его нет
+        played = sum(value for key, value in counters.items()
+                     if key.startswith("mp:") and key.split(":", 2)[1] in mp_games.GAMES)
+        out.append({
+            "name": members.plain_name(row["user_id"], names.get(row["user_id"], {})),
+            "wins": row["value"],
+            "games": max(played, row["value"]),
+            "best": f"{module.EMOJI} {module.TITLE}" if module else None,
+            "me": row["user_id"] == user_id,
+        })
+    return out
 
 
 def create(chat_id: int, user_id: int, game, stake, seats) -> dict:
