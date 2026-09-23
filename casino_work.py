@@ -57,6 +57,59 @@ FISHING_CATCH = {          # что клюёт: (вес, выплата)
 
 TRUCK_BOXES = ((35, 0.10), (45, 0.15), (60, 0.22), (80, 0.28), (110, 0.34), (150, 0.40))  # (оплата, шанс уронить)
 
+# ── Паспортный стол ───────────────────────────────────────────────────────────
+
+PASSPORT_SECONDS = 30
+PASSPORT_DOCS = 16
+PASSPORT_PAY = 13
+PASSPORT_FINE = 7         # подшили узбека к таджику
+PASSPORT_HIDDEN = 0.3     # клиент спрятал паспорт и смотрит 🥺👉👈 — надо спросить
+PASSPORT_CHINA = 0.12     # китайский паспорт: такое только в центральный офис
+PASSPORT_CENTRAL = "central"
+PASSPORT_COUNTRIES = (("🇹🇯", "Таджикистан"), ("🇺🇿", "Узбекистан"), ("🇰🇬", "Киргизия"), ("🇧🇾", "Беларусь"))
+
+# ── Фейсконтроль у бюро ───────────────────────────────────────────────────────
+
+DOOR_SECONDS = 28
+DOOR_VISITORS = 18
+DOOR_PAY = 12
+DOOR_FINE = 8
+DOOR_LENYA_PAY = 16       # Лёню не трогали — он прошёл сам
+DOOR_PATIENCE = (2.4, 1.3)  # сколько посетитель ждёт решения в начале и в конце смены
+DOOR_KINDS = {            # кто пришёл: (вес, что с ним делать)
+    "granny": (13, "in"), "client": (22, "in"), "helper": (9, "in"),
+    "uzbek": (18, "out"), "ask": (15, "out"), "helkern": (8, "out"), "maxim": (6, "out"),
+    "lenya": (9, "skip"),
+}
+
+# ── Заверь у Лёни ─────────────────────────────────────────────────────────────
+
+STAMP_SECONDS = 24
+STAMP_STEPS = 12          # шагов от двери до стола
+STAMP_STEP_PAY = 18
+STAMP_BONUS = 60          # дошёл и поставил печать, не разбудив
+STAMP_WARN = 0.55         # храп стихает за столько секунд до того, как Лёня заворочается
+
+# ── Наеби Ярика ───────────────────────────────────────────────────────────────
+
+YARIK_DEALS = (           # (что втюхиваешь, сколько сверху, шанс, что Ярик психанёт и уйдёт)
+    ("Варёная кукуруза втридорога", 30, 0.08),
+    ("Рожок мороженого, наполовину пустой", 45, 0.14),
+    ("Вторая кукуруза «по акции»", 65, 0.21),
+    ("Фото с обезьяной", 90, 0.29),
+    ("Билет на колесо обозрения (он не влезет)", 120, 0.37),
+    ("Стринги его размера", 160, 0.46),
+)
+
+# ── Сшей документ ─────────────────────────────────────────────────────────────
+
+STITCH_SECONDS = 35
+STITCH_HOLES = 6
+STITCH_SEAL = 14                                   # ширина наклейки с печатью, % листа
+STITCH_SPEEDS = (48, 58, 68, 80, 94, 108)           # как быстро ходит игла, % листа в секунду
+STITCH_GRADES = ((2.5, 30), (5, 20), (9, 10))       # насколько мимо метки (%) → сколько платят
+STITCH_BONUS = 60                                   # все шесть стежков идеальные
+
 JOBS = {
     "cleanup": {
         "title": "Субботник", "emoji": "🧹",
@@ -82,6 +135,31 @@ JOBS = {
         "title": "Разгрузка фуры", "emoji": "🚚",
         "about": "Каждый следующий ящик дороже, но уронишь — останешься без всего.",
         "pay": "0–480",
+    },
+    "passport": {
+        "title": "Паспортный стол", "emoji": "📄",
+        "about": "Подшивай паспорта по странам. Смотрит 🥺 — спроси. Хуэй — в центральный офис.",
+        "pay": "до 210",
+    },
+    "door": {
+        "title": "Фейсконтроль у бюро", "emoji": "🚪",
+        "about": "Кого пустить, кого развернуть. Узбек с пятью паспортами — нет. Лёню не трогай.",
+        "pay": "до 240",
+    },
+    "stamp": {
+        "title": "Заверь у Лёни", "emoji": "⚖️",
+        "about": "Крадись к столу, пока Лёня храпит. Заворочался — замри.",
+        "pay": "до 280",
+    },
+    "yarik": {
+        "title": "Наеби Ярика", "emoji": "🌽",
+        "about": "Втюхай Ярику кукурузу подороже. Перегнёшь — уйдёт, матерясь, и ты без всего.",
+        "pay": "0–510",
+    },
+    "stitch": {
+        "title": "Сшей документ", "emoji": "🧵",
+        "about": "Прошивай лист точно по меткам. Попадёшь в печать — документ испорчен.",
+        "pay": "до 240",
     },
 }
 
@@ -209,10 +287,206 @@ def _truck_step(shift: dict, payload: dict) -> dict:
             "left": len(TRUCK_BOXES) - secret["box"]}
 
 
+def _whole(value) -> int | None:
+    """Целое из ответа приложения: bool в JSON — тоже int, его не пускаем."""
+    return value if isinstance(value, int) and not isinstance(value, bool) else None
+
+
+def _passport_task() -> tuple[dict, dict]:
+    folders = random.sample(PASSPORT_COUNTRIES, len(PASSPORT_COUNTRIES))   # папки каждый раз в другом порядке
+    docs = []
+    for number in range(PASSPORT_DOCS):
+        if random.random() < PASSPORT_CHINA:
+            docs.append({"id": number, "folder": PASSPORT_CENTRAL, "flag": "🇨🇳",
+                         "name": random.choice(texts.WORK_PASSPORT_CHINA), "hidden": False})
+            continue
+        folder = random.randrange(len(folders))
+        flag, country = folders[folder]
+        docs.append({"id": number, "folder": folder, "flag": flag,
+                     "name": random.choice(texts.WORK_PASSPORT_NAMES[country]),
+                     "hidden": random.random() < PASSPORT_HIDDEN})
+    return {"seconds": PASSPORT_SECONDS, "folders": [{"flag": flag, "title": title} for flag, title in folders],
+            "docs": docs, "pay": PASSPORT_PAY, "fine": PASSPORT_FINE}, {}
+
+
+def _passport_pay(shift: dict, answer: dict) -> tuple[int, list[str]]:
+    right = {doc["id"]: doc["folder"] for doc in shift["task"]["docs"]}
+    answers = answer.get("answers")
+    good = bad = 0
+    if isinstance(answers, list):
+        seen = set()
+        for item in answers[:PASSPORT_DOCS * 2]:
+            if not isinstance(item, dict):
+                continue
+            doc_id, folder = _whole(item.get("id")), item.get("folder")
+            if doc_id is None or doc_id not in right or doc_id in seen:
+                continue
+            if folder != PASSPORT_CENTRAL and _whole(folder) is None:
+                continue
+            seen.add(doc_id)
+            if right[doc_id] == folder:
+                good += 1
+            else:
+                bad += 1
+    detail = [f"подшито верно: {good} из {PASSPORT_DOCS}"]
+    if bad:
+        detail.append(f"перепутано: {bad} — «мы подшили узбека к таджику!»")
+    return good * PASSPORT_PAY - bad * PASSPORT_FINE, detail
+
+
+def _door_task() -> tuple[dict, dict]:
+    kinds = list(DOOR_KINDS)
+    weights = [DOOR_KINDS[kind][0] for kind in kinds]
+    visitors, last = [], None
+    for number in range(DOOR_VISITORS):
+        kind = random.choices(kinds, weights=weights)[0]
+        if kind == last == "lenya":          # два Лёни подряд в одну дверь не пройдут
+            kind = "client"
+        visitors.append({"id": number, "kind": kind})
+        last = kind
+    legend = {kind: {"emoji": texts.WORK_DOOR_KINDS[kind][0], "title": texts.WORK_DOOR_KINDS[kind][1],
+                     "act": DOOR_KINDS[kind][1]} for kind in kinds}
+    return {"seconds": DOOR_SECONDS, "visitors": visitors, "kinds": legend, "patience": list(DOOR_PATIENCE),
+            "pay": DOOR_PAY, "fine": DOOR_FINE, "lenya_pay": DOOR_LENYA_PAY}, {}
+
+
+def _door_pay(shift: dict, answer: dict) -> tuple[int, list[str]]:
+    visitors = shift["task"]["visitors"]
+    seen = max(0, min(len(visitors), _whole(answer.get("seen")) or 0))   # до скольких очередь дошла
+    acts: dict[int, str] = {}
+    raw = answer.get("acts")
+    if isinstance(raw, list):
+        for item in raw[:DOOR_VISITORS * 2]:
+            if not isinstance(item, dict) or item.get("act") not in ("in", "out"):
+                continue
+            visitor = _whole(item.get("id"))
+            if visitor is not None and 0 <= visitor < seen and visitor not in acts:
+                acts[visitor] = item["act"]
+    good = bad = lenya = slow = 0
+    for visitor in visitors[:seen]:
+        right, act = DOOR_KINDS[visitor["kind"]][1], acts.get(visitor["id"])
+        if right == "skip":
+            if act is None:
+                lenya += 1
+            else:
+                bad += 1
+        elif act is None:
+            slow += 1
+        elif act == right:
+            good += 1
+        else:
+            bad += 1
+    detail = [f"верно решено: {good}"]
+    if lenya:
+        detail.append(f"Лёня прошёл сам: {lenya}")
+    if bad:
+        detail.append(f"ошибок на входе: {bad}")
+    if slow:
+        detail.append(f"завис(ла) в дверях: {slow}")
+    return good * DOOR_PAY + lenya * DOOR_LENYA_PAY - bad * DOOR_FINE, detail
+
+
+def _stamp_task() -> tuple[dict, dict]:
+    stirs, at = [], random.uniform(1.4, 2.2)
+    while at < STAMP_SECONDS:
+        length = round(random.uniform(0.9, 1.5), 2)
+        stirs.append([round(at, 2), length])
+        at += length + random.uniform(1.5, 3.0)
+    return {"seconds": STAMP_SECONDS, "steps": STAMP_STEPS, "warn": STAMP_WARN, "stirs": stirs,
+            "step_pay": STAMP_STEP_PAY, "bonus": STAMP_BONUS}, {}
+
+
+def _stamp_pay(shift: dict, answer: dict) -> tuple[int, list[str]]:
+    steps = max(0, min(STAMP_STEPS, _whole(answer.get("steps")) or 0))
+    pay = steps * STAMP_STEP_PAY
+    if answer.get("caught") is True:
+        return pay // 2, [f"прокрался(лась): {steps} из {STAMP_STEPS} шагов",
+                          "Лёня проснулся: «господи, да мне уже пофиг, делайте, что хотите» — половина"]
+    if steps == STAMP_STEPS:
+        shift["shout"] = "заверено нотариально"
+        return pay + STAMP_BONUS, [f"дошёл(ла) до стола: {steps} шагов", "печать стоит, Лёня даже не проснулся"]
+    return pay, [f"прокрался(лась): {steps} из {STAMP_STEPS} шагов", "время вышло — до стола не дошёл(ла)"]
+
+
+def _yarik_mood(risk: float) -> list[str]:
+    for limit, emoji, text in texts.WORK_YARIK_MOODS:
+        if risk < limit:
+            return [emoji, text]
+    return list(texts.WORK_YARIK_MOODS[-1][1:])
+
+
+def _yarik_task() -> tuple[dict, dict]:
+    walks = [random.random() < chance for _, _, chance in YARIK_DEALS]
+    deals = [{"item": item, "price": price, "mood": _yarik_mood(chance)} for item, price, chance in YARIK_DEALS]
+    return {"deals": deals}, {"deal": 0, "walks": walks}
+
+
+def _yarik_step(shift: dict, payload: dict) -> dict:
+    secret = shift["secret"]
+    deal = secret["deal"]
+    if deal >= len(YARIK_DEALS):
+        raise GameError("Ярику больше нечего втюхать — неси деньги в кассу", 409)
+    secret["deal"] += 1
+    if secret["walks"][deal]:
+        lost, shift["pay"], shift["done"] = shift["pay"], 0, True
+        return {"walked": True, "deal": deal + 1, "lost": lost, "pay": 0,
+                "reason": random.choice(texts.WORK_YARIK_FAILS)}
+    shift["pay"] += YARIK_DEALS[deal][1]
+    if secret["deal"] == len(YARIK_DEALS):
+        shift["shout"] = "Ярик наебан по полной"
+    return {"walked": False, "deal": deal + 1, "gain": YARIK_DEALS[deal][1], "pay": shift["pay"],
+            "left": len(YARIK_DEALS) - secret["deal"]}
+
+
+def _stitch_task() -> tuple[dict, dict]:
+    rounds = []
+    for speed in STITCH_SPEEDS:
+        hole = round(random.uniform(10, 90), 1)
+        seal = None
+        for _ in range(50):                  # печать не ближе 10 % к метке, чтобы её можно было обойти
+            spot = round(random.uniform(4, 96 - STITCH_SEAL), 1)
+            if spot > hole + 10 or spot + STITCH_SEAL < hole - 10:
+                seal = spot
+                break
+        if seal is None:
+            seal = 4.0 if hole > 50 else 96 - STITCH_SEAL
+        rounds.append({"hole": hole, "seal": [seal, round(seal + STITCH_SEAL, 1)], "speed": speed})
+    return {"seconds": STITCH_SECONDS, "rounds": rounds, "grades": [list(grade) for grade in STITCH_GRADES],
+            "bonus": STITCH_BONUS}, {}
+
+
+def _stitch_pay(shift: dict, answer: dict) -> tuple[int, list[str]]:
+    punches = answer.get("punches")
+    punches = punches[:STITCH_HOLES] if isinstance(punches, list) else []
+    total = done = perfect = 0
+    for plan, value in zip(shift["task"]["rounds"], punches):
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not 0 <= value <= 100:
+            break
+        low, high = plan["seal"]
+        if low <= value <= high:
+            return 0, ["прошил(а) печать — документ испорчен",
+                       "клиентке придётся ехать в Америку за новым экземпляром"]
+        done += 1
+        miss = abs(value - plan["hole"])
+        for limit, pay in STITCH_GRADES:
+            if miss <= limit:
+                total += pay
+                perfect += pay == STITCH_GRADES[0][1]
+                break
+    detail = [f"стежков: {done} из {STITCH_HOLES}", f"идеальных: {perfect}"]
+    if perfect == STITCH_HOLES:
+        total += STITCH_BONUS
+        shift["shout"] = "идеальная прошивка"
+        detail.append("ни одного кривого стежка — премия")
+    return total, detail
+
+
 _TASKS = {"cleanup": _cleanup_task, "post": _post_task, "samsa": _samsa_task,
-          "fishing": _fishing_task, "truck": _truck_task}
-_PAYS = {"cleanup": _cleanup_pay, "post": _post_pay, "samsa": _samsa_pay}
-_STEPS = {"fishing": _fishing_step, "truck": _truck_step}
+          "fishing": _fishing_task, "truck": _truck_task, "passport": _passport_task, "door": _door_task,
+          "stamp": _stamp_task, "yarik": _yarik_task, "stitch": _stitch_task}
+_PAYS = {"cleanup": _cleanup_pay, "post": _post_pay, "samsa": _samsa_pay, "passport": _passport_pay,
+         "door": _door_pay, "stamp": _stamp_pay, "stitch": _stitch_pay}
+_STEPS = {"fishing": _fishing_step, "truck": _truck_step, "yarik": _yarik_step}
 
 
 # ── Смена ─────────────────────────────────────────────────────────────────────

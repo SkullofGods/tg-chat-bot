@@ -1279,8 +1279,10 @@ class Database:
             ).fetchone()["score"]
 
     def arcade_top(self, chat_id: int, game: str, limit: int) -> list[dict]:
+        # ноль — не рекорд: сразу проигравший не должен получать премию рекордсмена
         rows = self.conn.execute(
-            f"SELECT a.user_id, a.score {self._ARCADE_ALIVE} AND a.game = ? ORDER BY a.score DESC, a.made_at LIMIT ?",
+            f"SELECT a.user_id, a.score {self._ARCADE_ALIVE} AND a.game = ? AND a.score > 0 "
+            "ORDER BY a.score DESC, a.made_at LIMIT ?",
             (chat_id, game, limit),
         ).fetchall()
         return [dict(r) for r in rows]

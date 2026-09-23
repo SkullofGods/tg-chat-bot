@@ -1214,6 +1214,212 @@ button:disabled { cursor: default; }
 .truck-boxes span.lost { filter: grayscale(1); opacity: 0.4; }
 .truck-risk { margin-top: 8px; text-align: center; color: var(--muted); font-size: 13px; }
 
+/* паспортный стол */
+.passport {
+  width: 190px;
+  padding: 14px 12px;
+  border-radius: 12px;
+  background: linear-gradient(160deg, #7a1f2b, #4a0f18);
+  color: #f6e3b0;
+  text-align: center;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45), inset 0 0 0 2px rgba(246, 227, 176, 0.25);
+  animation: pop-in 0.18s ease-out;
+}
+.passport .kind { font-size: 11px; letter-spacing: 3px; opacity: 0.8; }
+.passport .flag { font-size: 46px; margin: 6px 0 2px; line-height: 1.1; }
+.passport .name { font-weight: 800; font-size: 16px; min-height: 20px; }
+.passport.shy { background: linear-gradient(160deg, #5a4a3a, #2f261c); }
+.passport.sent { animation: letter-away 0.22s ease-in forwards; }
+.passport-ask {
+  padding: 9px 16px;
+  border-radius: 12px;
+  font-weight: 800;
+  background: rgba(245, 197, 66, 0.14);
+  border: 1px solid rgba(245, 197, 66, 0.45);
+}
+.passport-ask[hidden] { display: none; }
+.folders { grid-template-columns: repeat(2, 1fr); }
+.folders .central { grid-column: span 2; flex-direction: row; justify-content: center; gap: 8px; padding: 9px 4px; }
+.folders .central span { font-size: 20px; }
+
+/* фейсконтроль у бюро */
+.door-legend {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: var(--card-strong);
+  border: 1px solid var(--line);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.door-legend .in { color: var(--win); }
+.door-legend .out { color: var(--lose); }
+.door-legend .skip { color: var(--gold-2); }
+.door-scene {
+  position: relative;
+  height: 170px;
+  margin-top: 8px;
+  border-radius: 18px;
+  overflow: hidden;
+  touch-action: none;
+  background:
+    linear-gradient(90deg, transparent 0 18%, rgba(0, 0, 0, 0.35) 18% 20%, transparent 20% 80%, rgba(0, 0, 0, 0.35) 80% 82%, transparent 82%),
+    linear-gradient(180deg, #4a3a2a, #2a2018);
+  border: 2px solid #5a4630;
+}
+.door-visitor { position: absolute; inset: 0 0 12px; display: grid; place-content: center; text-align: center; }
+.door-visitor .who { font-size: 64px; line-height: 1.1; }
+.door-visitor .what { font-weight: 800; font-size: 15px; }
+.door-visitor.come { animation: door-come 0.2s ease-out; }
+.door-visitor.went-in { animation: door-in 0.25s ease-in forwards; }
+.door-visitor.went-out { animation: door-out 0.25s ease-in forwards; }
+@keyframes door-come { from { transform: translateY(24px); opacity: 0; } }
+@keyframes door-in { to { transform: translateX(80px) scale(0.7); opacity: 0; } }
+@keyframes door-out { to { transform: translateX(-80px) scale(0.7); opacity: 0; } }
+.door-flash {
+  position: absolute;
+  left: 50%;
+  top: 10px;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  padding: 4px 10px;
+  border-radius: 10px;
+  font-weight: 800;
+  font-size: 13px;
+  background: rgba(0, 0, 0, 0.55);
+}
+.door-flash.good { color: var(--win); }
+.door-flash.bad { color: var(--lose); }
+.door-patience { position: absolute; left: 12px; right: 12px; bottom: 6px; height: 5px; border-radius: 3px; background: rgba(255, 255, 255, 0.12); overflow: hidden; }
+.door-patience i { display: block; height: 100%; width: 100%; background: var(--gold-2); }
+.door-actions .out { color: var(--lose); }
+.door-actions .in { color: var(--win); }
+
+/* заверь у Лёни */
+.stamp-hall {
+  position: relative;
+  height: 170px;
+  margin-top: 8px;
+  border-radius: 18px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #2e3542 0 62%, #5a4630 62% 100%);
+  border: 2px solid #3d4854;
+}
+.stamp-door { position: absolute; left: 8px; bottom: 44px; font-size: 44px; }
+.stamp-track { position: absolute; left: 12%; right: 20%; bottom: 20px; display: flex; justify-content: space-between; }
+.stamp-track i { width: 8px; height: 8px; border-radius: 50%; background: rgba(255, 255, 255, 0.18); }
+.stamp-track i.done { background: var(--gold-2); }
+.stamp-hero { position: absolute; bottom: 32px; left: 8%; font-size: 36px; transition: left 0.18s ease-out; }
+.stamp-desk { position: absolute; right: 6px; bottom: 30px; width: 96px; text-align: center; }
+.stamp-lenya { font-size: 56px; line-height: 1; transition: transform 0.2s; }
+.stamp-lenya.awake { transform: scale(1.12); }
+.stamp-table { font-size: 26px; margin-top: -8px; }
+.stamp-bubble {
+  position: absolute;
+  right: 70px;
+  top: -34px;
+  padding: 3px 8px;
+  border-radius: 10px;
+  font-size: 18px;
+  background: rgba(0, 0, 0, 0.45);
+  white-space: nowrap;
+}
+.stamp-bubble.warn { background: rgba(245, 197, 66, 0.35); }
+.stamp-bubble.awake { background: rgba(255, 90, 90, 0.55); animation: pop-text 0.25s ease-out; }
+.stamp-bubble.said { right: -4px; top: -64px; max-width: 250px; white-space: normal; font-size: 13px; font-weight: 700; }
+.stamp-hold {
+  width: 100%;
+  margin-top: 10px;
+  padding: 18px 8px;
+  border-radius: 16px;
+  font-size: 17px;
+  font-weight: 900;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  background: linear-gradient(180deg, #3a4a5e, #26303d);
+  border: 1px solid var(--line);
+}
+.stamp-hold.down { background: linear-gradient(180deg, #6b5520, #43340f); transform: scale(0.98); }
+
+/* наеби Ярика */
+.yarik-scene {
+  position: relative;
+  height: 150px;
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(180deg, #2c4a36, #17261c);
+  border: 2px solid #3d5a44;
+}
+.yarik-scene.shake { animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both; }
+.yarik-zoo { position: absolute; top: 8px; left: 12px; font-size: 18px; opacity: 0.8; }
+.yarik-face { font-size: 72px; line-height: 1; }
+.yarik-mood { position: absolute; bottom: 8px; left: 0; right: 0; text-align: center; font-weight: 700; font-size: 14px; }
+
+/* сшей документ */
+.stitch-sheet {
+  position: relative;
+  height: 190px;
+  margin-top: 8px;
+  border-radius: 10px;
+  overflow: hidden;
+  touch-action: none;
+  background: linear-gradient(180deg, #fbfaf3, #e9e5d4);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.4);
+}
+.stitch-track { position: absolute; left: 14px; right: 14px; top: 26px; height: 40px; border-bottom: 2px dashed #b9b2a0; }
+.stitch-seal {
+  position: absolute;
+  top: 4px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  color: #fff;
+  background: radial-gradient(circle, #d24a4a, #8a1f1f);
+  box-shadow: 0 0 0 2px rgba(138, 31, 31, 0.35);
+}
+.stitch-seal.torn { animation: shake 0.4s both; background: radial-gradient(circle, #555, #222); }
+.stitch-mark {
+  position: absolute;
+  top: 30px;
+  width: 16px;
+  height: 16px;
+  margin-left: -8px;
+  border-radius: 50%;
+  border: 3px solid #2f7a3a;
+  background: rgba(47, 122, 58, 0.15);
+}
+.stitch-needle { position: absolute; top: -2px; margin-left: -14px; font-size: 26px; pointer-events: none; }
+.stitch-hole { position: absolute; top: 33px; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; background: #333; }
+.stitch-hole.perfect { background: #2f7a3a; box-shadow: 0 0 0 3px rgba(47, 122, 58, 0.35); }
+.stitch-hole.ok { background: #c99a1e; }
+.stitch-hole.bad { background: #b02a2a; }
+.stitch-lines {
+  position: absolute;
+  left: 22px;
+  right: 22px;
+  top: 88px;
+  bottom: 18px;
+  background: repeating-linear-gradient(180deg, transparent 0 13px, rgba(80, 70, 50, 0.25) 13px 14px);
+}
+.stitch-row { display: flex; justify-content: center; gap: 6px; margin-top: 8px; min-height: 24px; font-size: 18px; }
+.stitch-punch {
+  width: 100%;
+  margin-top: 8px;
+  padding: 15px 8px;
+  border-radius: 16px;
+  font-size: 17px;
+  font-weight: 900;
+  touch-action: none;
+  background: linear-gradient(180deg, #3a4a5e, #26303d);
+  border: 1px solid var(--line);
+}
+
 /* ─── Выйти погулять ─── */
 
 .walk-card { margin-top: 4px; padding: 0; overflow: hidden; }
@@ -1494,6 +1700,237 @@ button:disabled { cursor: default; }
 }
 .can.up { transform: scale(1); }
 .can.dead { opacity: 0; transform: scale(1.5) rotate(25deg); }
+
+/* Леди Пиздюк на Планктоне */
+.sky {
+  position: relative;
+  height: 300px;
+  margin-top: 8px;
+  border-radius: 18px;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  background: linear-gradient(180deg, #1b2f4a, #3b2a4a 70%, #4a2d2a);
+  border: 2px solid #3d4854;
+}
+.plankton-hero {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  font-size: 28px;
+  will-change: transform;
+  pointer-events: none;
+}
+.plankton-hero::after {                 /* Принцесса Пиздюк верхом на Планктоне */
+  content: "👸";
+  position: absolute;
+  top: -11px;
+  left: 9px;
+  font-size: 15px;
+}
+.tube {
+  position: absolute;
+  left: 0;
+  width: 54px;
+  will-change: transform;
+  pointer-events: none;
+  background: repeating-linear-gradient(0deg, #1f5c3a 0 14px, #e0b33a 14px 17px, #1f5c3a 17px 31px, #8a2432 31px 34px);
+  border: 2px solid #0e2a1a;
+}
+.tube.top { top: 0; border-radius: 0 0 12px 12px; border-top: 0; }
+.tube.bottom { border-radius: 12px 12px 0 0; border-bottom: 0; }
+.sky-hint {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 0 20px;
+  text-align: center;
+  color: #fff;
+  font-weight: 800;
+  pointer-events: none;
+  text-shadow: 0 2px 6px #000;
+}
+
+/* тетрадь поноса */
+.nb-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 8px;
+  padding: 10px;
+  border-radius: 18px;
+  touch-action: none;
+  user-select: none;
+  background: repeating-linear-gradient(0deg, #f4f1e4 0 23px, #b9c7e0 23px 24px);
+  border: 2px solid #3d4854;
+}
+.nb-cell {
+  height: 74px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.35);
+  border: 1px dashed rgba(60, 60, 90, 0.35);
+}
+.nb-slip {
+  padding: 4px;
+  font-weight: 900;
+  font-size: 14px;
+  line-height: 1.15;
+  color: #1d2340;
+  text-align: center;
+  pointer-events: none;
+  animation: pop-in 0.15s ease-out;
+}
+.nb-slip.written { color: #9a1f1f; }
+.nb-slip.wrong { color: #fff; background: #b02a2a; border-radius: 8px; }
+.nb-slip.away { opacity: 0; transition: opacity 0.2s; }
+
+/* найди Делю */
+.crowd {
+  position: relative;
+  height: 300px;
+  margin-top: 8px;
+  border-radius: 18px;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  background: radial-gradient(120% 90% at 50% 20%, #3c4a3a, #1f2a20);
+  border: 2px solid #3d4854;
+}
+.crowd.shake { animation: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both; }
+.crowd-one { position: absolute; transform: translate(-50%, -50%); line-height: 1; pointer-events: none; }
+.crowd-one.delya.found { opacity: 1 !important; font-size: 34px !important; filter: drop-shadow(0 0 8px #ffd35a); z-index: 3; }
+.crowd-one.delya.missed::after {
+  content: "";
+  position: absolute;
+  inset: -14px;
+  border: 3px solid #ff6b6b;
+  border-radius: 50%;
+}
+.crowd-bar {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  top: 6px;
+  z-index: 2;
+  height: 5px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.15);
+}
+.crowd-bar i { display: block; height: 100%; background: var(--gold-2); }
+.crowd-bar i.hot { background: #ff6b6b; }
+
+/* орбита Леонида */
+.space {
+  position: relative;
+  height: 320px;
+  margin-top: 8px;
+  border-radius: 18px;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  background: radial-gradient(circle at 50% 50%, #2a2140, #0c0a18 70%);
+  border: 2px solid #3d4854;
+}
+.orbit-ring {
+  position: absolute;
+  left: 50%;
+  top: 160px;
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.orbit-ring.r1 { width: 120px; height: 120px; }
+.orbit-ring.r2 { width: 190px; height: 190px; }
+.orbit-ring.r3 { width: 260px; height: 260px; }
+.orbit-lenya {
+  position: absolute;
+  left: 50%;
+  top: 160px;
+  transform: translate(-50%, -50%);
+  font-size: 46px;
+  pointer-events: none;
+  filter: drop-shadow(0 0 14px rgba(255, 190, 90, 0.5));
+}
+.orbit-doc, .orbit-stamp, .orbit-bun {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  will-change: transform;
+  pointer-events: none;
+}
+.orbit-stamp.pop { animation: fade-in 0.25s ease-out; }
+@keyframes fade-in { from { opacity: 0; } }
+
+/* Ногозавр */
+.street-field {
+  position: relative;
+  height: 300px;
+  margin-top: 8px;
+  border-radius: 18px;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  background: linear-gradient(180deg, #152033 0 70%, #2b2b2b 70% 100%);
+  border: 2px solid #3d4854;
+  transition: box-shadow 0.3s;
+}
+.street-field::after {
+  content: "🚶‍♀️ 🚶 🧍‍♀️ 🚶‍♂️ 🚶‍♀️";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 12px;
+  text-align: center;
+  font-size: 22px;
+  letter-spacing: 8px;
+  pointer-events: none;
+}
+.street-field.vision { box-shadow: inset 0 0 50px rgba(255, 211, 90, 0.5); }
+.alien {
+  position: absolute;
+  width: 56px;
+  height: 56px;
+  margin: -28px 0 0 -28px;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  animation: pop-in 0.15s ease-out;
+}
+.alien .ufo { position: absolute; top: -14px; font-size: 20px; }
+.alien .who { position: relative; z-index: 1; font-size: 26px; }
+.alien .charge {
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  background: conic-gradient(#ff5a5a var(--p, 0deg), rgba(255, 255, 255, 0.12) 0);
+  -webkit-mask: radial-gradient(circle, transparent 58%, #000 60%);
+  mask: radial-gradient(circle, transparent 58%, #000 60%);
+}
+.street-field.vision .alien .charge { background: conic-gradient(#ffd35a var(--p, 0deg), rgba(255, 255, 255, 0.12) 0); }
+.alien.hit { opacity: 0; transition: opacity 0.25s; }
+.alien.fired .who { filter: drop-shadow(0 0 10px #7dff7a); }
+.plita {
+  position: absolute;
+  margin: -18px 0 0 -18px;
+  font-size: 32px;
+  pointer-events: none;
+  animation: plita-glow 0.6s ease-in-out infinite alternate;
+}
+@keyframes plita-glow { to { filter: drop-shadow(0 0 10px #ffd35a); } }
 
 /* шаурма */
 .wrap-order { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 10px; }
@@ -2644,7 +3081,7 @@ body.dead::after {
           <button class="hub-tile work" type="button" data-go="work">
             <span class="hub-icon">🧰</span>
             <b>Халтура</b>
-            <small id="hub-work">Пять мини-игр, где платят за работу руками</small>
+            <small id="hub-work">Десять мини-игр, где платят за работу руками</small>
           </button>
           <button class="hub-tile bank" type="button" data-go="bank">
             <span class="hub-icon">🏦</span>
@@ -2859,7 +3296,7 @@ body.dead::after {
     const shifts = (state.work || {}).shifts;
     $("#hub-work").textContent = shifts
       ? `Смен отработано ${fmt(shifts)} · заработано ${state.work.money}`
-      : "Пять мини-игр, где платят за работу руками";
+      : "Десять мини-игр, где платят за работу руками";
     $("#hub-awards").textContent = awards.data
       ? `Звёзд ${awards.data.stars} из ${awards.data.max_stars} · заработано ${fmt(awards.data.earned)}`
       : "Звёзды и разовые награды за всё подряд";
@@ -5807,8 +6244,540 @@ body.dead::after {
     }
   }
 
+  // ── Паспортный стол ──
+  function startPassport(task) {
+    const stage = el("div", "post-stage");
+    const doc = el("div", "passport");
+    const ask = el("button", "passport-ask", "🗣 Спросить, откуда");
+    ask.type = "button";
+    ask.hidden = true;
+    const folders = el("div", "boxes folders");
+    task.folders.forEach((folder, index) => {
+      const box = el("button", "mailbox");
+      box.type = "button";
+      box.dataset.folder = String(index);
+      box.append(el("span", "", folder.flag), el("small", "", folder.title));
+      folders.append(box);
+    });
+    const central = el("button", "mailbox central");
+    central.type = "button";
+    central.dataset.folder = "central";
+    central.append(el("span", "", "📤"), el("small", "", "В центральный офис"));
+    folders.append(central);
+    folders.addEventListener("click", (event) => {
+      const box = event.target.closest("[data-folder]");
+      if (!box) return;
+      fileDoc(box.dataset.folder === "central" ? "central" : Number(box.dataset.folder), box);
+    });
+    ask.addEventListener("click", askDoc);
+    stage.append(doc, ask, folders);
+    $("#job-area").replaceChildren(stage);
+    work.state = { index: 0, answers: [], right: 0, wrong: 0, doc, ask, busy: true, asked: true };
+    $("#job-score").textContent = "Верно: 0 · +0";
+    $("#job-note").textContent = "Флаг на паспорте — в папку этой страны. Смотрит 🥺 — сначала спроси. Хуэй — в центральный офис.";
+    countdown(() => {
+      showDoc();
+      runClock(task.seconds, () => finishJob({ answers: work.state.answers }));
+    });
+  }
+
+  function passportFace(item, open) {
+    return [
+      el("div", "kind", "ПАСПОРТ"),
+      el("div", "flag", open ? item.flag : "🥺"),
+      el("div", "name", open ? item.name : "👉👈"),
+    ];
+  }
+
+  function showDoc() {
+    const here = work.state;
+    const item = work.task.docs[here.index];
+    if (!item) {
+      finishJob({ answers: here.answers });
+      return;
+    }
+    here.busy = false;
+    here.asked = !item.hidden;
+    here.doc.className = `passport${item.hidden ? " shy" : ""}`;
+    here.doc.replaceChildren(...passportFace(item, !item.hidden));
+    here.ask.hidden = !item.hidden;
+    here.ask.disabled = false;
+    here.ask.textContent = "🗣 Спросить, откуда";
+  }
+
+  function askDoc() {
+    const here = work.state;
+    const item = here && work.task.docs[here.index];
+    if (!item || here.busy || here.asked) return;
+    here.asked = true;
+    here.ask.disabled = true;
+    here.ask.textContent = "Мнётся…";
+    audio.play("tick");
+    later(() => {
+      if (work.state !== here || work.task.docs[here.index] !== item || here.busy) return;
+      here.doc.classList.remove("shy");
+      here.doc.replaceChildren(...passportFace(item, true));
+      here.ask.hidden = true;
+      haptic.impact("light");
+    }, 650);
+  }
+
+  function fileDoc(folder, node) {
+    const here = work.state;
+    const item = here && work.task.docs[here.index];
+    if (!item || here.busy) return;
+    here.busy = true;
+    const right = item.folder === folder;
+    here.answers.push({ id: item.id, folder });
+    if (right) here.right += 1;
+    else here.wrong += 1;
+    node.classList.remove("right", "wrong");
+    reflow(node);
+    node.classList.add(right ? "right" : "wrong");
+    haptic.notify(right ? "success" : "warning");
+    audio.play(right ? "stamp" : "miss");
+    if (!right) {
+      toast(item.folder === "central" ? "Хуэй — только в центральный офис!" : "Мы подшили узбека к таджику!", "error");
+    }
+    here.doc.classList.add("sent");
+    here.index += 1;
+    const sum = Math.max(0, here.right * work.task.pay - here.wrong * work.task.fine);
+    $("#job-score").textContent = `Верно: ${here.right} · ${signedShort(sum)}`;
+    later(showDoc, 210);
+  }
+
+  // ── Фейсконтроль у бюро ──
+  function startDoor(task) {
+    const groups = { in: [], out: [], skip: [] };
+    Object.values(task.kinds).forEach((kind) => groups[kind.act].push(kind.emoji));
+    const legend = el("div", "door-legend");
+    legend.append(
+      el("div", "in", `✅ Пускать: ${groups.in.join(" ")}`),
+      el("div", "out", `⛔ Разворачивать: ${groups.out.join(" ")}`),
+      el("div", "skip", `${groups.skip.join(" ")} Не трогать — пройдёт сам`),
+    );
+    const door = el("div", "door-scene");
+    const visitor = el("div", "door-visitor");
+    const patience = el("div", "door-patience");
+    const fill = el("i", "");
+    patience.append(fill);
+    door.append(visitor, patience);
+    swipeOn(door, (way) => {
+      if (way === "left") doorDecide("out");
+      if (way === "right") doorDecide("in");
+    });
+    const actions = el("div", "job-actions door-actions");
+    const out = el("button", "out", "⛔ Не работаем");
+    out.type = "button";
+    out.addEventListener("click", () => doorDecide("out"));
+    const inside = el("button", "in", "✅ Пустить");
+    inside.type = "button";
+    inside.addEventListener("click", () => doorDecide("in"));
+    actions.append(out, inside);
+    $("#job-area").replaceChildren(legend, door, actions);
+    work.state = { index: -1, acts: [], seen: 0, good: 0, bad: 0, lenya: 0, visitor, fill, busy: true, ended: false };
+    $("#job-score").textContent = "Верно: 0 · +0";
+    $("#job-note").textContent = "Свайп или кнопки: влево — не работаем, вправо — пустить.";
+    countdown(() => {
+      doorNext();
+      runClock(task.seconds, doorEnd);
+    });
+  }
+
+  function doorPatience(index) {
+    const [first, last] = work.task.patience;
+    const share = Math.min(1, index / Math.max(1, work.task.visitors.length - 1));
+    return (first + (last - first) * share) * 1000;
+  }
+
+  function doorNext() {
+    const here = work.state;
+    if (!here || here.ended) return;
+    here.index += 1;
+    const item = work.task.visitors[here.index];
+    if (!item) {
+      doorEnd();
+      return;
+    }
+    const kind = work.task.kinds[item.kind];
+    here.busy = false;
+    here.visitor.className = "door-visitor";
+    reflow(here.visitor);
+    here.visitor.classList.add("come");
+    here.visitor.replaceChildren(el("div", "who", kind.emoji), el("div", "what", kind.title));
+    const wait = doorPatience(here.index);
+    here.fill.style.transition = "none";
+    here.fill.style.width = "100%";
+    reflow(here.fill);
+    here.fill.style.transition = `width ${wait}ms linear`;
+    here.fill.style.width = "0%";
+    const turn = here.index;
+    later(() => {
+      if (work.state === here && here.index === turn && !here.busy) doorTimeout();
+    }, wait);
+  }
+
+  function doorFlash(text, good) {
+    work.state.visitor.append(el("div", `door-flash ${good ? "good" : "bad"}`, text));
+  }
+
+  function doorScore() {
+    const here = work.state;
+    const sum = here.good * work.task.pay + here.lenya * work.task.lenya_pay - here.bad * work.task.fine;
+    $("#job-score").textContent = `Верно: ${here.good + here.lenya} · ${signedShort(Math.max(0, sum))}`;
+  }
+
+  function doorTimeout() {
+    const here = work.state;
+    const item = work.task.visitors[here.index];
+    here.busy = true;
+    here.seen += 1;
+    if (work.task.kinds[item.kind].act === "skip") {
+      here.lenya += 1;
+      doorFlash("🫃 Лёня прошёл сам", true);
+      here.visitor.classList.add("went-in");
+      audio.play("step");
+    } else {
+      doorFlash("⌛ Завис(ла) в дверях", false);
+      audio.play("miss");
+    }
+    doorScore();
+    later(doorNext, 300);
+  }
+
+  function doorDecide(act) {
+    const here = work.state;
+    if (!here || here.busy || here.ended || here.index < 0) return;
+    const item = work.task.visitors[here.index];
+    if (!item) return;
+    here.busy = true;
+    here.seen += 1;
+    here.acts.push({ id: item.id, act });
+    const kind = work.task.kinds[item.kind];
+    const right = kind.act === act;
+    if (right) here.good += 1;
+    else here.bad += 1;
+    if (kind.act === "skip") doorFlash("Ты что, это же Лёня!", false);
+    else if (right) doorFlash(act === "in" ? "✅ Проходите" : "⛔ Не работаем", true);
+    else doorFlash(act === "in" ? "❌ Этого не пускали" : "❌ Это же клиент!", false);
+    here.visitor.classList.add(act === "in" ? "went-in" : "went-out");
+    haptic.notify(right ? "success" : "warning");
+    audio.play(right ? "stamp" : "miss");
+    doorScore();
+    later(doorNext, 300);
+  }
+
+  function doorEnd() {
+    const here = work.state;
+    if (!here || here.ended) return;
+    here.ended = true;
+    finishJob({ seen: here.seen, acts: here.acts });
+  }
+
+  // ── Заверь у Лёни ──
+  const STAMP_STEP_MS = 320;
+
+  function startStamp(task) {
+    const hall = el("div", "stamp-hall");
+    const track = el("div", "stamp-track");
+    for (let index = 0; index < task.steps; index += 1) track.append(el("i", ""));
+    const hero = el("div", "stamp-hero", "🧎");
+    const desk = el("div", "stamp-desk");
+    const lenya = el("div", "stamp-lenya", "🫃");
+    const bubble = el("div", "stamp-bubble", "💤");
+    desk.append(bubble, lenya, el("div", "stamp-table", "🗄"));
+    hall.append(el("div", "stamp-door", "🚪"), track, hero, desk);
+    const hold = el("button", "stamp-hold", "Держи — крадёшься");
+    hold.type = "button";
+    $("#job-area").replaceChildren(hall, hold);
+    work.state = { steps: 0, holding: false, walked: 0, done: false, phase: "sleep", started: 0, last: 0,
+                   hero, track, lenya, bubble, hold };
+    const press = (event) => {
+      event.preventDefault();
+      if (!work.state || work.state.done) return;
+      work.state.holding = true;
+      hold.classList.add("down");
+    };
+    const release = () => {
+      if (work.state) work.state.holding = false;
+      hold.classList.remove("down");
+    };
+    hold.addEventListener("pointerdown", press);
+    ["pointerup", "pointercancel", "pointerleave"].forEach((type) => hold.addEventListener(type, release));
+    hold.addEventListener("contextmenu", (event) => event.preventDefault());
+    $("#job-note").textContent = "Держи кнопку — крадёшься. Храп стих 💭 — отпускай. Глаза открыты 👀 — замри.";
+    stampPlace();
+    countdown(() => {
+      work.state.started = performance.now();
+      stampTick();
+      runClock(task.seconds, () => stampEnd(false));
+    });
+  }
+
+  function stampPhase(seconds) {
+    for (const [at, length] of work.task.stirs) {
+      if (seconds >= at && seconds < at + length) return "awake";
+      if (seconds >= at - work.task.warn && seconds < at) return "warn";
+    }
+    return "sleep";
+  }
+
+  function stampTick() {
+    const here = work.state;
+    if (!here || here.done) return;
+    const now = performance.now();
+    const step = here.last ? now - here.last : 0;
+    here.last = now;
+    const phase = stampPhase((now - here.started) / 1000);
+    if (phase !== here.phase) {
+      here.phase = phase;
+      here.lenya.className = `stamp-lenya ${phase}`;
+      here.bubble.className = `stamp-bubble ${phase}`;
+      here.bubble.textContent = phase === "sleep" ? "💤" : phase === "warn" ? "💭" : "👀";
+      if (phase === "warn") {
+        haptic.impact("light");
+        audio.play("tick");
+      }
+      if (phase === "awake") audio.play("turn");
+    }
+    if (here.holding) {
+      if (phase === "awake") {
+        stampEnd(true);
+        return;
+      }
+      here.walked += step;
+      if (here.walked >= STAMP_STEP_MS) {
+        here.walked -= STAMP_STEP_MS;
+        here.steps += 1;
+        haptic.tap();
+        audio.play("step");
+        stampPlace();
+        if (here.steps >= work.task.steps) {
+          stampEnd(false);
+          return;
+        }
+      }
+    }
+    later(stampTick, 40);
+  }
+
+  function stampPlace() {
+    const here = work.state;
+    here.hero.style.left = `${8 + (here.steps / work.task.steps) * 62}%`;
+    [...here.track.children].forEach((dot, index) => dot.classList.toggle("done", index < here.steps));
+    $("#job-score").textContent = `Шаги: ${here.steps}/${work.task.steps} · ${signedShort(here.steps * work.task.step_pay)}`;
+  }
+
+  function stampEnd(caught) {
+    const here = work.state;
+    if (!here || here.done) return;
+    here.done = true;
+    here.holding = false;
+    here.hold.disabled = true;
+    if (caught) {
+      here.bubble.className = "stamp-bubble said";
+      here.bubble.textContent = "«Господи, да мне уже пофиг, делайте, что хотите»";
+      haptic.notify("error");
+      audio.play("lose");
+    } else if (here.steps >= work.task.steps) {
+      here.bubble.className = "stamp-bubble";
+      here.bubble.textContent = "✅ Заверено";
+      haptic.notify("success");
+      audio.play("stamp");
+    }
+    later(() => finishJob({ steps: here.steps, caught }), caught ? 1500 : 600);
+  }
+
+  // ── Наеби Ярика ──
+  function startYarik(task) {
+    const scene = el("div", "yarik-scene");
+    const face = el("div", "yarik-face", "🧔‍♂️");
+    const mood = el("div", "yarik-mood");
+    scene.append(el("div", "yarik-zoo", "🦍 🌳 🎡 🌽"), face, mood);
+    const sold = el("div", "truck-boxes");
+    const line = el("div", "truck-risk");
+    $("#job-area").replaceChildren(scene, sold, line);
+    work.state = { scene, face, mood, sold, line, deal: 0, pay: 0 };
+    $("#job-note").textContent = "Каждая следующая наценка дороже, но Ярик может психануть и уйти со всем.";
+    $("#job-bar").style.width = "0%";
+    renderYarik();
+  }
+
+  function renderYarik() {
+    const here = work.state;
+    const deals = work.task.deals;
+    const next = deals[here.deal];
+    here.sold.replaceChildren(...deals.slice(0, here.deal).map(() => el("span", "", "🌽")));
+    here.mood.textContent = next ? `${next.mood[0]} Ярик ${next.mood[1]}` : "🤑 Ярик выпотрошен до копейки";
+    here.line.textContent = next ? `Дальше: ${next.item} · +${fmt(next.price)}` : "Ярику больше нечего втюхать";
+    $("#job-clock").textContent = `${here.deal}/${deals.length}`;
+    $("#job-bar").style.width = `${(here.deal / deals.length) * 100}%`;
+    $("#job-score").textContent = `В кармане: ${signedShort(here.pay)}`;
+    const actions = el("div", "job-actions");
+    const more = el("button", "", next ? `🌽 Втюхать · +${fmt(next.price)}` : "Больше нечего");
+    more.type = "button";
+    more.disabled = !next;
+    more.addEventListener("click", yarikDeal);
+    const stop = el("button", "", here.pay ? `💰 В кассу · ${fmt(here.pay)}` : "💰 Уйти ни с чем");
+    stop.type = "button";
+    stop.addEventListener("click", () => finishJob({}));
+    actions.append(more, stop);
+    $("#job-foot").replaceChildren(actions);
+  }
+
+  async function yarikDeal() {
+    const here = work.state;
+    if (!here || work.sending) return;
+    work.sending = true;
+    $("#job-foot").replaceChildren();
+    try {
+      const data = await api("work/step", {});
+      if (data.walked) {
+        here.scene.classList.add("shake");
+        here.face.textContent = "🤬";
+        here.sold.replaceChildren(...Array.from({ length: here.deal }, () => el("span", "lost", "🌽")));
+        here.mood.textContent = "";
+        here.line.textContent = `💥 ${data.reason}`;
+        here.pay = 0;
+        $("#job-score").textContent = "В кармане: +0";
+        haptic.notify("error");
+        audio.play("lose");
+        later(() => finishJob({}), 1600);
+        return;
+      }
+      here.deal = data.deal;
+      here.pay = data.pay;
+      haptic.impact("medium");
+      audio.play("cash");
+      renderYarik();
+      if (!data.left) later(() => finishJob({}), 700);
+    } catch (error) {
+      showError(error);
+      closeJob();
+    } finally {
+      work.sending = false;
+    }
+  }
+
+  // ── Сшей документ ──
+  function startStitch(task) {
+    const sheet = el("div", "stitch-sheet");
+    const track = el("div", "stitch-track");
+    const seal = el("div", "stitch-seal", "ПЕЧАТЬ");
+    const mark = el("div", "stitch-mark");
+    const needle = el("div", "stitch-needle", "🪡");
+    track.append(seal, mark, needle);
+    sheet.append(track, el("div", "stitch-lines"));
+    const row = el("div", "stitch-row");
+    const punch = el("button", "stitch-punch", "🧵 Прошить");
+    punch.type = "button";
+    const hit = (event) => {
+      event.preventDefault();
+      stitchPunch();
+    };
+    punch.addEventListener("pointerdown", hit);
+    sheet.addEventListener("pointerdown", hit);
+    $("#job-area").replaceChildren(sheet, row, punch);
+    work.state = { round: 0, punches: [], pay: 0, pos: 0, dir: 1, last: 0, busy: true, done: false, raf: 0,
+                   track, seal, mark, needle, row };
+    $("#job-score").textContent = `Стежки: 0/${task.rounds.length} · +0`;
+    $("#job-note").textContent = "Жми, когда игла 🪡 над зелёной меткой. В красную печать не попади.";
+    stitchRound();
+    countdown(() => {
+      work.state.busy = false;
+      work.state.raf = requestAnimationFrame(stitchTick);
+      runClock(task.seconds, () => stitchEnd());
+    });
+  }
+
+  function stitchRound() {
+    const here = work.state;
+    const plan = work.task.rounds[here.round];
+    if (!plan) return;
+    here.seal.className = "stitch-seal";
+    here.seal.style.left = `${plan.seal[0]}%`;
+    here.seal.style.width = `${plan.seal[1] - plan.seal[0]}%`;
+    here.mark.style.left = `${plan.hole}%`;
+    here.pos = Math.random() * 100;
+    here.dir = Math.random() < 0.5 ? 1 : -1;
+    here.needle.style.left = `${here.pos}%`;
+  }
+
+  function stitchTick(now) {
+    const here = work.state;
+    if (!here || here.done) return;
+    const step = here.last ? Math.min(0.05, (now - here.last) / 1000) : 0;
+    here.last = now;
+    const plan = work.task.rounds[here.round];
+    if (plan && !here.busy) {
+      here.pos += here.dir * plan.speed * step;
+      if (here.pos > 100) {
+        here.pos = 200 - here.pos;
+        here.dir = -1;
+      }
+      if (here.pos < 0) {
+        here.pos = -here.pos;
+        here.dir = 1;
+      }
+      here.needle.style.left = `${here.pos}%`;
+    }
+    here.raf = requestAnimationFrame(stitchTick);
+  }
+
+  function stitchPunch() {
+    const here = work.state;
+    if (!here || here.busy || here.done) return;
+    const plan = work.task.rounds[here.round];
+    if (!plan) return;
+    const value = Math.round(here.pos * 10) / 10;
+    here.punches.push(value);
+    here.busy = true;
+    const hole = el("div", "stitch-hole");
+    hole.style.left = `${value}%`;
+    here.track.append(hole);
+    if (value >= plan.seal[0] && value <= plan.seal[1]) {
+      here.seal.classList.add("torn");
+      hole.classList.add("bad");
+      haptic.notify("error");
+      audio.play("crack");
+      toast("Прошил(а) печать! Клиентке ехать в Америку за новым экземпляром", "error");
+      stitchEnd(1500);
+      return;
+    }
+    const miss = Math.abs(value - plan.hole);
+    const grade = work.task.grades.find(([limit]) => miss <= limit);
+    const pay = grade ? grade[1] : 0;
+    const best = work.task.grades[0][1];
+    here.pay += pay;
+    hole.classList.add(pay >= best ? "perfect" : pay ? "ok" : "bad");
+    here.row.append(el("span", "", pay >= best ? "✅" : pay ? "🟡" : "❌"));
+    haptic.impact(pay ? "medium" : "light");
+    audio.play(pay ? "stamp" : "miss");
+    here.round += 1;
+    $("#job-score").textContent = `Стежки: ${here.round}/${work.task.rounds.length} · ${signedShort(here.pay)}`;
+    if (here.round >= work.task.rounds.length) {
+      stitchEnd(700);
+      return;
+    }
+    later(() => {
+      if (work.state !== here || here.done) return;
+      here.track.querySelectorAll(".stitch-hole").forEach((node) => node.remove());
+      stitchRound();
+      here.busy = false;
+    }, 450);
+  }
+
+  function stitchEnd(delay = 0) {
+    const here = work.state;
+    if (!here || here.done) return;
+    here.done = true;
+    cancelAnimationFrame(here.raf);
+    later(() => finishJob({ punches: here.punches }), delay);
+  }
+
   const JOB_GAMES = {
     cleanup: startCleanup, post: startPost, samsa: startSamsa, fishing: startFishing, truck: startTruck,
+    passport: startPassport, door: startDoor, stamp: startStamp, yarik: startYarik, stitch: startStitch,
   };
 
   // ─── Выйти погулять ────────────────────────────────────────────────────────
@@ -7767,10 +8736,577 @@ body.dead::after {
     aLater(wrapNext, 500);
   }
 
+  // ── Леди Пиздюк на Планктоне ──
+  const PLANKTON_X = 70;
+  const PLANKTON_R = 13;
+  const TUBE_W = 54;
+
+  function arcadePlankton() {
+    const sky = el("div", "sky");
+    const hero = el("div", "plankton-hero", "🦠");
+    const hint = el("div", "sky-hint", "Жми, чтобы взлететь");
+    sky.append(hero, hint);
+    $("#arcade-area").replaceChildren(sky);
+    const height = sky.clientHeight || 300;
+    arcade.state = { sky, hero, hint, width: sky.clientWidth || 320, height, y: height / 2, vy: 0, tubes: [],
+                     points: 0, maxLives: 0, alive: true, started: false, last: 0, wait: 0.4,
+                     speed: 125, gap: 132, every: 1.65 };
+    sky.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      planktonFlap();
+    });
+    $("#arcade-note").textContent = "Жми — Планктон подпрыгивает. Пролетай между столбами из тюбетеек.";
+    planktonPlace();
+    arcadeScore(0);
+    arcade.raf = requestAnimationFrame(planktonFrame);
+  }
+
+  function planktonFlap() {
+    const here = arcade.state;
+    if (!here || !here.alive) return;
+    if (!here.started) {
+      here.started = true;
+      here.hint.remove();
+    }
+    here.vy = -330;
+    haptic.impact("light");
+    audio.play("hop");
+  }
+
+  function planktonPlace() {
+    const here = arcade.state;
+    const tilt = Math.max(-25, Math.min(60, here.vy / 8));
+    here.hero.style.transform = `translate(${PLANKTON_X - 16}px, ${here.y - 16}px) rotate(${tilt}deg)`;
+  }
+
+  function planktonFrame(now) {
+    const here = arcade.state;
+    if (!here || !here.alive) return;
+    const step = here.last ? Math.min(0.04, (now - here.last) / 1000) : 0;
+    here.last = now;
+    if (here.started) {
+      here.vy = Math.min(520, here.vy + 1250 * step);
+      here.y += here.vy * step;
+      if (here.y < PLANKTON_R) {
+        here.y = PLANKTON_R;
+        here.vy = 0;
+      }
+      here.wait -= step;
+      if (here.wait <= 0) {
+        here.wait = here.every;
+        const gapTop = 30 + Math.random() * (here.height - here.gap - 60);
+        const top = el("div", "tube top");
+        const bottom = el("div", "tube bottom");
+        top.style.height = `${gapTop}px`;
+        bottom.style.top = `${gapTop + here.gap}px`;
+        bottom.style.height = `${here.height - gapTop - here.gap}px`;
+        here.sky.append(top, bottom);
+        here.tubes.push({ top, bottom, x: here.width + 10, gapTop, gap: here.gap, passed: false });
+      }
+      here.tubes = here.tubes.filter((tube) => {
+        tube.x -= here.speed * step;
+        tube.top.style.transform = `translateX(${tube.x}px)`;
+        tube.bottom.style.transform = `translateX(${tube.x}px)`;
+        if (!tube.passed && tube.x + TUBE_W < PLANKTON_X - PLANKTON_R) {
+          tube.passed = true;
+          here.points += 1;
+          here.speed = Math.min(230, here.speed + 3);
+          here.gap = Math.max(98, here.gap - 1.2);
+          here.every = Math.max(1.05, here.every - 0.02);
+          arcadeScore(here.points);
+        }
+        const across = tube.x < PLANKTON_X + PLANKTON_R - 3 && tube.x + TUBE_W > PLANKTON_X - PLANKTON_R + 3;
+        if (across && (here.y - PLANKTON_R + 3 < tube.gapTop || here.y + PLANKTON_R - 3 > tube.gapTop + tube.gap)) {
+          planktonCrash();
+        }
+        if (tube.x < -TUBE_W - 10) {
+          tube.top.remove();
+          tube.bottom.remove();
+          return false;
+        }
+        return true;
+      });
+      if (here.y + PLANKTON_R >= here.height) planktonCrash();
+    }
+    planktonPlace();
+    if (here.alive) arcade.raf = requestAnimationFrame(planktonFrame);
+  }
+
+  function planktonCrash() {
+    const here = arcade.state;
+    if (!here.alive) return;
+    here.alive = false;
+    here.hero.textContent = "💥";
+    haptic.notify("error");
+    aLater(() => arcadeOver(here.points), 600);
+  }
+
+  // ── Тетрадь поноса ──
+  const NOTEBOOK_BAD = [["Данил", 9], ["Максим", 7], ["Парень Алины", 6], ["Хелкерн", 6], ["Начальница", 3],
+                        ["Коллектор", 2], ["Эйчарка", 2], ["Бывший", 2], ["Страховой агент", 2], ["Хуелкин", 2]];
+  const NOTEBOOK_OWN = ["Кастус", "Деля", "Арина", "Илья", "Костя", "Коля", "Софья", "Вероника", "Кот"];
+  const NOTEBOOK_ADMIN = "Азарт";
+
+  function arcadeNotebook() {
+    const grid = el("div", "nb-grid");
+    const cells = Array.from({ length: 9 }, (unused, index) => {
+      const node = el("div", "nb-cell");
+      node.dataset.cell = String(index);
+      grid.append(node);
+      return { node, slip: null };
+    });
+    grid.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      const cell = event.target.closest(".nb-cell");
+      if (cell) notebookTap(Number(cell.dataset.cell));
+    });
+    $("#arcade-area").replaceChildren(grid);
+    arcade.state = { grid, cells, points: 0, lives: 3, maxLives: 3, alive: true, gap: 950, life: 1850 };
+    $("#arcade-note").textContent = "Записывай тех, кто заслужил. Своих не трогай. Азарт — тем более.";
+    arcadeScore(0, 3);
+    aLater(notebookSpawn, 500);
+  }
+
+  function notebookPick() {
+    const roll = Math.random();
+    if (roll < 0.05) return { name: NOTEBOOK_ADMIN, kind: "admin" };
+    if (roll < 0.36) return { name: NOTEBOOK_OWN[Math.floor(Math.random() * NOTEBOOK_OWN.length)], kind: "own" };
+    let left = Math.random() * NOTEBOOK_BAD.reduce((sum, [, weight]) => sum + weight, 0);
+    for (const [name, weight] of NOTEBOOK_BAD) {
+      left -= weight;
+      if (left <= 0) return { name, kind: "bad" };
+    }
+    return { name: NOTEBOOK_BAD[0][0], kind: "bad" };
+  }
+
+  function notebookSpawn() {
+    const here = arcade.state;
+    if (!here || !here.alive) return;
+    const free = here.cells.filter((cell) => !cell.slip);
+    if (free.length) {
+      const cell = free[Math.floor(Math.random() * free.length)];
+      const pick = notebookPick();
+      const slip = { node: el("div", "nb-slip", pick.name), name: pick.name, kind: pick.kind, done: false };
+      cell.slip = slip;
+      cell.node.replaceChildren(slip.node);
+      aLater(() => notebookGone(cell, slip), here.life);
+    }
+    here.gap = Math.max(380, here.gap * 0.976);
+    here.life = Math.max(850, here.life * 0.986);
+    aLater(notebookSpawn, here.gap);
+  }
+
+  function notebookGone(cell, slip) {
+    const here = arcade.state;
+    if (!here || !here.alive || cell.slip !== slip || slip.done) return;
+    cell.slip = null;
+    slip.node.classList.add("away");
+    aLater(() => slip.node.remove(), 200);
+    if (slip.kind === "bad") notebookHurt(`${slip.name} ушёл безнаказанным`);
+  }
+
+  function notebookTap(index) {
+    const here = arcade.state;
+    if (!here || !here.alive) return;
+    const cell = here.cells[index];
+    const slip = cell.slip;
+    if (!slip || slip.done) return;
+    slip.done = true;
+    cell.slip = null;
+    if (slip.kind === "admin") {
+      slip.node.classList.add("wrong");
+      here.alive = false;
+      haptic.notify("error");
+      audio.play("bang");
+      toast("Вписал(а) Азарт. Тебя выгнали из беседы", "error");
+      aLater(() => arcadeOver(here.points), 900);
+      return;
+    }
+    if (slip.kind === "own") {
+      slip.node.classList.add("wrong");
+      aLater(() => slip.node.remove(), 350);
+      notebookHurt(`${slip.name} — свои!`);
+      return;
+    }
+    slip.node.textContent = `✍️ ${slip.name}`;
+    slip.node.classList.add("written");
+    aLater(() => slip.node.remove(), 320);
+    here.points += 1;
+    haptic.impact("light");
+    arcadeScore(here.points, here.lives);
+  }
+
+  function notebookHurt(text) {
+    const here = arcade.state;
+    here.lives -= 1;
+    haptic.notify("warning");
+    toast(text, "error");
+    arcadeScore(here.points, here.lives);
+    if (here.lives <= 0) {
+      here.alive = false;
+      aLater(() => arcadeOver(here.points), 400);
+    }
+  }
+
+  // ── Найди Делю ──
+  const CROWD = ["🧍", "🧍‍♂️", "🧍‍♀️", "🚶", "🚶‍♀️", "🚶‍♂️", "🧑", "👩", "👨", "🧓", "👵", "🧔", "👱‍♀️", "👩‍🦱"];
+
+  function arcadeDelya() {
+    const field = el("div", "crowd");
+    $("#arcade-area").replaceChildren(field);
+    arcade.state = { field, points: 0, maxLives: 0, alive: true, busy: true, delya: null, fill: null, ends: 0, span: 1,
+                     width: field.clientWidth || 320, height: field.clientHeight || 300 };
+    field.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      delyaTap(event);
+    });
+    $("#arcade-note").textContent = "Деля в толпе едва присутствует: меньше и прозрачнее остальных. Мимо — минус секунда.";
+    arcadeScore(0);
+    delyaLevel();
+    arcade.raf = requestAnimationFrame(delyaFrame);
+  }
+
+  function delyaLevel() {
+    const here = arcade.state;
+    const level = here.points;
+    const bar = el("div", "crowd-bar");
+    here.fill = el("i", "");
+    bar.append(here.fill);
+    here.field.replaceChildren(bar);
+    const spots = [];
+    const place = (room) => {
+      let spot = null;
+      for (let attempt = 0; attempt < 40; attempt += 1) {
+        spot = { x: 18 + Math.random() * (here.width - 36), y: 26 + Math.random() * (here.height - 46) };
+        if (spots.every((other) => Math.hypot(other.x - spot.x, other.y - spot.y) > room)) break;
+      }
+      spots.push(spot);
+      return spot;
+    };
+    const count = Math.min(80, 16 + level * 3);
+    const size = Math.max(12, 26 - level * 0.5);
+    const home = place(24);
+    for (let index = 0; index < count; index += 1) {
+      const spot = place(Math.max(15, 27 - count / 6));
+      const person = el("div", "crowd-one", CROWD[Math.floor(Math.random() * CROWD.length)]);
+      person.style.left = `${spot.x}px`;
+      person.style.top = `${spot.y}px`;
+      person.style.fontSize = `${20 + Math.random() * 10}px`;
+      here.field.append(person);
+    }
+    const delya = el("div", "crowd-one delya", "🧍‍♀️");
+    delya.style.left = `${home.x}px`;
+    delya.style.top = `${home.y}px`;
+    delya.style.fontSize = `${size}px`;
+    delya.style.opacity = String(Math.max(0.22, 0.62 - level * 0.014));
+    here.field.append(delya);
+    here.delya = { node: delya, x: home.x, y: home.y, size };
+    here.span = Math.max(4.5, 10 - level * 0.22) * 1000;
+    here.ends = performance.now() + here.span;
+    here.busy = false;
+  }
+
+  function delyaFrame(now) {
+    const here = arcade.state;
+    if (!here || !here.alive) return;
+    if (!here.busy) {
+      const left = Math.max(0, here.ends - now);
+      here.fill.style.width = `${(left / here.span) * 100}%`;
+      here.fill.className = left < 2000 ? "hot" : "";
+      if (left <= 0) {
+        here.alive = false;
+        here.delya.node.classList.add("found", "missed");
+        haptic.notify("error");
+        toast("Вот же она! Едва присутствует", "error");
+        aLater(() => arcadeOver(here.points), 1500);
+        return;
+      }
+    }
+    arcade.raf = requestAnimationFrame(delyaFrame);
+  }
+
+  function delyaTap(event) {
+    const here = arcade.state;
+    if (!here || !here.alive || here.busy) return;
+    const box = here.field.getBoundingClientRect();
+    const px = event.clientX - box.left;
+    const py = event.clientY - box.top;
+    if (Math.hypot(px - here.delya.x, py - here.delya.y) <= Math.max(20, here.delya.size)) {
+      here.busy = true;
+      here.points += 1;
+      here.delya.node.classList.add("found");
+      haptic.notify("success");
+      arcadeScore(here.points);
+      aLater(() => {
+        if (arcade.state === here && here.alive) delyaLevel();
+      }, 650);
+      return;
+    }
+    here.ends -= 1200;
+    haptic.impact("heavy");
+    audio.play("miss");
+    here.field.classList.remove("shake");
+    reflow(here.field);
+    here.field.classList.add("shake");
+  }
+
+  // ── Орбита Леонида ──
+  const ORBIT_MIN = 36;
+  const ORBIT_MAX = 150;
+  const ORBIT_CY = 160;
+
+  function arcadeOrbit() {
+    const space = el("div", "space");
+    const doc = el("div", "orbit-doc", "📄");
+    const hint = el("div", "sky-hint", "Держи — документ поднимается, отпусти — падает к Лёне");
+    space.append(el("div", "orbit-ring r1"), el("div", "orbit-ring r2"), el("div", "orbit-ring r3"),
+                 el("div", "orbit-lenya", "🫃"), doc, hint);
+    $("#arcade-area").replaceChildren(space);
+    const width = space.clientWidth || 320;
+    arcade.state = { space, doc, hint, cx: width / 2, r: 92, vr: 0, angle: -Math.PI / 2, spin: 1.3, holding: false,
+                     started: false, points: 0, maxLives: 0, alive: true, last: 0, stamp: null, buns: [] };
+    const press = (event) => {
+      event.preventDefault();
+      const here = arcade.state;
+      if (!here || !here.alive) return;
+      here.holding = true;
+      if (!here.started) {
+        here.started = true;
+        hint.remove();
+      }
+    };
+    const release = () => {
+      if (arcade.state) arcade.state.holding = false;
+    };
+    space.addEventListener("pointerdown", press);
+    ["pointerup", "pointercancel", "pointerleave"].forEach((type) => space.addEventListener(type, release));
+    space.addEventListener("contextmenu", (event) => event.preventDefault());
+    $("#arcade-note").textContent = "Держи — документ поднимается, отпусти — падает к Лёне. Собирай ✅, булки облетай.";
+    orbitStamp();
+    orbitBuns();
+    arcadeScore(0);
+    arcade.raf = requestAnimationFrame(orbitFrame);
+  }
+
+  function orbitPoint(radius, angle) {
+    const here = arcade.state;
+    return { x: here.cx + Math.cos(angle) * radius, y: ORBIT_CY + Math.sin(angle) * radius };
+  }
+
+  function orbitStamp() {
+    const here = arcade.state;
+    if (!here.stamp) {
+      here.stamp = { node: el("div", "orbit-stamp", "✅") };
+      here.space.append(here.stamp.node);
+    }
+    here.stamp.radius = 55 + Math.random() * 85;
+    here.stamp.angle = here.angle + 1.3 + Math.random() * 3.4;     // впереди по ходу, но не под носом
+    const spot = orbitPoint(here.stamp.radius, here.stamp.angle);
+    here.stamp.node.style.transform = `translate(${spot.x - 13}px, ${spot.y - 13}px)`;
+    here.stamp.node.classList.remove("pop");
+    reflow(here.stamp.node);
+    here.stamp.node.classList.add("pop");
+  }
+
+  function orbitBuns() {
+    const here = arcade.state;
+    const want = Math.min(6, 1 + Math.floor(here.points / 3));
+    while (here.buns.length < want) {
+      const node = el("div", "orbit-bun", Math.random() < 0.7 ? "🥐" : "🥯");
+      here.space.append(node);
+      let radius = 50 + Math.random() * 95;
+      for (let attempt = 0; attempt < 8 && Math.abs(radius - here.r) < 32; attempt += 1) {
+        radius = 50 + Math.random() * 95;          // не на орбите документа: пусть будет время заметить булку
+      }
+      here.buns.push({ node, radius, angle: here.angle + Math.PI + (Math.random() - 0.5) * 2,
+                       spin: -(0.45 + Math.random() * 0.8) });
+    }
+  }
+
+  function orbitFrame(now) {
+    const here = arcade.state;
+    if (!here || !here.alive) return;
+    const step = here.last ? Math.min(0.04, (now - here.last) / 1000) : 0;
+    here.last = now;
+    if (here.started) {
+      here.vr += (here.holding ? 330 : -260) * step;
+      here.vr = Math.max(-160, Math.min(160, here.vr)) * (1 - 0.9 * step);
+      here.r += here.vr * step;
+      here.angle += here.spin * step;
+      if (here.r < ORBIT_MIN) return orbitCrash("Упал(а) на Лёню");
+      if (here.r > ORBIT_MAX) return orbitCrash("Улетел(а) в космос");
+    }
+    const me = orbitPoint(here.r, here.angle);
+    here.doc.style.transform = `translate(${me.x - 13}px, ${me.y - 13}px) rotate(${here.angle + Math.PI / 2}rad)`;
+    const stamp = orbitPoint(here.stamp.radius, here.stamp.angle);
+    if (here.started && Math.hypot(stamp.x - me.x, stamp.y - me.y) < 22) {
+      here.points += 1;
+      here.spin = Math.min(3.1, here.spin + 0.07);
+      haptic.impact("light");
+      audio.play("stamp");
+      arcadeScore(here.points);
+      orbitStamp();
+      orbitBuns();
+    }
+    for (const bun of here.buns) {
+      if (here.started) bun.angle += bun.spin * step;
+      const spot = orbitPoint(bun.radius, bun.angle);
+      bun.node.style.transform = `translate(${spot.x - 13}px, ${spot.y - 13}px)`;
+      if (here.started && Math.hypot(spot.x - me.x, spot.y - me.y) < 19) return orbitCrash("Врезался(лась) в булку");
+    }
+    arcade.raf = requestAnimationFrame(orbitFrame);
+    return undefined;
+  }
+
+  function orbitCrash(why) {
+    const here = arcade.state;
+    here.alive = false;
+    here.doc.textContent = "💥";
+    haptic.notify("error");
+    toast(`${why}. Leonid overflow exception`, "error");
+    aLater(() => arcadeOver(here.points), 800);
+  }
+
+  // ── Ногозавр ──
+  const NOGO_REACH = 44;
+
+  function arcadeNogozavr() {
+    const street = el("div", "street-field");
+    $("#arcade-area").replaceChildren(street);
+    arcade.state = { street, points: 0, lives: 3, maxLives: 3, alive: true, aliens: [], plita: null, vision: 0,
+                     width: street.clientWidth || 320, height: street.clientHeight || 300,
+                     wait: 0.6, gap: 1.25, charge: 2.0, last: 0, plitaWait: 9 };
+    street.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      nogozavrTap(event);
+    });
+    $("#arcade-note").textContent = "Сбивай пришельцев, пока не выстрелили. Плита 🧱 — ножное зрение: всё медленнее и вдвое дороже.";
+    arcadeScore(0, 3);
+    arcade.raf = requestAnimationFrame(nogozavrFrame);
+  }
+
+  function nogozavrSpot(here) {
+    let spot = null;
+    for (let attempt = 0; attempt < 12; attempt += 1) {
+      spot = { x: 34 + Math.random() * (here.width - 68), y: 36 + Math.random() * (here.height - 110) };
+      const taken = here.aliens.some((alien) => !alien.dead && Math.hypot(alien.x - spot.x, alien.y - spot.y) < 62)
+        || (here.plita && Math.hypot(here.plita.x - spot.x, here.plita.y - spot.y) < 62);
+      if (!taken) break;
+    }
+    return spot;
+  }
+
+  function nogozavrFrame(now) {
+    const here = arcade.state;
+    if (!here || !here.alive) return;
+    const step = here.last ? Math.min(0.05, (now - here.last) / 1000) : 0;
+    here.last = now;
+    const slow = here.vision > 0 ? 0.5 : 1;
+    if (here.vision > 0) {
+      here.vision -= step;
+      if (here.vision <= 0) here.street.classList.remove("vision");
+    }
+    here.wait -= step;
+    if (here.wait <= 0) {
+      here.wait = here.gap * (0.7 + Math.random() * 0.6);
+      const spot = nogozavrSpot(here);
+      const node = el("div", "alien");
+      node.append(el("span", "ufo", "🛸"), el("span", "who", "👽"), el("i", "charge"));
+      node.style.left = `${spot.x}px`;
+      node.style.top = `${spot.y}px`;
+      here.street.append(node);
+      here.aliens.push({ node, x: spot.x, y: spot.y, charge: 0, dead: false });
+      here.gap = Math.max(0.55, here.gap * 0.975);
+      here.charge = Math.max(0.9, here.charge * 0.985);
+    }
+    here.plitaWait -= step;
+    if (here.plitaWait <= 0 && !here.plita) {
+      const spot = nogozavrSpot(here);
+      const node = el("div", "plita", "🧱");
+      node.style.left = `${spot.x}px`;
+      node.style.top = `${spot.y}px`;
+      here.street.append(node);
+      here.plita = { node, x: spot.x, y: spot.y, left: 2.2 };
+    }
+    if (here.plita) {
+      here.plita.left -= step;
+      if (here.plita.left <= 0) {
+        here.plita.node.remove();
+        here.plita = null;
+        here.plitaWait = 8 + Math.random() * 6;
+      }
+    }
+    here.aliens = here.aliens.filter((alien) => {
+      if (alien.dead) return false;
+      alien.charge += (step / here.charge) * slow;
+      alien.node.style.setProperty("--p", `${Math.min(1, alien.charge) * 360}deg`);
+      if (alien.charge < 1) return true;
+      alien.dead = true;
+      alien.node.classList.add("fired");
+      aLater(() => alien.node.remove(), 350);
+      nogozavrFlash(alien, "🦵 Украли ноги!");
+      here.lives -= 1;
+      haptic.notify("error");
+      arcadeScore(here.points, here.lives);
+      if (here.lives <= 0 && here.alive) {
+        here.alive = false;
+        aLater(() => arcadeOver(here.points), 700);
+      }
+      return false;
+    });
+    if (here.alive) arcade.raf = requestAnimationFrame(nogozavrFrame);
+  }
+
+  function nogozavrTap(event) {
+    const here = arcade.state;
+    if (!here || !here.alive) return;
+    const box = here.street.getBoundingClientRect();
+    const px = event.clientX - box.left;
+    const py = event.clientY - box.top;
+    if (here.plita && Math.hypot(here.plita.x - px, here.plita.y - py) <= NOGO_REACH) {
+      here.plita.node.remove();
+      here.plita = null;
+      here.plitaWait = 10 + Math.random() * 6;
+      here.vision = 4.5;
+      here.street.classList.add("vision");
+      haptic.notify("success");
+      audio.play("level");
+      toast("Ножное зрение! 🦵✨ Всё медленнее и вдвое дороже");
+      return;
+    }
+    let best = null;
+    let bestDistance = Infinity;
+    here.aliens.forEach((alien) => {
+      if (alien.dead) return;
+      const distance = Math.hypot(alien.x - px, alien.y - py);
+      if (distance < bestDistance) {
+        best = alien;
+        bestDistance = distance;
+      }
+    });
+    if (!best || bestDistance > NOGO_REACH) return;
+    best.dead = true;
+    best.node.classList.add("hit");
+    aLater(() => best.node.remove(), 260);
+    here.points += here.vision > 0 ? 2 : 1;
+    haptic.impact("light");
+    arcadeScore(here.points, here.lives);
+  }
+
+  function nogozavrFlash(alien, text) {
+    const flash = el("div", "plus minus", text);
+    flash.style.left = `${alien.x}px`;
+    flash.style.top = `${alien.y}px`;
+    arcade.state.street.append(flash);
+    aLater(() => flash.remove(), 700);
+  }
+
   const ARCADE_GAMES = {
     yard: arcadeYard, post: arcadePost, belt: arcadeBelt, stack: arcadeStack, memory: arcadeMemory,
     road: arcadeRoad, jump: arcadeJump, rain: arcadeRain, snake: arcadeSnake, merge: arcadeMerge,
     tiles: arcadeTiles, shoot: arcadeShoot, wrap: arcadeWrap,
+    plankton: arcadePlankton, notebook: arcadeNotebook, delya: arcadeDelya, orbit: arcadeOrbit,
+    nogozavr: arcadeNogozavr,
   };
 
   // ─── Толян ─────────────────────────────────────────────────────────────────
