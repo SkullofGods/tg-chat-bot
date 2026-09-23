@@ -1051,8 +1051,12 @@ button:disabled { cursor: default; }
   background: linear-gradient(90deg, var(--gold-deep), var(--gold-2));
 }
 .job-bar i.hot { background: linear-gradient(90deg, #7a1f1f, #ff6b6b); }
-.job-score { margin: 6px 0 2px; text-align: center; font-weight: 800; }
-.job-score:empty { display: none; }
+/* Счёт, часы и жизни — своей строкой постоянной высоты. Пока они стояли в шапке рядом с названием,
+   растущее число переносило название то на одну строку, то на две, и поле под ним дёргалось */
+.game-stats { display: flex; align-items: center; gap: 10px; min-height: 26px; margin: 6px 2px; }
+.job-score { flex: 1; min-width: 0; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.game-stats .job-clock { margin-left: auto; white-space: nowrap; font-size: 17px; }
+.game-stats .lives { margin: 0; justify-content: flex-start; }
 .job-note { margin: 8px 4px 0; color: var(--muted); font-size: 13px; text-align: center; }
 .job-result { margin-top: 10px; padding: 14px; text-align: center; }
 .job-result .sum { font-size: 30px; font-weight: 900; color: var(--win); font-variant-numeric: tabular-nums; }
@@ -2964,10 +2968,12 @@ body.dead::after {
           <div class="job-head">
             <button class="job-back" id="job-back" type="button">‹ Работы</button>
             <b id="job-title"></b>
-            <span class="job-clock" id="job-clock"></span>
           </div>
           <div class="job-bar"><i id="job-bar"></i></div>
-          <div class="job-score" id="job-score"></div>
+          <div class="game-stats">
+            <span class="job-score" id="job-score"></span>
+            <span class="job-clock" id="job-clock"></span>
+          </div>
           <div id="job-area"></div>
           <p class="job-note" id="job-note"></p>
           <div id="job-foot"></div>
@@ -2998,9 +3004,11 @@ body.dead::after {
           <div class="job-head">
             <button class="job-back" id="arcade-back" type="button">‹ Игры</button>
             <b id="arcade-title"></b>
+          </div>
+          <div class="game-stats">
+            <div class="lives" id="arcade-lives"></div>
             <span class="job-clock" id="arcade-score"></span>
           </div>
-          <div class="lives" id="arcade-lives"></div>
           <div id="arcade-area"></div>
           <p class="job-note" id="arcade-note"></p>
           <div id="arcade-foot"></div>
