@@ -1082,7 +1082,7 @@ button:disabled { cursor: default; }
 }
 .junk.rat { filter: drop-shadow(0 0 6px rgba(255, 80, 80, 0.8)); }
 .junk.wallet { filter: drop-shadow(0 0 8px rgba(245, 197, 66, 0.9)); }
-.junk.gone { animation: junk-gone 0.25s ease-out forwards; }
+.junk.gone { animation: junk-gone 0.25s ease-out forwards; pointer-events: none; }
 @keyframes junk-gone { to { transform: scale(0.2) rotate(25deg); opacity: 0; } }
 .plus {
   position: absolute;
@@ -1296,7 +1296,7 @@ button:disabled { cursor: default; }
   font-size: 30px;
   will-change: transform;
 }
-.belt-item.done { animation: junk-gone 0.25s ease-out forwards; }
+.belt-item.done { animation: junk-gone 0.25s ease-out forwards; pointer-events: none; }
 
 /* башня */
 .tower {
@@ -1399,11 +1399,19 @@ button:disabled { cursor: default; }
 .kazan-cell.body { background: linear-gradient(160deg, #7ad07a, #2f7a3a); box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.3); }
 .kazan-cell.head { background: linear-gradient(160deg, #d6f58a, #5aa23a); }
 .kazan-cell.food { display: grid; place-items: center; font-size: 14px; background: none; }
-.dpad { display: grid; grid-template-columns: repeat(3, 64px); justify-content: center; gap: 6px; margin: 12px auto 0; }
+.dpad {
+  display: grid;
+  grid-template-columns: repeat(3, 54px);
+  grid-template-rows: repeat(2, 46px);
+  justify-content: center;
+  gap: 5px;
+  margin: 10px auto 0;
+  touch-action: none;
+}
 .dpad button {
-  height: 56px;
-  border-radius: 14px;
-  font-size: 22px;
+  height: 46px;
+  border-radius: 12px;
+  font-size: 18px;
   background: var(--card-strong);
   border: 1px solid var(--line);
   transition: transform 0.08s, background 0.12s;
@@ -1475,7 +1483,12 @@ button:disabled { cursor: default; }
 }
 .can {
   position: absolute;
-  font-size: 30px;
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  font-size: 32px;
+  pointer-events: none;                 /* попадание ловит забор целиком, см. shootTap */
   transform: scale(0);
   transition: transform 0.12s ease-out, opacity 0.2s;
 }
@@ -6678,7 +6691,8 @@ body.dead::after {
     const node = el("div", `junk ${kind}`, icons[Math.floor(Math.random() * icons.length)]);
     node.style.left = `${7 + Math.random() * 86}%`;
     node.style.top = `${12 + Math.random() * 76}%`;
-    node.addEventListener("click", () => {
+    node.addEventListener("pointerdown", (event) => {    // в момент касания: «клик» теряется, если палец дрогнул
+      event.preventDefault();
       if (!here.alive || node.classList.contains("gone")) return;
       node.classList.add("gone");
       if (kind === "rat") {
@@ -6835,12 +6849,16 @@ body.dead::after {
   function beltSpawn() {
     const here = arcade.state;
     if (!here || !here.alive) return;
-    const node = el("div", "belt-item", Math.random() < 0.12 ? "✨" : "🥟");
+    const golden = Math.random() < 0.12;          // блеск и тройная цена — один и тот же бросок
+    const node = el("div", "belt-item", golden ? "✨" : "🥟");
     node.style.top = "93px";
     node.style.left = "-46px";
     node.dataset.x = "0";
-    node.dataset.golden = Math.random() < 0.12 ? "1" : "";
-    node.addEventListener("click", () => {
+    node.dataset.golden = golden ? "1" : "";
+    // Самса едет, и пока палец отрывается, она уже уезжает из-под него — «клик» уходил в ленту.
+    // Засчитываем в момент касания.
+    node.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
       if (!here.alive || node.classList.contains("done")) return;
       node.classList.add("done");
       here.points += node.dataset.golden ? 3 : 1;
@@ -7287,9 +7305,8 @@ body.dead::after {
     };
     swipeOn(box, snakeTurn);
     const pad = el("div", "dpad");
-    [["gap", ""], ["up", "▲"], ["gap", ""],
-     ["left", "◀"], ["gap", ""], ["right", "▶"],
-     ["gap", ""], ["down", "▼"], ["gap", ""]].forEach(([way, sign]) => {
+    [["gap", ""], ["up", "▲"], ["gap", ""],               // как стрелки на клавиатуре
+     ["left", "◀"], ["down", "▼"], ["right", "▶"]].forEach(([way, sign]) => {
       const key = el("button", way === "gap" ? "gap" : "", sign);
       key.type = "button";
       if (way !== "gap") {
@@ -7577,41 +7594,57 @@ body.dead::after {
   }
 
   // ── Сбей банки ──
+  const CAN_SIZE = 56;
+  const CAN_REACH = 46;                  // палец попал рядом с банкой — всё равно считаем
+
   function arcadeShoot() {
     const fence = el("div", "fence");
     $("#arcade-area").replaceChildren(fence);
-    arcade.state = { fence, lives: 3, maxLives: 3, points: 0, life: 1500, gap: 850, alive: true,
+    arcade.state = { fence, lives: 3, maxLives: 3, points: 0, life: 1500, gap: 850, alive: true, cans: [],
                      width: fence.clientWidth || 320, height: fence.clientHeight || 260 };
+    // Нажатие ловит весь забор и сбивает ближайшую живую банку: раньше слушала каждая банка сама,
+    // и сбитая (увеличенная в анимации) или уходящая банка перехватывала тап у соседней.
+    fence.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      shootTap(event);
+    });
     $("#arcade-note").textContent = "Сбивай банки, пока стоят. Три ушедшие — конец.";
     arcadeScore(0, 3);
     shootNext();
   }
 
+  function shootSpot(here) {
+    // Ищем место, где новая банка не ляжет поверх уже стоящих
+    const maxX = Math.max(8, here.width - CAN_SIZE - 8);
+    const maxY = Math.max(8, here.height - CAN_SIZE - 8);
+    let spot = null;
+    for (let attempt = 0; attempt < 12; attempt += 1) {
+      const x = 8 + Math.random() * (maxX - 8);
+      const y = 8 + Math.random() * (maxY - 8);
+      const free = here.cans.every((can) => Math.hypot(can.x - x, can.y - y) > CAN_SIZE);
+      spot = { x, y };
+      if (free) break;
+    }
+    return spot;
+  }
+
   function shootNext() {
     const here = arcade.state;
     if (!here || !here.alive) return;
-    const can = el("div", "can", Math.random() < 0.25 ? "🍾" : "🥫");
-    can.style.left = `${16 + Math.random() * (here.width - 60)}px`;
-    can.style.top = `${16 + Math.random() * (here.height - 70)}px`;
-    here.fence.append(can);
-    reflow(can);
-    can.classList.add("up");
-    let hit = false;
-    can.addEventListener("pointerdown", () => {
-      if (hit || !here.alive) return;
-      hit = true;
-      can.classList.add("dead");
-      aLater(() => can.remove(), 240);
-      here.points += 1;
-      here.life = Math.max(520, here.life * 0.97);
-      here.gap = Math.max(320, here.gap * 0.97);
-      haptic.impact("light");
-      arcadeScore(here.points, here.lives);
-    });
+    const spot = shootSpot(here);
+    const node = el("div", "can", Math.random() < 0.25 ? "🍾" : "🥫");
+    node.style.left = `${spot.x}px`;
+    node.style.top = `${spot.y}px`;
+    here.fence.append(node);
+    reflow(node);
+    node.classList.add("up");
+    const can = { node, x: spot.x, y: spot.y, hit: false, gone: false };
+    here.cans.push(can);
     aLater(() => {
-      if (hit || !here.alive) return;
-      can.classList.remove("up");
-      aLater(() => can.remove(), 200);
+      if (can.hit || !here.alive) return;
+      can.gone = true;
+      node.classList.remove("up");
+      aLater(() => shootDrop(here, can), 200);
       here.lives -= 1;
       haptic.notify("error");
       arcadeScore(here.points, here.lives);
@@ -7621,6 +7654,39 @@ body.dead::after {
       }
     }, here.life);
     aLater(shootNext, here.gap);
+  }
+
+  function shootDrop(here, can) {
+    can.node.remove();
+    const index = here.cans.indexOf(can);
+    if (index >= 0) here.cans.splice(index, 1);
+  }
+
+  function shootTap(event) {
+    const here = arcade.state;
+    if (!here || !here.alive || !here.cans) return;
+    const box = here.fence.getBoundingClientRect();
+    const px = event.clientX - box.left;
+    const py = event.clientY - box.top;
+    let best = null;
+    let bestDistance = Infinity;
+    here.cans.forEach((can) => {
+      if (can.hit || can.gone) return;
+      const distance = Math.hypot(can.x + CAN_SIZE / 2 - px, can.y + CAN_SIZE / 2 - py);
+      if (distance < bestDistance) {
+        best = can;
+        bestDistance = distance;
+      }
+    });
+    if (!best || bestDistance > CAN_REACH) return;
+    best.hit = true;
+    best.node.classList.add("dead");
+    aLater(() => shootDrop(here, best), 240);
+    here.points += 1;
+    here.life = Math.max(520, here.life * 0.97);
+    here.gap = Math.max(320, here.gap * 0.97);
+    haptic.impact("light");
+    arcadeScore(here.points, here.lives);
   }
 
   // ── Заверни шаурму ──
