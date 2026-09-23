@@ -1755,7 +1755,7 @@ button:disabled { cursor: default; }
 
 /* карты */
 .cards { display: flex; flex-wrap: wrap; gap: 6px; }
-.pcard {
+.mcard {
   width: 46px;
   height: 64px;
   border-radius: 8px;
@@ -1768,16 +1768,16 @@ button:disabled { cursor: default; }
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
   border: 1px solid #b9b0a0;
 }
-.pcard.red { color: #c0392b; }
-.pcard.back { background: repeating-linear-gradient(45deg, #2a4a6a 0 6px, #1d3450 6px 12px); color: transparent; }
-.pcard.small { width: 34px; height: 48px; font-size: 13px; }
-.pcard.pick { cursor: pointer; transition: transform 0.1s; }
-.pcard.pick:active { transform: translateY(-4px); }
-.pcard.off { opacity: 0.4; }
+.mcard.red { color: #c0392b; }
+.mcard.back { background: repeating-linear-gradient(45deg, #2a4a6a 0 6px, #1d3450 6px 12px); color: transparent; }
+.mcard.small { width: 34px; height: 48px; font-size: 13px; }
+.mcard.pick { cursor: pointer; transition: transform 0.1s; }
+.mcard.pick:active { transform: translateY(-4px); }
+.mcard.off { opacity: 0.4; }
 .pairs { display: flex; flex-wrap: wrap; gap: 10px; }
 .pair { position: relative; width: 56px; height: 76px; }
-.pair .pcard { position: absolute; left: 0; top: 0; }
-.pair .pcard + .pcard { left: 10px; top: 12px; }
+.pair .mcard { position: absolute; left: 0; top: 0; }
+.pair .mcard + .mcard { left: 10px; top: 12px; }
 .mp-label { margin: 10px 0 4px; font-size: 12px; color: var(--muted); }
 
 /* доски */
@@ -1801,7 +1801,7 @@ button:disabled { cursor: default; }
 .board div.on { box-shadow: inset 0 0 0 3px var(--gold); }
 .board div.piece-w { color: #fbf6e9; text-shadow: 0 0 2px #2b1d10, 0 1px 2px rgba(0, 0, 0, 0.6); }
 .board div.piece-b { color: #14100c; text-shadow: 0 0 2px rgba(255, 255, 255, 0.5); }
-.board div.hint { box-shadow: inset 0 0 0 3px rgba(76, 175, 80, 0.8); }
+.board div.way { box-shadow: inset 0 0 0 3px rgba(76, 175, 80, 0.85); }
 .board .man { width: 68%; height: 68%; border-radius: 50%; }
 .board .man.w { background: radial-gradient(circle at 35% 30%, #fdf6e6, #b9ab90); }
 .board .man.b { background: radial-gradient(circle at 35% 30%, #5a5a5a, #171717); }
@@ -1816,6 +1816,7 @@ button:disabled { cursor: default; }
 .bg-board { display: grid; grid-template-columns: repeat(12, 1fr); gap: 2px; margin-top: 8px; }
 .bg-point { min-height: 64px; border-radius: 6px; background: rgba(255, 255, 255, 0.04); padding: 2px; font-size: 10px; text-align: center; }
 .bg-point.on { box-shadow: inset 0 0 0 2px var(--gold); }
+.bg-point.way { box-shadow: inset 0 0 0 2px rgba(76, 175, 80, 0.85); }
 .bg-point b { display: block; font-size: 11px; }
 .bg-point.p0 { color: #f2e6cf; background: rgba(240, 230, 200, 0.14); }
 .bg-point.p1 { color: #d68b7a; background: rgba(180, 80, 60, 0.16); }
@@ -1824,14 +1825,14 @@ button:disabled { cursor: default; }
 .dice span.used { opacity: 0.3; }
 
 /* бега, числа, реакция, крокодил */
-.track { display: grid; gap: 6px; margin-top: 8px; }
-.lane { position: relative; height: 34px; border-radius: 10px; background: rgba(255, 255, 255, 0.05); overflow: hidden; }
-.lane b { position: absolute; left: 8px; top: 8px; font-size: 12px; color: var(--muted); }
-.lane i { position: absolute; top: 4px; font-size: 22px; transition: left 0.4s; }
-.lane.mine { box-shadow: inset 0 0 0 2px var(--gold); }
-.numbers { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; margin-top: 8px; }
-.numbers button { aspect-ratio: 1; border-radius: 8px; font-size: 12px; background: var(--card-strong); border: 1px solid var(--line); }
-.numbers button.on { background: var(--gold); color: #2a1c05; }
+.mp-track { display: grid; gap: 6px; margin-top: 8px; }
+.mp-lane { position: relative; height: 34px; border-radius: 10px; background: rgba(255, 255, 255, 0.05); overflow: hidden; }
+.mp-lane b { position: absolute; left: 8px; top: 8px; font-size: 12px; color: var(--muted); }
+.mp-lane i { position: absolute; top: 4px; font-size: 22px; transition: left 0.4s; }
+.mp-lane.mine { box-shadow: inset 0 0 0 2px var(--gold); }
+.mp-numbers { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; margin-top: 8px; }
+.mp-numbers button { aspect-ratio: 1; border-radius: 8px; font-size: 12px; background: var(--card-strong); border: 1px solid var(--line); }
+.mp-numbers button.on { background: var(--gold); color: #2a1c05; }
 .bigtap {
   width: 100%;
   height: 190px;
@@ -3028,7 +3029,7 @@ body.dead::after {
     [...board.children].forEach((box, index) => {
       const cell = cellOf(index);
       box.classList.toggle("on", cell === from && from !== null);
-      box.classList.toggle("hint", targets.has(cell));
+      box.classList.toggle("way", targets.has(cell));
     });
   }
 
@@ -3040,9 +3041,9 @@ body.dead::after {
   }
 
   function cardEl(code, extra = "") {
-    if (code === -1 || code === null || code === undefined) return el("div", `pcard back ${extra}`, "?");
+    if (code === -1 || code === null || code === undefined) return el("div", `mcard back ${extra}`, "?");
     const suit = Math.floor(code / 13);
-    const node = el("div", `pcard ${suit === 1 || suit === 2 ? "red" : ""} ${extra}`.trim(),
+    const node = el("div", `mcard ${suit === 1 || suit === 2 ? "red" : ""} ${extra}`.trim(),
                     `${MP_RANKS[code % 13]}${MP_SUITS[suit]}`);
     node.dataset.card = code;
     return node;
@@ -3497,7 +3498,7 @@ body.dead::after {
         const dark = (row + (cell % game.side)) % 2 === 1;
         const box = el("div", dark ? "dark" : "light");
         if (cell === from) box.classList.add("on");
-        if (targets.has(cell)) box.classList.add("hint");
+        if (targets.has(cell)) box.classList.add("way");
         const piece = game.board[cell];
         if (piece) {
           const man = el("div", `man ${piece <= 2 ? "w" : "b"}${piece === 2 || piece === 4 ? " king" : ""}`);
@@ -3532,7 +3533,7 @@ body.dead::after {
         const box = el("div", `${(row + (cell % 8)) % 2 === 1 ? "light" : "dark"}`
           + `${piece ? (piece > 6 ? " piece-b" : " piece-w") : ""}`, CHESS_GLYPHS[kind] || "");
         if (cell === from) box.classList.add("on");
-        if (targets.has(cell)) box.classList.add("hint");
+        if (targets.has(cell)) box.classList.add("way");
         box.addEventListener("click", () => {
           const picked = multi.pickFrom;
           const canGo = steps.some((step) => step.from === picked && step.to === cell);
@@ -3588,7 +3589,7 @@ body.dead::after {
         order.push(point);
         const count = game.board[point];
         const box = el("div", `bg-point${count > 0 ? " p0" : count < 0 ? " p1" : ""}`
-          + `${point === from ? " on" : ""}${targets.has(point) ? " hint" : ""}`);
+          + `${point === from ? " on" : ""}${targets.has(point) ? " way" : ""}`);
         box.append(el("b", "", `${point + 1}`), document.createTextNode(count ? `${Math.abs(count)}●` : ""));
         box.addEventListener("click", () => {
           const picked = multi.pickFrom;
@@ -3622,9 +3623,9 @@ body.dead::after {
     roaches: (game, view, area) => {
       area.append(el("div", "mp-label", game.phase === "pick"
         ? `Выбирай таракана · ${game.left} с` : game.phase === "run" ? "Бегут!" : "Финиш"));
-      const track = el("div", "track");
+      const track = el("div", "mp-track");
       game.roaches.forEach((name, index) => {
-        const lane = el("div", `lane${game.my_pick === index ? " mine" : ""}`);
+        const lane = el("div", `mp-lane${game.my_pick === index ? " mine" : ""}`);
         lane.append(el("b", "", name));
         const roach = el("i", "", "🪳");
         roach.style.left = `${Math.min(92, (game.spots[index] / game.track) * 92)}%`;
@@ -3642,7 +3643,7 @@ body.dead::after {
         ? `Загадали ${game.ready} из ${game.total} · осталось ${game.left} с`
         : "Числа открыты"));
       if (game.phase === "pick") {
-        const grid = el("div", "numbers");
+        const grid = el("div", "mp-numbers");
         for (let number = 1; number <= game.top; number += 1) {
           const button = el("button", game.my_pick === number ? "on" : "", `${number}`);
           button.type = "button";
