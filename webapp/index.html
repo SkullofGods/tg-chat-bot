@@ -5142,6 +5142,15 @@ body.dead::after {
       const sources = new Set(steps.map((step) => step.from));
       const board = el("div", "bg-board");
       const order = [];
+      // выбросить можно только той фишкой, что выбрана, — кнопка живёт вместе с выбором, без перерисовки стола
+      const offStep = (picked) => steps.find((step) => step.from === picked && (step.to === 24 || step.to === -1));
+      const offChip = el("button", "mp-chip on", "Выбросить фишку");
+      offChip.type = "button";
+      offChip.hidden = !offStep(from);
+      offChip.addEventListener("click", () => {
+        const step = offStep(multi.pickFrom);
+        if (step) multiMove({ type: "move", from: step.from, to: step.to });
+      });
       const drawPoint = (point) => {
         order.push(point);
         const count = game.board[point];
@@ -5156,6 +5165,7 @@ body.dead::after {
           if (canGo) { multiMove({ type: "move", from: picked, to: point }); return; }
           multi.pickFrom = sources.has(point) ? point : null;
           paintPicks(board, steps, (index) => order[index]);
+          offChip.hidden = !offStep(multi.pickFrom);
         });
         return box;
       };
@@ -5169,15 +5179,15 @@ body.dead::after {
         chip.addEventListener("click", () => { multi.pickFrom = -1; renderMpTable(); });
         extra.append(chip);
       }
-      const offTarget = steps.find((step) => step.from === from && (step.to === 24 || step.to === -1));
-      if (offTarget) {
-        const chip = el("button", "mp-chip on", "Выбросить фишку");
-        chip.type = "button";
-        chip.addEventListener("click", () => multiMove({ type: "move", from, to: offTarget.to }));
-        extra.append(chip);
-      }
-      extra.append(el("span", "mp-chip", `Вышло: ${game.off[game.me]} из 15`));
+      extra.append(offChip, el("span", "mp-chip", `Вышло: ${game.off[game.me]} из 15`));
       area.append(extra);
+      const white = game.me === 0;
+      area.append(el("p", "hint", `Цель — первым вывести все 15 фишек. Ты — ${white ? "белые" : "красные"}: ходишь `
+        + `${white ? "от 1 к 24" : "от 24 к 1"} на выпавшие очки (дубль — четыре хода), дом — ${white ? "19–24" : "1–6"}. `
+        + "Нельзя вставать туда, где две чужие фишки и больше; одну чужую — сбиваешь на бар."));
+      if (game.home_ready && steps.some((step) => step.to === 24 || step.to === -1)) {
+        area.append(el("p", "hint", "Все фишки дома: нажми фишку, потом «Выбросить фишку»."));
+      }
     },
     roaches: (game, view, area) => {
       area.append(el("div", "mp-label", game.phase === "pick"
