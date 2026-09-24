@@ -37,8 +37,9 @@ SLOT_TRIPLES = {"cherry": 6, "lemon": 8, "grapes": 12, "bell": 20, "diamond": 40
 SLOT_TWO_SEVENS = 4  # две семёрки из трёх
 SLOT_PAIR = 1        # два одинаковых символа — ставка возвращается
 # Золотой казан — общий джекпот беседы. Пополняется с каждой игры против казино (доли — в db.py, там же,
-# где учёт игр), а забирает его тот, кто выбьет 7️⃣7️⃣7️⃣ со ставкой от JACKPOT_MIN_BET.
-JACKPOT_MIN_BET = 100
+# где учёт игр), а забирает его тот, кто выбьет 7️⃣7️⃣7️⃣ — любой ставкой, но вместе с обычными ×100 не больше
+# ×JACKPOT_MAX_MULTIPLIER от ставки: что сверх — остаётся в казане следующему.
+JACKPOT_MAX_MULTIPLIER = 1000
 
 RR_CHAMBERS = 6
 # Награда за выстрел — доля кошелька стрелка (не меньше минимума). Чем ближе патрон, тем щедрее
@@ -180,7 +181,7 @@ def jackpot_view(chat_id: int) -> dict:
     last = None
     if pot["winner"] is not None:
         last = {"name": player_name(pot["winner"]), "amount": pot["won"], "at": pot["won_at"]}
-    return {"amount": pot["amount"], "min_bet": JACKPOT_MIN_BET, "last": last}
+    return {"amount": pot["amount"], "max_multiplier": JACKPOT_MAX_MULTIPLIER, "last": last}
 
 
 def claim_bonus(chat_id: int, user_id: int) -> dict:
@@ -214,22 +215,28 @@ def play_slots(chat_id: int, user_id: int, bet) -> dict:
         combo, multiplier = "pair", SLOT_PAIR
     else:
         combo, multiplier = "lose", 0
-    pot = db.take_jackpot(chat_id, user_id, JACKPOT_SEED) if combo == "jackpot" and bet >= JACKPOT_MIN_BET else 0
+    pot, was = 0, 0
+    if combo == "jackpot":
+        pot, was = db.take_jackpot(chat_id, user_id, bet * (JACKPOT_MAX_MULTIPLIER - multiplier), JACKPOT_SEED)
     payout = bet * multiplier + pot
     balance = db.casino_settle(chat_id, user_id, "slots", bet, payout, special=combo == "jackpot")
     name = player_name(user_id)
-    if pot:
-        add_feed(chat_id, f"🍲 {name} срывает Золотой казан: {signed(payout - bet)}")
-        news(chat_id, f"🍲 <b>ЗОЛОТОЙ КАЗАН!</b> {members.display_name(user_id)} выбивает 7️⃣7️⃣7️⃣ "
-                      f"и забирает весь казан: <b>{money(payout)}</b>!\n<i>/casino</i>")
-    elif combo == "jackpot":
-        add_feed(chat_id, f"💎 {name} срывает джекпот 7️⃣7️⃣7️⃣: {signed(payout - bet)}")
-        news(chat_id, f"💎 <b>ДЖЕКПОТ!</b> {members.display_name(user_id)} выбивает 7️⃣7️⃣7️⃣ в казино "
-                      f"и забирает <b>{money(payout)}</b>!\n<i>/casino</i>")
+    capped = pot < was                                        # ставка мала — унёс ×1000, остальное ждёт в казане
+    if combo == "jackpot":
+        who = members.display_name(user_id)
+        if capped:
+            left = money(db.get_jackpot(chat_id, JACKPOT_SEED)["amount"])
+            add_feed(chat_id, f"🍲 {name} зачерпывает из Золотого казана: {signed(payout - bet)}, там ещё {left}")
+            news(chat_id, f"🍲 <b>ЗОЛОТОЙ КАЗАН!</b> {who} выбивает 7️⃣7️⃣7️⃣ и уносит <b>{money(payout)}</b> — "
+                          f"×{JACKPOT_MAX_MULTIPLIER} от ставки, больше за раз нельзя. В казане ещё {left}!\n<i>/casino</i>")
+        else:
+            add_feed(chat_id, f"🍲 {name} срывает Золотой казан: {signed(payout - bet)}")
+            news(chat_id, f"🍲 <b>ЗОЛОТОЙ КАЗАН!</b> {who} выбивает 7️⃣7️⃣7️⃣ "
+                          f"и забирает весь казан: <b>{money(payout)}</b>!\n<i>/casino</i>")
     elif combo == "triple" and multiplier >= 20:
         add_feed(chat_id, f"🎰 {name} собирает три в ряд: {signed(payout - bet)}")
     return {"reels": reels, "combo": combo, "multiplier": multiplier, "payout": payout,
-            "net": payout - bet, "balance": balance, "pot": pot, "jackpot": jackpot_view(chat_id)}
+            "net": payout - bet, "balance": balance, "pot": pot, "pot_capped": capped, "jackpot": jackpot_view(chat_id)}
 
 
 def play_coin(chat_id: int, user_id: int, bet, side) -> dict:

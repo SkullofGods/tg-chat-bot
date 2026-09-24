@@ -1704,18 +1704,20 @@ class Database:
         row = self.conn.execute("SELECT * FROM jackpots WHERE chat_id = ?", (chat_id,)).fetchone()
         return dict(row) if row else {"chat_id": chat_id, "amount": seed, "winner": None, "won": None, "won_at": None}
 
-    def take_jackpot(self, chat_id: int, user_id: int, seed: int) -> int:
-        """Забирает казан целиком и начинает копить заново с seed. Возвращает, сколько в нём было."""
+    def take_jackpot(self, chat_id: int, user_id: int, limit: int, seed: int) -> tuple[int, int]:
+        """Забирает из казана не больше limit. Что осталось — ждёт следующего (но в казане не меньше seed:
+        опустевший казан копит заново с seed). Возвращает (сколько забрал, сколько было в казане)."""
         with self._tx(important=True) as c:
             row = c.execute("SELECT amount FROM jackpots WHERE chat_id = ?", (chat_id,)).fetchone()
             amount = row["amount"] if row else seed
+            taken = min(amount, limit)
             c.execute(
                 "INSERT INTO jackpots (chat_id, amount, winner, won, won_at) VALUES (?, ?, ?, ?, ?) "
                 "ON CONFLICT(chat_id) DO UPDATE SET amount = excluded.amount, winner = excluded.winner, "
                 "won = excluded.won, won_at = excluded.won_at",
-                (chat_id, seed, user_id, amount, utcnow_iso()),
+                (chat_id, max(amount - taken, seed), user_id, taken, utcnow_iso()),
             )
-            return amount
+            return taken, amount
 
     # ── Мины ───────────────────────────────────────────────────────────────────
 

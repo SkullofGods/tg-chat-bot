@@ -678,7 +678,6 @@ button:disabled { cursor: default; }
 }
 .machine-message.win { color: var(--win); }
 .machine-message.lose { color: #ffb3b3; }
-.machine-message.jackpot { color: var(--gold-2); font-size: 20px; animation: pop-text 0.5s ease-out; }
 @keyframes pop-text { from { transform: scale(0.5); } to { transform: scale(1); } }
 
 .paytable { margin-top: 14px; padding: 4px 14px; }
@@ -687,6 +686,7 @@ button:disabled { cursor: default; }
 .paytable li { display: flex; justify-content: space-between; padding: 6px 0; }
 .paytable li + li { border-top: 1px solid rgba(255, 255, 255, 0.05); }
 .paytable b { color: var(--gold); }
+.paytable li.paytable-note { display: block; padding-top: 0; border-top: 0; color: var(--muted); font-size: 12px; }
 
 /* ─── Монетка ─── */
 
@@ -2996,7 +2996,7 @@ body.dead::after {
             <span class="tile-icon">🏇</span><b>Скачки</b><small>забег каждые 30 с</small>
           </button>
           <button class="game-tile slots" data-go="slots" type="button">
-            <span class="tile-icon">🎰</span><b>Слоты</b><small id="slots-tile-sub">до ×100 и Золотой казан</small>
+            <span class="tile-icon">🎰</span><b>Слоты</b><small id="slots-tile-sub">до ×1000 с Золотым казаном</small>
           </button>
           <button class="game-tile coin" data-go="coin" type="button">
             <span class="tile-icon">🪙</span><b>Монетка</b><small>×2</small>
@@ -3137,8 +3137,8 @@ body.dead::after {
         <details class="card paytable">
           <summary>Таблица выплат</summary>
           <ul>
-            <li><span>7️⃣ 7️⃣ 7️⃣ со ставкой от 100</span><b>×100 + весь казан 🍲</b></li>
-            <li><span>7️⃣ 7️⃣ 7️⃣</span><b>×100</b></li>
+            <li><span>7️⃣ 7️⃣ 7️⃣</span><b>×100 + казан 🍲</b></li>
+            <li class="paytable-note">Вместе с казаном — не больше ×1000 от ставки: остальное ждёт следующего</li>
             <li><span>💎 💎 💎</span><b>×40</b></li>
             <li><span>🔔 🔔 🔔</span><b>×20</b></li>
             <li><span>🍇 🍇 🍇</span><b>×12</b></li>
@@ -6291,7 +6291,7 @@ body.dead::after {
   // Золотой казан: сколько в нём сейчас — на слотах и на плитке в лобби
   function renderJackpot(jackpot) {
     $("#jackpot-amount").textContent = coins(jackpot.amount);
-    $("#jackpot-line").title = `Забирает тот, кто выбьет 7️⃣7️⃣7️⃣ со ставкой от ${fmt(jackpot.min_bet)}`;
+    $("#jackpot-line").title = `Забирает тот, кто выбьет 7️⃣7️⃣7️⃣: вместе с ×100 — до ×${fmt(jackpot.max_multiplier)} от ставки`;
     $("#slots-tile-sub").textContent = `в казане ${fmt(jackpot.amount)} 🪙`;
   }
 
@@ -6321,7 +6321,7 @@ body.dead::after {
       return;
     }
     $(".machine").classList.add("win");
-    if (result.pot) {
+    if (result.combo === "jackpot") {
       message.className = "machine-message pot";
       message.textContent = `🍲 ЗОЛОТОЙ КАЗАН! ${signedCoins(result.net)}`;
       audio.play("jackpot");
@@ -6329,13 +6329,9 @@ body.dead::after {
       confetti.burst(260);
       setTimeout(() => confetti.burst(220), 500);
       setTimeout(() => confetti.burst(180), 1100);
-    } else if (result.combo === "jackpot") {
-      message.className = "machine-message jackpot";
-      message.textContent = `💎 ДЖЕКПОТ! ${signedCoins(result.net)}`;
-      audio.play("jackpot");
-      audio.play("coins");
-      confetti.burst(220);
-      setTimeout(() => confetti.burst(160), 600);
+      if (result.pot_capped && result.jackpot) {         // ставка мала: больше ×1000 не унести, остальное ждёт в казане
+        setTimeout(() => toast(`Больше ×${fmt(result.jackpot.max_multiplier)} от ставки за раз не унести — в казане ещё ${coins(result.jackpot.amount)}`), 1800);
+      }
     } else {
       message.className = "machine-message win";
       message.textContent = `${result.combo === "sevens" ? "Две семёрки" : "Три в ряд"} ×${result.multiplier} · ${signedCoins(result.net)}`;
