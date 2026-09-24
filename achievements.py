@@ -69,8 +69,8 @@ ACHIEVEMENTS = (
     # ── Казино ────────────────────────────────────────────────────────────────
     ("slots", "casino", "🎰", "Однорукий", "Крутить слоты",
      (20, 100, 500), (150, 400, 1200), lambda s: _stat(s, "slots")),
-    ("jackpot", "casino", "7️⃣", "Три семёрки", "Срывать джекпот в слотах",
-     (1, 3, 10), (500, 1500, 5000), lambda s: _stat(s, "slots", "special")),
+    ("jackpot", "casino", "7️⃣", "Три семёрки", "Сорвать джекпот в слотах",
+     (1,), (500,), lambda s: _stat(s, "slots", "special")),   # одна ступень: 7️⃣7️⃣7️⃣ и так событие, а казан — награда
     ("blackjack", "casino", "🃏", "Двадцать одно", "Собрать блэкджек с первых двух карт",
      (1, 5, 15), (200, 600, 2000), lambda s: _stat(s, "blackjack", "special")),
     ("blackjack_win", "casino", "♠️", "Против дилера", "Обыгрывать дилера",
@@ -305,7 +305,8 @@ def state(chat_id: int, user_id: int) -> dict:
     names = db.get_name_rows([row["user_id"] for row in db.achievement_leaders(chat_id)])
     return {
         "sections": [section for section in sections if section["cards"]],
-        "stars": sum(card["stars"] for card in cards),
+        # ступени у карточек иногда урезаем (у «Трёх семёрок» была одна из трёх) — взятые звёзды в итоге остаются
+        "stars": sum(max(card["stars"], snap["earned"].get(card["key"], 0)) for card in cards),
         "max_stars": MAX_STARS,
         "done": sum(1 for card in cards if card["stars"] >= len(card["goals"])),
         "total": len(cards),

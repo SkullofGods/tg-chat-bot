@@ -5413,7 +5413,7 @@ body.dead::after {
     if (!data) return;
     $("#awards-sub").textContent = `Закрыто ${data.done} из ${data.total} · заработано ${fmt(data.earned)} `
       + plural(data.earned, COIN_FORMS);
-    $("#awards-bar-fill").style.width = `${Math.round((data.stars / data.max_stars) * 100)}%`;
+    $("#awards-bar-fill").style.width = `${Math.min(100, Math.round((data.stars / data.max_stars) * 100))}%`;
     const stat = $("#awards-stats");
     stat.replaceChildren();
     [["Звёзды", `${data.stars} / ${data.max_stars}`], ["Концовки", `${data.endings.found} / ${data.endings.total}`],
