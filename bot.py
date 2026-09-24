@@ -13,6 +13,7 @@ from aiogram.types import (
 
 import backup
 import anniversaries
+import casino_arcade
 import casino_bank
 import casino_crash
 import casino_shop
@@ -130,6 +131,19 @@ def grant_by_nickname_once(key: str, nickname: str, amount: int):
         logger.info("Начислил «%s» %s таджикоинов, баланс: %s", nickname, amount, balance)
 
 
+def grant_arcade_record_once(key: str, user_id: int, game: str, score: int):
+    """Разовая запись честного результата, который сервер когда-то не принял. Второй раз не пишет."""
+    if db.get_meta(f"grant:{key}") is not None:
+        return
+    chat_id = db.get_main_chat()
+    if chat_id is None:
+        logger.warning("Рекорд %s не записан: бот не знает беседы", key)
+        return
+    casino_arcade.record(chat_id, user_id, game, score)
+    db.set_meta(f"grant:{key}", "1", important=True)
+    logger.info("Записал рекорд %s: %s очков в «%s»", key, score, game)
+
+
 async def main():
     logger.info("База: %s", DB_PATH)
     await backup.prepare_database()
@@ -138,6 +152,8 @@ async def main():
     if granted:
         logger.info("Выдал по 1000 таджикоинов: %s участникам", granted)
     grant_by_nickname_once("tajik_1900", "таджик", 1900)  # по просьбе хозяина, 17.09.2026
+    # Victoria прошла «Ногозавра» на 3035, а старый потолок игры был 3000 — рекорд не записался (25.09.2026)
+    grant_arcade_record_once("arcade_nogozavr_victoria_3035", 6448494367, "nogozavr", 3035)
 
     dp.message.outer_middleware(TrackingMiddleware())
     dp.callback_query.outer_middleware(TrackingMiddleware())
