@@ -4860,8 +4860,10 @@ body.dead::after {
       const done = el("div", "card arcade-over");
       done.append(el("div", "what", view.over.text || "Партия окончена"));
       const mine = (view.over.winners || []).some((id) => view.seats.some((seat) => seat.me && seat.id === id));
-      done.append(el("div", "record", mine ? "🏆 Ты выиграл!" : (view.over.winners || []).length
-        ? "Выиграл не ты — бывает" : "Никто не выиграл"));
+      const winners = (view.over.winners || []).map((id) => (view.seats.find((seat) => seat.id === id) || {}).name)
+        .filter(Boolean);
+      done.append(el("div", "record", mine ? "🏆 Ты выиграл!" : winners.length
+        ? `🏆 Победа: ${winners.join(", ")}` : "Никто не выиграл"));
       root.append(done);
     }
 
@@ -5179,8 +5181,13 @@ body.dead::after {
         chip.addEventListener("click", () => { multi.pickFrom = -1; renderMpTable(); });
         extra.append(chip);
       }
-      extra.append(offChip, el("span", "mp-chip", `Вышло: ${game.off[game.me]} из 15`));
+      extra.append(offChip, el("span", "mp-chip", `Ты: вышло ${game.off[game.me]} из 15`));
       area.append(extra);
+      const rival = (view.seats.find((seat) => !seat.me) || {}).name || "Соперник";
+      const theirs = el("div", "mp-row");
+      theirs.append(el("span", "mp-chip", `${rival}: вышло ${game.off[1 - game.me]} из 15`
+        + (game.bar[1 - game.me] ? ` · на баре ${game.bar[1 - game.me]}` : "")));
+      area.append(theirs);
       const white = game.me === 0;
       area.append(el("p", "hint", `Цель — первым вывести все 15 фишек. Ты — ${white ? "белые" : "красные"}: ходишь `
         + `${white ? "от 1 к 24" : "от 24 к 1"} на выпавшие очки (дубль — четыре хода), дом — ${white ? "19–24" : "1–6"}. `

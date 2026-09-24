@@ -178,4 +178,6 @@ def moves(state: dict, user_id: int) -> dict:
 def result(state: dict):
     if state.get("winner") is None:
         return None
-    return {"winners": [state["winner"]], "text": "Все фишки вышли"}
+    side = state["players"].index(state["winner"])
+    text = "Все 15 фишек вышли" if state["off"][side] >= CHECKERS else "Соперник сдался"
+    return {"winners": [state["winner"]], "text": text}
