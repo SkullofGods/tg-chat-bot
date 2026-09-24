@@ -8,6 +8,13 @@ from pathlib import Path
 from typing import Callable, Iterable, Iterator, Optional
 
 SCHEMA_VERSION = 1
+
+# Золотой казан пополняют все игры против казино: доля каждой ставки и доля каждого проигрыша. Это деньги
+# казино сверх обычных выплат — казан растёт быстро (и таджикоины от этого дешевеют), доли — здесь.
+JACKPOT_SEED = 5_000
+JACKPOT_GAMES = frozenset({"slots", "coin", "blackjack", "roulette", "race", "mines", "crash", "rr"})
+JACKPOT_BET_SHARE = 0.10      # от каждой ставки (в русской рулетке ставки нет — только проигрыш)
+JACKPOT_LOSS_SHARE = 0.50     # от каждого проигрыша
 SUPERGROUP_ID_SHIFT = 1_000_000_000_000  # экспорт Telegram пишет id супергруппы без префикса -100
 
 _SCHEMA = [
@@ -241,6 +248,47 @@ _SCHEMA = [
         created_at TEXT NOT NULL,
         PRIMARY KEY (chat_id, round, user_id)
     ) WITHOUT ROWID""",
+    # Лавка влияния: значок и звание у имени (на человека, во всех беседах)
+    """CREATE TABLE IF NOT EXISTS name_marks (
+        user_id INTEGER PRIMARY KEY,
+        badge   TEXT,
+        title   TEXT
+    )""",
+    # Дождь из таджикоинов: кто устроил, сколько на скольких и кто уже поймал
+    """CREATE TABLE IF NOT EXISTS shop_rains (
+        id         INTEGER PRIMARY KEY,
+        chat_id    INTEGER NOT NULL,
+        user_id    INTEGER NOT NULL,
+        amount     INTEGER NOT NULL,
+        people     INTEGER NOT NULL,
+        caught     TEXT NOT NULL DEFAULT '',
+        message_id INTEGER,
+        created_at INTEGER NOT NULL,
+        closed     INTEGER NOT NULL DEFAULT 0
+    )""",
+    # Оплаченные бонусы к следующему броску d20
+    """CREATE TABLE IF NOT EXISTS shop_d20 (
+        id       INTEGER PRIMARY KEY,
+        chat_id  INTEGER NOT NULL,
+        target   INTEGER NOT NULL,
+        buyer    INTEGER NOT NULL,
+        delta    INTEGER NOT NULL
+    )""",
+    # Лоббирование таджика дня: на какой день, за кого и кто заплатил (за одного могут занести несколько)
+    """CREATE TABLE IF NOT EXISTS tajik_lobby (
+        chat_id INTEGER NOT NULL,
+        day     TEXT NOT NULL,
+        target  INTEGER NOT NULL,
+        buyer   INTEGER NOT NULL,
+        PRIMARY KEY (chat_id, day, target, buyer)
+    ) WITHOUT ROWID""",
+    # Фразы для «Кто это сказал?», которые хозяин проверил и прислал боту
+    """CREATE TABLE IF NOT EXISTS quote_phrases (
+        id      INTEGER PRIMARY KEY,
+        chat_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        text    TEXT NOT NULL
+    )""",
     # Когда человек впервые появился в беседе — для круглых дат
     """CREATE TABLE IF NOT EXISTS member_since (
         chat_id INTEGER NOT NULL,
@@ -545,8 +593,9 @@ class Database:
             chunk = ids[start:start + 500]
             placeholders = ",".join("?" * len(chunk))
             rows = self.conn.execute(
-                f"SELECT u.user_id, u.username, u.full_name, n.nickname FROM users u "
-                f"LEFT JOIN nicknames n ON n.user_id = u.user_id WHERE u.user_id IN ({placeholders})",
+                f"SELECT u.user_id, u.username, u.full_name, n.nickname, m.badge, m.title FROM users u "
+                f"LEFT JOIN nicknames n ON n.user_id = u.user_id LEFT JOIN name_marks m ON m.user_id = u.user_id "
+                f"WHERE u.user_id IN ({placeholders})",
                 chunk,
             ).fetchall()
             result.update({row["user_id"]: dict(row) for row in rows})
@@ -963,6 +1012,15 @@ class Database:
             """,
             (chat_id, user_id, game, wagered, returned, max(returned - wagered, 0), int(special)),
         )
+        if game in JACKPOT_GAMES:
+            share = int((0 if game == "rr" else wagered * JACKPOT_BET_SHARE)
+                        + max(0, wagered - returned) * JACKPOT_LOSS_SHARE)
+            if share > 0:
+                c.execute(
+                    "INSERT INTO jackpots (chat_id, amount) VALUES (?, ?) "
+                    "ON CONFLICT(chat_id) DO UPDATE SET amount = amount + ?",
+                    (chat_id, JACKPOT_SEED + share, share),
+                )
         if returned > wagered:  # счётчики побед нужны ачивкам, поэтому считаем их там же, где и саму игру
             for key in (f"win:{game}", "win:any"):
                 c.execute(
@@ -1646,14 +1704,6 @@ class Database:
         row = self.conn.execute("SELECT * FROM jackpots WHERE chat_id = ?", (chat_id,)).fetchone()
         return dict(row) if row else {"chat_id": chat_id, "amount": seed, "winner": None, "won": None, "won_at": None}
 
-    def add_to_jackpot(self, chat_id: int, amount: int, seed: int):
-        with self._tx() as c:
-            c.execute(
-                "INSERT INTO jackpots (chat_id, amount) VALUES (?, ?) "
-                "ON CONFLICT(chat_id) DO UPDATE SET amount = amount + ?",
-                (chat_id, seed + amount, amount),
-            )
-
     def take_jackpot(self, chat_id: int, user_id: int, seed: int) -> int:
         """Забирает казан целиком и начинает копить заново с seed. Возвращает, сколько в нём было."""
         with self._tx(important=True) as c:
@@ -1849,21 +1899,148 @@ class Database:
         ).fetchall()
         return [dict(r) for r in rows]
 
-    # ── Фразы для «Кто это сказал?» ────────────────────────────────────────────
+    # ── Лавка влияния ──────────────────────────────────────────────────────────
 
-    _PHRASE_MEMBERS = (
-        "FROM phrases p JOIN chat_members cm ON cm.chat_id = p.chat_id AND cm.user_id = p.user_id "
-        "AND cm.is_member = 1 LEFT JOIN users u ON u.user_id = p.user_id "
-        "WHERE p.chat_id = ? AND COALESCE(u.is_bot, 0) = 0"
+    def spend(self, chat_id: int, user_id: int, amount: int, counter: str) -> bool:
+        """Покупка в лавке: списать, если хватает, и посчитать, на что потрачено."""
+        with self._tx() as c:
+            self._ensure_wallet(c, chat_id, user_id)
+            cursor = c.execute(
+                "UPDATE wallets SET balance = balance - ? WHERE chat_id = ? AND user_id = ? AND balance >= ?",
+                (amount, chat_id, user_id, amount),
+            )
+            if cursor.rowcount != 1:
+                return False
+            for key, delta in ((counter, 1), ("shop:spent", amount)):
+                c.execute(
+                    "INSERT INTO counters (chat_id, user_id, key, value) VALUES (?, ?, ?, ?) "
+                    "ON CONFLICT(chat_id, user_id, key) DO UPDATE SET value = value + excluded.value",
+                    (chat_id, user_id, key, delta),
+                )
+            return True
+
+    def get_name_mark(self, user_id: int) -> dict:
+        row = self.conn.execute("SELECT badge, title FROM name_marks WHERE user_id = ?", (user_id,)).fetchone()
+        return dict(row) if row else {"badge": None, "title": None}
+
+    def set_name_mark(self, user_id: int, field: str, value: str):
+        assert field in ("badge", "title")
+        with self._tx() as c:
+            c.execute(f"INSERT INTO name_marks (user_id, {field}) VALUES (?, ?) "
+                      f"ON CONFLICT(user_id) DO UPDATE SET {field} = excluded.{field}", (user_id, value))
+
+    def create_rain(self, chat_id: int, user_id: int, amount: int, people: int, now: int) -> int:
+        with self._tx() as c:
+            cursor = c.execute(
+                "INSERT INTO shop_rains (chat_id, user_id, amount, people, created_at) VALUES (?, ?, ?, ?, ?)",
+                (chat_id, user_id, amount, people, now),
+            )
+            return cursor.lastrowid
+
+    def set_rain_message(self, rain_id: int, message_id: int):
+        with self._tx() as c:
+            c.execute("UPDATE shop_rains SET message_id = ? WHERE id = ?", (message_id, rain_id))
+
+    def get_rain(self, rain_id: int) -> Optional[dict]:
+        row = self.conn.execute("SELECT * FROM shop_rains WHERE id = ?", (rain_id,)).fetchone()
+        if row is None:
+            return None
+        return dict(row) | {"caught": self._cells(row["caught"])}
+
+    def catch_rain(self, rain_id: int, user_id: int) -> Optional[dict]:
+        """Ловит долю дождя. None — дождь кончился, это свой дождь или уже поймано."""
+        with self._tx() as c:
+            row = c.execute("SELECT * FROM shop_rains WHERE id = ?", (rain_id,)).fetchone()
+            if row is None or row["closed"] or row["user_id"] == user_id:
+                return None
+            caught = self._cells(row["caught"])
+            if user_id in caught or len(caught) >= row["people"]:
+                return None
+            caught.append(user_id)
+            share = row["amount"] // row["people"]
+            closed = int(len(caught) >= row["people"])
+            leftover = row["amount"] - share * row["people"] if closed else 0   # остаток от деления — хозяину
+            c.execute("UPDATE shop_rains SET caught = ?, closed = ? WHERE id = ?",
+                      (",".join(map(str, caught)), closed, rain_id))
+            self._ensure_wallet(c, row["chat_id"], user_id)
+            c.execute("UPDATE wallets SET balance = balance + ? WHERE chat_id = ? AND user_id = ?",
+                      (share, row["chat_id"], user_id))
+            if leftover:
+                c.execute("UPDATE wallets SET balance = balance + ? WHERE chat_id = ? AND user_id = ?",
+                          (leftover, row["chat_id"], row["user_id"]))
+            return dict(row) | {"caught": caught, "closed": closed, "share": share}
+
+    def cancel_rain(self, rain_id: int):
+        """Сообщение с дождём не ушло — дождя не было (деньги возвращает тот, кто его устраивал)."""
+        with self._tx() as c:
+            c.execute("DELETE FROM shop_rains WHERE id = ? AND caught = ''", (rain_id,))
+
+    def expire_rains(self, before: int) -> list[dict]:
+        """Дожди, которые никто не дособирал: остаток возвращается хозяину."""
+        with self._tx() as c:
+            rows = [dict(row) for row in c.execute(
+                "SELECT * FROM shop_rains WHERE closed = 0 AND created_at < ?", (before,)
+            ).fetchall()]
+            for row in rows:
+                caught = self._cells(row["caught"])
+                refund = row["amount"] - (row["amount"] // row["people"]) * len(caught)
+                c.execute("UPDATE shop_rains SET closed = 1 WHERE id = ?", (row["id"],))
+                self._ensure_wallet(c, row["chat_id"], row["user_id"])
+                c.execute("UPDATE wallets SET balance = balance + ? WHERE chat_id = ? AND user_id = ?",
+                          (refund, row["chat_id"], row["user_id"]))
+                row.update(caught=caught, refund=refund)
+            return rows
+
+    def add_d20_effect(self, chat_id: int, target: int, buyer: int, delta: int):
+        with self._tx() as c:
+            c.execute("INSERT INTO shop_d20 (chat_id, target, buyer, delta) VALUES (?, ?, ?, ?)",
+                      (chat_id, target, buyer, delta))
+
+    def take_d20_effects(self, chat_id: int, target: int) -> list[dict]:
+        """Оплаченные бонусы к броску — они срабатывают один раз."""
+        with self._tx() as c:
+            rows = [dict(row) for row in c.execute(
+                "SELECT * FROM shop_d20 WHERE chat_id = ? AND target = ? ORDER BY id", (chat_id, target)
+            ).fetchall()]
+            c.execute("DELETE FROM shop_d20 WHERE chat_id = ? AND target = ?", (chat_id, target))
+            return rows
+
+    def add_tajik_lobby(self, chat_id: int, day: str, target: int, buyer: int) -> bool:
+        with self._tx() as c:
+            cursor = c.execute("INSERT OR IGNORE INTO tajik_lobby (chat_id, day, target, buyer) VALUES (?, ?, ?, ?)",
+                               (chat_id, day, target, buyer))
+            return cursor.rowcount == 1
+
+    def tajik_lobbied(self, chat_id: int, day: str) -> list[dict]:
+        rows = self.conn.execute("SELECT target, buyer FROM tajik_lobby WHERE chat_id = ? AND day = ?",
+                                 (chat_id, day)).fetchall()
+        return [dict(row) for row in rows]
+
+    # ── Одобренные фразы для «Кто это сказал?» ────────────────────────────────
+
+    def replace_quote_phrases(self, chat_id: int, rows: list[tuple[int, str]]):
+        with self._tx(important=True) as c:
+            c.execute("DELETE FROM quote_phrases WHERE chat_id = ?", (chat_id,))
+            c.executemany("INSERT INTO quote_phrases (chat_id, user_id, text) VALUES (?, ?, ?)",
+                          [(chat_id, user_id, text) for user_id, text in rows])
+
+    # автор — тот, кто сейчас в беседе; фразы самого бота тоже в игре (хозяину они нравятся)
+    _QUOTE_MEMBERS = (
+        "FROM quote_phrases q LEFT JOIN chat_members cm ON cm.chat_id = q.chat_id AND cm.user_id = q.user_id "
+        "LEFT JOIN users u ON u.user_id = q.user_id WHERE q.chat_id = ? AND (cm.is_member = 1 OR u.is_bot = 1)"
     )
 
-    def phrase_authors(self, chat_id: int) -> list[int]:
-        rows = self.conn.execute(f"SELECT DISTINCT p.user_id {self._PHRASE_MEMBERS}", (chat_id,)).fetchall()
-        return [row[0] for row in rows]
+    def quote_authors(self, chat_id: int) -> list[int]:
+        return [row[0] for row in self.conn.execute(f"SELECT DISTINCT q.user_id {self._QUOTE_MEMBERS}", (chat_id,))]
 
-    def random_member_phrase(self, chat_id: int) -> Optional[dict]:
+    def quote_stats(self, chat_id: int) -> tuple[int, int]:
+        """Сколько фраз и авторов сейчас в игре."""
+        row = self.conn.execute(f"SELECT COUNT(*), COUNT(DISTINCT q.user_id) {self._QUOTE_MEMBERS}", (chat_id,)).fetchone()
+        return row[0], row[1]
+
+    def random_quote(self, chat_id: int) -> Optional[dict]:
         row = self.conn.execute(
-            f"SELECT p.id, p.user_id, p.text {self._PHRASE_MEMBERS} ORDER BY RANDOM() LIMIT 1", (chat_id,)
+            f"SELECT q.id, q.user_id, q.text {self._QUOTE_MEMBERS} ORDER BY RANDOM() LIMIT 1", (chat_id,)
         ).fetchone()
         return dict(row) if row else None
 

@@ -133,13 +133,13 @@ def _game_view(chat_id: int, user_id: int, key: str, game: dict, names: dict[int
         "units": list(game["units"]),
         "my_best": mine,
         "record": None if holder is None else {
-            "name": members.plain_name(holder["user_id"], names.get(holder["user_id"], {})),
+            "name": members.titled_name(holder["user_id"], names.get(holder["user_id"], {})),
             "score": holder["score"],
             "mine": holder["user_id"] == user_id,
         },
         "top": [
             {
-                "name": members.plain_name(row["user_id"], names.get(row["user_id"], {})),
+                "name": members.titled_name(row["user_id"], names.get(row["user_id"], {})),
                 "score": row["score"],
                 "mine": row["user_id"] == user_id,
             }

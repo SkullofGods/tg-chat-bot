@@ -15,6 +15,7 @@ import backup
 import anniversaries
 import casino_bank
 import casino_crash
+import casino_shop
 import casino_tables
 import multiplayer
 import members
@@ -100,8 +101,9 @@ async def on_startup():
     _background_tasks.append(asyncio.create_task(casino_tables.loop()))  # раунды рулетки и скачек со ставками
     _background_tasks.append(asyncio.create_task(casino_crash.loop()))   # рейсы Толян Эйр со ставками
     _background_tasks.append(asyncio.create_task(scheduler.anniversary_loop()))
-    _background_tasks.append(asyncio.create_task(casino_bank.loop()))
-    _background_tasks.append(asyncio.create_task(multiplayer.loop()))    # столы мультиплеера    # выплата вкладов, у которых вышел срок
+    _background_tasks.append(asyncio.create_task(casino_bank.loop()))    # выплата вкладов, у которых вышел срок
+    _background_tasks.append(asyncio.create_task(multiplayer.loop()))    # столы мультиплеера
+    _background_tasks.append(asyncio.create_task(casino_shop.loop()))    # дожди из таджикоинов и закрепы из лавки
 
 
 async def on_shutdown():

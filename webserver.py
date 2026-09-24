@@ -21,6 +21,7 @@ import casino_bum as bum
 import casino_crash as crash
 import casino_mines as mines
 import casino_quote as quote
+import casino_shop as shop
 import casino_engine as engine
 import casino_tables as tables
 import casino_walk as walk
@@ -128,7 +129,7 @@ async def _errors(request: web.Request, handler):
 AWARDS_POLL_SECONDS = 15   # на опросах состояния ачивки пересчитываем не чаще
 _awards_checked: dict[tuple[int, int], float] = {}
 _POLLING = ("/api/state", "/api/table", "/api/walk", "/api/arcade", "/api/bank", "/api/bum", "/api/work",
-            "/api/mines", "/api/crash")
+            "/api/mines", "/api/crash", "/api/shop")
 
 
 def _needs_check(request: web.Request, player: tuple[int, int]) -> bool:
@@ -388,6 +389,19 @@ async def api_quote(request: web.Request) -> web.Response:
     raise web.HTTPNotFound()
 
 
+# Лавка влияния
+
+
+async def api_shop(request: web.Request) -> web.Response:
+    chat_id, user_id = await _player(request)
+    return _json(await shop.state(chat_id, user_id))
+
+
+async def api_shop_buy(request: web.Request) -> web.Response:
+    chat_id, user_id = await _player(request)
+    return _json(await shop.buy(chat_id, user_id, await _body(request)))
+
+
 # Бомж
 
 
@@ -478,6 +492,8 @@ def build_app() -> web.Application:
         app.router.add_post(f"{prefix}/api/crash", api_crash)
         app.router.add_post(f"{prefix}/api/crash/{{action}}", api_crash_action)
         app.router.add_post(f"{prefix}/api/quote/{{action}}", api_quote)
+        app.router.add_post(f"{prefix}/api/shop", api_shop)
+        app.router.add_post(f"{prefix}/api/shop/buy", api_shop_buy)
         app.router.add_post(f"{prefix}/api/bum", api_bum)
         app.router.add_post(f"{prefix}/api/bum/{{action}}", api_bum_action)
         app.router.add_post(f"{prefix}/api/bank", api_bank)

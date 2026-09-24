@@ -16,6 +16,7 @@ import casino_rig
 import limits
 import members
 import texts
+from db import JACKPOT_SEED
 from loader import bot, db
 from textstats import count_with_word
 from utils import local_today, spawn
@@ -35,10 +36,8 @@ SLOT_WEIGHTS = (6, 5, 4, 3, 2, 1)
 SLOT_TRIPLES = {"cherry": 6, "lemon": 8, "grapes": 12, "bell": 20, "diamond": 40, "seven": 100}
 SLOT_TWO_SEVENS = 4  # две семёрки из трёх
 SLOT_PAIR = 1        # два одинаковых символа — ставка возвращается
-# Золотой казан — общий джекпот беседы. Казино докладывает в него долю каждой ставки в слотах (из своего
-# процента, выплаты по таблице не меняются), а забирает его тот, кто выбьет 7️⃣7️⃣7️⃣ со ставкой от JACKPOT_MIN_BET.
-JACKPOT_SEED = 5_000
-JACKPOT_SHARE = 0.03
+# Золотой казан — общий джекпот беседы. Пополняется с каждой игры против казино (доли — в db.py, там же,
+# где учёт игр), а забирает его тот, кто выбьет 7️⃣7️⃣7️⃣ со ставкой от JACKPOT_MIN_BET.
 JACKPOT_MIN_BET = 100
 
 RR_CHAMBERS = 6
@@ -125,7 +124,7 @@ async def _send_news(chat_id: int, text: str):
 
 
 def player_name(user_id: int) -> str:
-    return members.plain_name(user_id)
+    return members.titled_name(user_id)
 
 
 def players(chat_id: int) -> list[dict]:
@@ -163,7 +162,7 @@ def state(chat_id: int, user_id: int) -> dict:
         "coin_history": db.get_history(chat_id, "coin", HISTORY_SHOWN),
         "top": [
             {
-                "name": members.plain_name(row["user_id"], names.get(row["user_id"], {})),
+                "name": members.titled_name(row["user_id"], names.get(row["user_id"], {})),
                 "username": names.get(row["user_id"], {}).get("username") or None,
                 "balance": row["wealth"],
                 "me": row["user_id"] == user_id,
@@ -215,7 +214,6 @@ def play_slots(chat_id: int, user_id: int, bet) -> dict:
         combo, multiplier = "pair", SLOT_PAIR
     else:
         combo, multiplier = "lose", 0
-    db.add_to_jackpot(chat_id, max(1, int(bet * JACKPOT_SHARE)), JACKPOT_SEED)
     pot = db.take_jackpot(chat_id, user_id, JACKPOT_SEED) if combo == "jackpot" and bet >= JACKPOT_MIN_BET else 0
     payout = bet * multiplier + pot
     balance = db.casino_settle(chat_id, user_id, "slots", bet, payout, special=combo == "jackpot")

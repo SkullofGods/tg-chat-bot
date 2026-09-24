@@ -2809,6 +2809,90 @@ body.dead::after {
   .quote-text { min-height: 84px; font-size: 16px; }
 }
 
+/* ─── Лавка влияния ─── */
+.shop-entry {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin-top: 10px;
+  padding: 12px 14px;
+  text-align: left;
+  border-color: rgba(190, 120, 255, 0.4);
+  background: linear-gradient(90deg, rgba(190, 120, 255, 0.18), rgba(190, 120, 255, 0.03));
+  transition: transform 0.1s;
+}
+.shop-entry:active { transform: scale(0.99); }
+.shop-entry .bonus-icon { font-size: 28px; }
+.shop-hero {
+  padding: 16px;
+  background:
+    radial-gradient(90% 120% at 100% 0%, rgba(190, 120, 255, 0.22), rgba(190, 120, 255, 0) 60%),
+    var(--card);
+}
+.shop-hero b { font-size: 18px; }
+.shop-hero p { margin: 6px 0 0; color: var(--muted); font-size: 14px; line-height: 1.4; }
+.shop-mine {
+  margin-top: 10px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gold-2);
+  background: rgba(245, 197, 66, 0.12);
+  border: 1px solid var(--line);
+  overflow-wrap: anywhere;
+}
+.shop-list { display: flex; flex-direction: column; gap: 10px; margin: 12px 0 0; padding: 0; list-style: none; }
+.shop-list .empty { padding: 16px; color: var(--muted); text-align: center; }
+.shop-item { overflow: hidden; }
+.shop-item.open { border-color: rgba(245, 197, 66, 0.5); }
+.shop-head { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 14px; text-align: left; }
+.shop-emoji { font-size: 28px; }
+.shop-info { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.shop-info small { color: var(--muted); font-size: 12px; line-height: 1.35; }
+.shop-price { color: var(--gold); font-weight: 900; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.shop-price.wait { color: var(--muted); font-size: 13px; font-weight: 700; }
+.shop-form { display: flex; flex-direction: column; gap: 8px; padding: 0 14px 14px; }
+.shop-form textarea,
+.shop-form input,
+.shop-form select {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--card-strong);
+  color: inherit;
+  font: inherit;
+}
+.shop-form textarea { min-height: 76px; resize: vertical; }
+.shop-form select option { color: #111; }
+.shop-label { color: var(--muted); font-size: 12px; font-weight: 700; }
+.shop-count { align-self: flex-end; color: var(--muted); font-size: 12px; }
+.shop-seg { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.shop-people { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; }
+.shop-badges { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
+.shop-seg button,
+.shop-people button,
+.shop-badges button {
+  padding: 9px 4px;
+  border-radius: 12px;
+  font-weight: 800;
+  background: var(--card);
+  border: 1px solid var(--line);
+}
+.shop-badges button { font-size: 22px; padding: 5px 0; }
+.shop-seg button.active,
+.shop-people button.active,
+.shop-badges button.active { background: var(--gold); color: #241600; border-color: var(--gold); }
+.shop-note { margin: 0; color: var(--muted); font-size: 13px; text-align: center; }
+.shop-form .play-btn { margin-top: 2px; padding: 14px; }
+.shop-form .play-btn.confirm {
+  color: #fff;
+  background: linear-gradient(180deg, #ffab70, #e0662f 50%, #8f3414);
+  box-shadow: 0 6px 20px rgba(224, 102, 47, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
 /* Маленькие телефоны: каждый пиксель по высоте на счету — баннер и шапки поуже */
 @media (max-width: 380px), (max-height: 700px) {
   .spam-banner { margin: 2px 0 6px; padding: 6px 10px; font-size: 12px; border-radius: 12px; }
@@ -2884,6 +2968,15 @@ body.dead::after {
           <span class="bonus-text">
             <b id="bonus-title">Ежедневный бонус</b>
             <small id="bonus-sub">150–400 таджикоинов раз в день</small>
+          </span>
+          <span class="bonus-arrow" aria-hidden="true">›</span>
+        </button>
+
+        <button class="card shop-entry" type="button" data-go="shop">
+          <span class="bonus-icon" aria-hidden="true">🛍</span>
+          <span class="bonus-text">
+            <b>Лавка влияния</b>
+            <small>Объявления, тосты, дождь из таджикоинов, звания</small>
           </span>
           <span class="bonus-arrow" aria-hidden="true">›</span>
         </button>
@@ -3924,6 +4017,16 @@ body.dead::after {
 
         <h2 class="section-title">📈 Куда он может вырасти</h2>
         <ul class="card bum-levels" id="bum-levels"></ul>
+      </section>
+
+      <!-- ─── Лавка влияния ─── -->
+      <section class="screen" data-screen="shop">
+        <div class="card shop-hero">
+          <b>🛍 Лавка влияния</b>
+          <p>Таджикоины на то, что видно в беседе. Всё, что уходит в беседу, подписано твоим именем. Не дошло до беседы — деньги вернутся.</p>
+          <div class="shop-mine" id="shop-mine" hidden></div>
+        </div>
+        <ul class="shop-list" id="shop-list"><li class="empty">Загружаем…</li></ul>
       </section>
 
       <!-- ─── Банк ─── -->
@@ -5376,12 +5479,12 @@ body.dead::after {
   // Экранов больше, чем разделов внизу: игры казино живут в «Казино», работа и банк — в «Заработке»
   const TAB_OF = {
     lobby: "lobby", roulette: "lobby", race: "lobby", slots: "lobby", blackjack: "lobby", coin: "lobby",
-    mines: "lobby", crash: "lobby",
+    mines: "lobby", crash: "lobby", shop: "lobby",
     rr: "rr", earn: "earn", work: "earn", bank: "earn", awards: "earn",
     bum: "bum", arcade: "arcade", walk: "walk", multi: "multi",
   };
   const PARENT = { work: "earn", bank: "earn", awards: "earn", roulette: "lobby", race: "lobby",
-                   slots: "lobby", blackjack: "lobby", coin: "lobby", mines: "lobby", crash: "lobby" };
+                   slots: "lobby", blackjack: "lobby", coin: "lobby", mines: "lobby", crash: "lobby", shop: "lobby" };
 
   function go(screen) {
     if (!$(`.screen[data-screen="${screen}"]`)) return;
@@ -5405,6 +5508,7 @@ body.dead::after {
     if (screen === "bum") loadBum();
     if (screen in tables) pollTable(screen);
     if (screen === "bank") loadBank();
+    if (screen === "shop") loadShop();
     if (screen === "earn") renderEarn();
     if (screen === "mines") loadMines();
     if (screen === "crash") startCrash();
@@ -10934,6 +11038,271 @@ body.dead::after {
     }
   }
 
+  // ─── Лавка влияния ─────────────────────────────────────────────────────────
+
+  // form — что введено в формах по ключу товара: переживает перерисовку списка
+  const shop = { data: null, loading: false, sending: false, open: "", confirm: "", confirmUntil: 0, loadedAt: 0, form: {} };
+  const SHOP_BADGES = ["👑", "💎", "🔥", "🐐", "🦅", "🍲", "🇹🇯", "🤡", "🌚", "💅", "🧿", "🍆"];
+
+  async function loadShop() {
+    if (shop.loading) return;
+    shop.loading = true;
+    try {
+      applyShop(await api("shop"));
+    } catch (error) {
+      showError(error);
+    } finally {
+      shop.loading = false;
+    }
+  }
+
+  function applyShop(data) {
+    shop.data = data;
+    shop.loadedAt = Date.now();
+    setBalance(data.balance, state.loaded);
+    renderShop();
+  }
+
+  function shopWait(item) {
+    return Math.max(0, Math.ceil(item.wait - (Date.now() - shop.loadedAt) / 1000));
+  }
+
+  function shopValues(key) {
+    if (!shop.form[key]) shop.form[key] = {};
+    return shop.form[key];
+  }
+
+  function shopPrice(item) {
+    if (item.key !== "rain") return item.price;
+    const amount = Math.floor(Number(shopValues("rain").amount ?? shop.data.rain.min));
+    return Number.isFinite(amount) ? amount : 0;
+  }
+
+  function shopReady(item) {
+    const values = shopValues(item.key);
+    if (["text", "title", "badge"].includes(item.input)) return Boolean((values.text || "").trim());
+    if (item.input === "member") return Boolean(values.target);
+    if (item.input === "member_sign") return Boolean(values.target && values.sign);
+    if (item.input === "rain") return shopPrice(item) >= shop.data.rain.min;
+    return true;
+  }
+
+  function renderShop() {
+    const data = shop.data;
+    if (!data) return;
+    const mine = [];
+    if (data.mine.badge) mine.push(`значок ${data.mine.badge}`);
+    if (data.mine.title) mine.push(`звание «${data.mine.title}»`);
+    $("#shop-mine").hidden = !mine.length;
+    $("#shop-mine").textContent = mine.length ? `У тебя уже: ${mine.join(" · ")}` : "";
+    $("#shop-list").replaceChildren(...data.items.map(shopItem));
+    tickShop();
+  }
+
+  function shopItem(item) {
+    const row = el("li", `card shop-item${shop.open === item.key ? " open" : ""}`);
+    row.dataset.item = item.key;
+    const head = el("button", "shop-head");
+    head.type = "button";
+    head.dataset.shopOpen = item.key;
+    const info = el("span", "shop-info");
+    info.append(el("b", "", item.title), el("small", "", item.about));
+    head.append(el("span", "shop-emoji", item.emoji), info, el("span", "shop-price"));
+    row.append(head);
+    if (shop.open === item.key) row.append(shopForm(item));
+    return row;
+  }
+
+  function shopButtons(className, entries, active, attribute) {
+    const box = el("div", className);
+    entries.forEach(([value, label]) => {
+      const button = el("button", value === active ? "active" : "", label);
+      button.type = "button";
+      button.dataset[attribute] = value;
+      box.append(button);
+    });
+    return box;
+  }
+
+  function shopForm(item) {
+    const data = shop.data;
+    const values = shopValues(item.key);
+    const form = el("div", "shop-form");
+    if (item.disabled) {
+      form.append(el("p", "shop-note", item.disabled));
+      return form;
+    }
+    const field = (tag, name, props) => {
+      const node = Object.assign(el(tag), props);
+      node.dataset.shopField = name;
+      return node;
+    };
+    if (item.input === "text") {
+      form.append(field("textarea", "text", {
+        maxLength: data.limits.text, rows: 3, value: values.text || "",
+        placeholder: item.key === "pin" ? "Что повесить в закреп" : "Текст объявления",
+      }), el("small", "shop-count"));
+    }
+    if (item.input === "member" || item.input === "member_sign") {
+      const select = field("select", "target", {});
+      const none = el("option", "", "Кого выбрать?");
+      none.value = "";
+      select.append(none, ...data.members.map((person) => {
+        const option = el("option", "", person.name);
+        option.value = String(person.id);
+        return option;
+      }));
+      select.value = values.target ? String(values.target) : "";
+      form.append(select);
+    }
+    if (item.input === "member_sign") {
+      form.append(shopButtons("shop-seg", [[1, "😇 Благословить"], [-1, "😈 Проклясть"]], values.sign, "shopSign"));
+    }
+    if (item.input === "title") {
+      form.append(field("input", "text", { maxLength: data.limits.title, value: values.text || "", placeholder: "Например: Султан плова" }));
+    }
+    if (item.input === "badge") {
+      form.append(shopButtons("shop-badges", SHOP_BADGES.map((emoji) => [emoji, emoji]), values.text, "shopBadge"),
+        field("input", "text", { maxLength: 10, placeholder: "или свой эмодзи",
+                                 value: values.text && !SHOP_BADGES.includes(values.text) ? values.text : "" }));
+    }
+    if (item.input === "rain") {
+      const people = [];
+      for (let n = data.rain.people[0]; n <= data.rain.people[1]; n += 1) people.push([n, String(n)]);
+      form.append(
+        el("small", "shop-label", "Сколько разбросать"),
+        field("input", "amount", { type: "number", inputMode: "numeric", min: data.rain.min, step: 1000,
+                                   value: values.amount ?? data.rain.min }),
+        el("small", "shop-label", "Сколько человек поймают"),
+        shopButtons("shop-people", people, values.people || data.rain.people[0], "shopPeople"),
+        el("p", "shop-note"),
+      );
+    }
+    const buy = el("button", "play-btn");
+    buy.type = "button";
+    buy.dataset.shopBuy = item.key;
+    form.append(buy);
+    return form;
+  }
+
+  function updateShopForm(form, item) {
+    const button = form.querySelector("[data-shop-buy]");
+    if (!button) return;
+    const values = shopValues(item.key);
+    const price = shopPrice(item);
+    const wait = shopWait(item);
+    const confirming = shop.confirm === item.key && Date.now() < shop.confirmUntil;
+    button.classList.toggle("confirm", confirming && !wait);
+    if (wait) button.textContent = `⏳ Можно через ${Math.ceil(wait / 60)} мин`;
+    else if (price > state.balance) button.textContent = `Не хватает таджикоинов · ${fmt(price)}`;
+    else button.textContent = confirming ? `Точно? −${fmt(price)}` : `Купить · ${fmt(price)}`;
+    button.disabled = shop.sending || Boolean(wait) || price > state.balance || !shopReady(item);
+    const count = form.querySelector(".shop-count");
+    if (count) count.textContent = `${(values.text || "").length}/${shop.data.limits.text}`;
+    if (item.input === "rain") {
+      const people = values.people || shop.data.rain.people[0];
+      form.querySelector(".shop-note").textContent = price >= shop.data.rain.min
+        ? `Каждому по ${fmt(Math.floor(price / people))}. Кто не успеет за 10 минут — его доля вернётся тебе`
+        : `Дождь — от ${fmt(shop.data.rain.min)}`;
+    }
+  }
+
+  function tickShop() {
+    if (state.screen !== "shop" || !shop.data) return;
+    if (shop.confirm && Date.now() > shop.confirmUntil) shop.confirm = "";
+    shop.data.items.forEach((item) => {
+      const row = $(`#shop-list [data-item="${item.key}"]`);
+      if (!row) return;
+      const wait = shopWait(item);
+      const price = row.querySelector(".shop-price");
+      price.classList.toggle("wait", Boolean(wait));
+      price.textContent = wait ? `⏳ ${Math.ceil(wait / 60)} мин` : `${item.key === "rain" ? "от " : ""}${fmt(item.price)}`;
+      const form = row.querySelector(".shop-form");
+      if (form) updateShopForm(form, item);
+    });
+  }
+
+  function onShopClick(event) {
+    if (!shop.data) return;
+    const opener = event.target.closest("[data-shop-open]");
+    if (opener) {
+      shop.open = shop.open === opener.dataset.shopOpen ? "" : opener.dataset.shopOpen;
+      shop.confirm = "";
+      haptic.tap();
+      renderShop();
+      return;
+    }
+    const buy = event.target.closest("[data-shop-buy]");
+    if (buy) {
+      buyShop(buy.dataset.shopBuy);
+      return;
+    }
+    const choice = event.target.closest("[data-shop-sign], [data-shop-badge], [data-shop-people]");
+    if (!choice) return;
+    const key = choice.closest("[data-item]").dataset.item;
+    const values = shopValues(key);
+    if (choice.dataset.shopSign) values.sign = Number(choice.dataset.shopSign);
+    if (choice.dataset.shopBadge) values.text = choice.dataset.shopBadge;
+    if (choice.dataset.shopPeople) values.people = Number(choice.dataset.shopPeople);
+    shop.confirm = "";
+    haptic.tap();
+    renderShop();
+  }
+
+  function onShopInput(event) {
+    const node = event.target.closest("[data-shop-field]");
+    if (!node || !shop.data) return;
+    const row = node.closest("[data-item]");
+    const item = shop.data.items.find((entry) => entry.key === row.dataset.item);
+    const values = shopValues(item.key);
+    const name = node.dataset.shopField;
+    values[name] = name === "target" ? Number(node.value) || "" : node.value;
+    if (item.input === "badge") {
+      row.querySelectorAll("[data-shop-badge]").forEach((button) => button.classList.toggle("active", button.dataset.shopBadge === node.value));
+    }
+    shop.confirm = "";
+    updateShopForm(row.querySelector(".shop-form"), item);
+  }
+
+  async function buyShop(key) {
+    const item = shop.data.items.find((entry) => entry.key === key);
+    const form = $(`#shop-list [data-item="${key}"] .shop-form`);
+    if (!item || !form || shop.sending) return;
+    if (shop.confirm !== key || Date.now() > shop.confirmUntil) {
+      shop.confirm = key;                      // первое нажатие — переспрашиваем: покупки дорогие
+      shop.confirmUntil = Date.now() + 3000;
+      haptic.tap();
+      updateShopForm(form, item);
+      return;
+    }
+    shop.confirm = "";
+    shop.sending = true;
+    updateShopForm(form, item);
+    const values = shopValues(key);
+    const body = { item: key };
+    if (values.target) body.target = Number(values.target);
+    if (values.sign) body.sign = values.sign;
+    if (values.text) body.text = values.text;
+    if (key === "rain") {
+      body.amount = shopPrice(item);
+      body.people = values.people || shop.data.rain.people[0];
+    }
+    try {
+      const data = await api("shop/buy", body);
+      delete shop.form[key];
+      shop.open = "";
+      shop.sending = false;
+      applyShop(data);
+      haptic.notify("success");
+      confetti.burst(60);
+      toast(data.story || "Готово", "win");
+    } catch (error) {
+      shop.sending = false;
+      showError(error);
+      renderShop();
+    }
+  }
+
   // ─── Банк ──────────────────────────────────────────────────────────────────
 
   const bank = { data: null, offset: 0, sending: false, loading: false, confirmId: 0, confirmUntil: 0 };
@@ -11235,6 +11604,9 @@ body.dead::after {
     $("#bum-wardrobe-now").addEventListener("click", (event) => {
       if (event.target.closest("[data-skin-off]")) bumSkin("wear", "");
     });
+    $("#shop-list").addEventListener("click", onShopClick);
+    $("#shop-list").addEventListener("input", onShopInput);
+    $("#shop-list").addEventListener("change", onShopInput);     // выпадающий список в старых webview шлёт только change
     $("#bank-deposit").addEventListener("click", makeDeposit);
     $("#deposits").addEventListener("click", (event) => {
       const button = event.target.closest("[data-withdraw]");
@@ -11297,6 +11669,7 @@ body.dead::after {
   setInterval(updateRussianButton, 1000);
   setInterval(tickTables, 250);
   setInterval(tickBank, 1000);
+  setInterval(tickShop, 1000);
   setInterval(tickWork, 1000);
   setInterval(tickBum, 1000);
   setInterval(tickWalk, 1000);

@@ -1,6 +1,6 @@
 from aiogram import Router
 
-from . import casino, chat, debug, donations, family, fun, profile, service, stats, tajik_day
+from . import casino, chat, debug, donations, family, fun, profile, service, shop, stats, tajik_day
 
 
 def build_router() -> Router:
@@ -14,6 +14,7 @@ def build_router() -> Router:
         family.router,
         fun.router,
         casino.router,
+        shop.router,
         tajik_day.router,
         stats.router,
         chat.router,

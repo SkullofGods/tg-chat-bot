@@ -7,6 +7,7 @@ from aiogram import Router
 from aiogram.filters import Command
 from aiogram.types import Message
 
+import casino_shop as shop
 import members
 import texts
 from loader import db
@@ -35,7 +36,11 @@ async def cmd_tajik(message: Message):
 
     _in_progress.add(chat_id)
     try:
-        candidate = await members.random_member(chat_id, active_days=30)
+        lobby = db.tajik_lobbied(chat_id, today)       # проплачено в лавке влияния — секрет до самого выбора
+        weights: dict[int, int] = {}
+        for row in lobby:
+            weights[row["target"]] = weights.get(row["target"], 1) + shop.TAJIK_LOBBY_WEIGHT - 1
+        candidate = await members.random_member(chat_id, active_days=30, weights=weights)
         if candidate is None:
             await message.reply(texts.TAJIK_DAY_NOBODY)
             return
@@ -53,9 +58,22 @@ async def cmd_tajik(message: Message):
         await asyncio.sleep(2.5)
         finale = random.choice(texts.TAJIK_DAY_FINALES).format(winner=members.mention(winner))
         extra = texts.TAJIK_DAY_FIRST_TIME if wins == 1 else texts.TAJIK_DAY_REPEAT.format(n=wins)
-        await message.answer(f"{finale}\n{extra}\n\n{texts.TAJIK_DAY_PERK}")
+        await message.answer(f"{finale}\n{extra}\n\n{texts.TAJIK_DAY_PERK}" + _lobby_reveal(lobby, winner))
     finally:
         _in_progress.discard(chat_id)
+
+
+def _lobby_reveal(lobby: list[dict], winner: int) -> str:
+    """Кто подкупал судьбу в лавке влияния — вскрывается вместе с выбором."""
+    if not lobby:
+        return ""
+    names = members.display_names({row["buyer"] for row in lobby} | {row["target"] for row in lobby})
+    paid = [names[row["buyer"]] for row in lobby if row["target"] == winner]
+    missed = [f"{names[row['buyer']]} → {names[row['target']]}" for row in lobby if row["target"] != winner]
+    lines = [texts.TAJIK_LOBBY_WON.format(buyers=", ".join(paid))] if paid else []
+    if missed:
+        lines.append(texts.TAJIK_LOBBY_LOST.format(buyers=", ".join(missed)))
+    return "\n\n" + "\n".join(lines)
 
 
 @router.message(Command("tajiktop", "таджиктоп"))

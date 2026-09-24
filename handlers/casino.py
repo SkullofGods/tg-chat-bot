@@ -95,11 +95,12 @@ async def cmd_forbes(message: Message):
     if not rows:
         await message.reply(texts.FORBES_EMPTY)
         return
-    names = members.display_names(row["user_id"] for row in rows)
+    names = db.get_name_rows(row["user_id"] for row in rows)
     lines = [texts.FORBES_TITLE, ""]
     for i, row in enumerate(rows):
         place = texts.MEDALS[i] if i < len(texts.MEDALS) else f"{i + 1}."
-        lines.append(f"{place} {names[row['user_id']]} — {money(row['wealth'])}")
+        name = members.titled_display_name(row["user_id"], names.get(row["user_id"], {}))
+        lines.append(f"{place} {name} — {money(row['wealth'])}")
 
     totals = db.get_casino_totals(chat_id)
     house = sum(t["wagered"] - t["returned"] for game, t in totals.items() if game != "duel")

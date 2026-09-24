@@ -72,8 +72,12 @@ async def cmd_d20(message: Message, command: CommandObject):
     roll = random.randint(1, 20)
 
     bonuses: list[tuple[int, str]] = []
-    if members.is_group(message.chat) and db.get_tajik_of_day(chat_id, local_today()) == user.id:
-        bonuses.append((2, f"<i>{texts.D20_TAJIK_BLESSING}</i>"))
+    if members.is_group(message.chat):
+        if db.get_tajik_of_day(chat_id, local_today()) == user.id:
+            bonuses.append((2, f"<i>{texts.D20_TAJIK_BLESSING}</i>"))
+        for effect in db.take_d20_effects(chat_id, user.id):     # оплачено в лавке влияния — вскрывается только сейчас
+            template = texts.D20_SHOP_BLESSING if effect["delta"] > 0 else texts.D20_SHOP_CURSE
+            bonuses.append((effect["delta"], f"<i>{template.format(buyer=members.display_name(effect['buyer']))}</i>"))
     if random.random() < 0.10:
         bonuses.append(await _random_bonus(chat_id, user.id))
     effective = roll + sum(value for value, _ in bonuses)
@@ -127,6 +131,21 @@ async def cmd_tadjikistan(message: Message):
         spawn(_tajikistan_followup(chat_id, sent.message_id, event["followup"], message.from_user.id))
 
 
+async def paid_tajikistan_event(chat_id: int, target_id: int, buyer_id: int):
+    """Событие из лавки влияния: про того, кого выбрал покупатель, и мимо перезарядки /tadjikistan."""
+    event = random.choice([event for event in texts.TAJIKISTAN_EVENTS.values()
+                           if "{target}" in event["intro"] + event.get("followup", "")])
+    intro = event["intro"]
+    if "{target}" in intro:
+        intro = intro.format(target=members.mention(target_id))
+    head = texts.SHOP_EVENT.format(buyer=members.display_name(buyer_id), target=members.mention(target_id))
+    sent = await bot.send_message(chat_id, f"{head}\n\n{intro}")
+    if event.get("gif"):
+        await _send_lore_gif(chat_id)
+    if "followup" in event:
+        spawn(_tajikistan_followup(chat_id, sent.message_id, event["followup"], buyer_id, target_id))
+
+
 async def _send_lore_gif(chat_id: int) -> None:
     """Шлём ту самую гифку, если хозяин уже присылал её боту в личку."""
     file_id = db.get_meta(LORE_GIF_KEY)
@@ -138,10 +157,11 @@ async def _send_lore_gif(chat_id: int) -> None:
         logger.warning("Гифка не ушла в %s: %s", chat_id, e)
 
 
-async def _tajikistan_followup(chat_id: int, reply_to: int, template: str, caller_id: int):
+async def _tajikistan_followup(chat_id: int, reply_to: int, template: str, caller_id: int, target_id: int | None = None):
     await asyncio.sleep(TAJIKISTAN_FOLLOWUP_DELAY_SECONDS)
     try:
-        target_id = await members.random_member(chat_id)
+        if target_id is None:                                     # в лавке человека выбрал покупатель
+            target_id = await members.random_member(chat_id)
         values = {
             "target": members.mention(target_id) if target_id else "Кто-то",
             "caller": members.mention(caller_id),

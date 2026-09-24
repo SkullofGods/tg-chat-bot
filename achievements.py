@@ -311,7 +311,7 @@ def state(chat_id: int, user_id: int) -> dict:
         "total": len(cards),
         "earned": db.achievement_earned(chat_id, user_id),
         "endings": {"found": sum(snap["found"].values()), "total": sum(len(ends) for ends in quests.ENDINGS.values())},
-        "leaders": [{"name": members.plain_name(row["user_id"], names.get(row["user_id"], {})),
+        "leaders": [{"name": members.titled_name(row["user_id"], names.get(row["user_id"], {})),
                      "stars": row["stars"], "me": row["user_id"] == user_id}
                     for row in db.achievement_leaders(chat_id)],
         "balance": snap["balance"],

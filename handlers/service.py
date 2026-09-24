@@ -1,5 +1,7 @@
-"""Служебное: /start в личке, id чата, ручные бэкапы и откат базы."""
+"""Служебное: /start в личке, id чата, ручные бэкапы и откат базы, фразы для «Кто это сказал?»."""
 
+import json
+import logging
 from html import escape
 
 from aiogram import F, Router
@@ -9,9 +11,14 @@ from aiogram.types import Message
 import backup
 import texts
 from config import BACKUP_CHAT_ID, LORE_GIF_KEY, OWNER_ID
-from loader import db
+from loader import bot, db
+from textstats import count_with_word
 
+logger = logging.getLogger(__name__)
 router = Router(name="service")
+
+QUOTES_MAX_BYTES = 2_000_000
+QUOTE_MAX_LENGTH = 1000
 
 
 def _in_backup_chat(message: Message) -> bool:
@@ -37,6 +44,45 @@ async def save_lore_gif(message: Message):
     """Та самая гифка. Присылаем её боту в личку один раз — дальше он шлёт её сам."""
     db.set_meta(LORE_GIF_KEY, message.animation.file_id)
     await message.reply("🥛 Запомнил. Теперь она иногда прилетает в беседу — там, где по лору положено.")
+
+
+def parse_quotes(raw: bytes, default_chat: int | None) -> tuple[int, list[tuple[int, str]]]:
+    """Файл с фразами: {"chat_id": id беседы, "phrases": [[id автора, "фраза"], …]}. ValueError — не он."""
+    data = json.loads(raw.decode("utf-8-sig"))
+    chat_id = data.get("chat_id", default_chat) if isinstance(data, dict) else None
+    phrases = data.get("phrases") if isinstance(data, dict) else None
+    if isinstance(chat_id, bool) or not isinstance(chat_id, int) or not isinstance(phrases, list) or not phrases:
+        raise ValueError("нет беседы или фраз")
+    rows = []
+    for item in phrases:
+        if not (isinstance(item, list) and len(item) == 2 and isinstance(item[0], int) and not isinstance(item[0], bool)
+                and isinstance(item[1], str) and 0 < len(item[1].strip()) <= QUOTE_MAX_LENGTH):
+            raise ValueError(f"кривая фраза: {str(item)[:60]}")
+        rows.append((item[0], item[1].strip()))
+    return chat_id, rows
+
+
+@router.message(F.chat.type == "private", F.from_user.id == OWNER_ID, F.document.file_name.endswith(".json"))
+async def load_quotes(message: Message):
+    """Фразы для «Кто это сказал?». Хозяин проверяет их сам и присылает файлом: в публичный репозиторий
+    переписка беседы не едет, а в базе они живут вместе с бэкапами."""
+    document = message.document
+    try:
+        if document.file_size and document.file_size > QUOTES_MAX_BYTES:
+            raise ValueError("слишком большой файл")
+        chat_id, rows = parse_quotes((await bot.download(document)).read(), db.get_main_chat())
+    except (ValueError, UnicodeDecodeError) as e:
+        logger.info("Файл с фразами не принят: %s", e)
+        await message.reply(texts.QUOTES_BAD)
+        return
+    me = await bot.me()
+    db.upsert_user(me.id, me.username or "", me.full_name, True)   # фразы самого бота тоже в игре
+    db.replace_quote_phrases(chat_id, rows)
+    live, authors = db.quote_stats(chat_id)
+    phrase_forms = ("фраза", "фразы", "фраз")
+    await message.reply(texts.QUOTES_LOADED.format(
+        total=count_with_word(len(rows), phrase_forms), live=count_with_word(live, phrase_forms),
+        authors=count_with_word(authors, ("автора", "авторов", "авторов"))))
 
 
 @router.message(Command("chatid"))
