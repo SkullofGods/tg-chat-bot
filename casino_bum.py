@@ -256,6 +256,7 @@ def feed(chat_id: int, user_id: int) -> dict:
     if not db.feed_bum(chat_id, user_id, perk["feed_cost"], max(now, bum["fed_until"]) + perk["feed_hours"] * 3600):
         raise engine.not_enough_money(chat_id, user_id)
     db.bump_counter(chat_id, user_id, "bum:feed")
+    db.set_counter(chat_id, user_id, "bum:fed_at", now)          # когда кормили — для «Доходяги»
     if starved:
         db.bump_counter(chat_id, user_id, "bum:starved")
         return _state(_bum(chat_id, user_id, now), f"🍲 Набросился на плов: голодал больше {STARVED_HOURS} часов",
@@ -293,8 +294,12 @@ def _find_skin(key) -> tuple:
 def _skin_facts(chat_id: int, user_id: int, bum: dict) -> dict:
     """Всё, от чего зависят образы: уровень, ачивки, счётчики, статистика и рекорды игрока."""
     counters = db.get_counters(chat_id, user_id)
-    if _now() - bum["fed_until"] >= STARVED_HOURS * 3600:     # голодает прямо сейчас — это тоже голодовка,
-        counters["bum:starved"] = counters.get("bum:starved", 0) + 1   # кормить ради «Доходяги» не нужно
+    # «Доходяга» — за сутки без плова: голодает прямо сейчас или просто сутки не кормили (плов можно купить
+    # впрок, и тогда Толян ещё сыт, но хозяин-то не кормит). Кормить ради образа не нужно
+    now = _now()
+    fed_at = counters.get("bum:fed_at")
+    if now - bum["fed_until"] >= STARVED_HOURS * 3600 or (fed_at and now - fed_at >= STARVED_HOURS * 3600):
+        counters["bum:starved"] = counters.get("bum:starved", 0) + 1
     return {
         "level": bum["level"],
         "earned": db.get_achievements(chat_id, user_id),

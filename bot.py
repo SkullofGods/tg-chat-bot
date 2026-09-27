@@ -15,6 +15,7 @@ import backup
 import anniversaries
 import casino_arcade
 import casino_bank
+import casino_bum
 import casino_crash
 import casino_shop
 import casino_tables
@@ -144,6 +145,19 @@ def grant_arcade_record_once(key: str, user_id: int, game: str, score: int):
     logger.info("Записал рекорд %s: %s очков в «%s»", key, score, game)
 
 
+def grant_bum_skin_once(key: str, user_id: int, skin: str):
+    """Разовая выдача образа Толяна, который не открылся из-за ошибки. Второй раз не выдаёт."""
+    if db.get_meta(f"grant:{key}") is not None:
+        return
+    chat_id = db.get_main_chat()
+    if chat_id is None or db.peek_bum(chat_id, user_id) is None:
+        logger.warning("Образ %s не выдан: нет беседы или Толяна", key)
+        return
+    db.add_bum_skin(chat_id, user_id, skin, casino_bum._now())
+    db.set_meta(f"grant:{key}", "1", important=True)
+    logger.info("Выдал образ «%s» игроку %s", skin, user_id)
+
+
 async def main():
     logger.info("База: %s", DB_PATH)
     await backup.prepare_database()
@@ -154,6 +168,8 @@ async def main():
     grant_by_nickname_once("tajik_1900", "таджик", 1900)  # по просьбе хозяина, 17.09.2026
     # Victoria прошла «Ногозавра» на 3035, а старый потолок игры был 3000 — рекорд не записался (25.09.2026)
     grant_arcade_record_once("arcade_nogozavr_victoria_3035", 6448494367, "nogozavr", 3035)
+    # Азарт третий день не кормит Толяна, а «Доходяга» открывался только после кормёжки (28.09.2026)
+    grant_bum_skin_once("bum_skinny_azart", 6713306755, "skinny")
 
     dp.message.outer_middleware(TrackingMiddleware())
     dp.callback_query.outer_middleware(TrackingMiddleware())
