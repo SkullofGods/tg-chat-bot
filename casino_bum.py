@@ -292,10 +292,13 @@ def _find_skin(key) -> tuple:
 
 def _skin_facts(chat_id: int, user_id: int, bum: dict) -> dict:
     """Всё, от чего зависят образы: уровень, ачивки, счётчики, статистика и рекорды игрока."""
+    counters = db.get_counters(chat_id, user_id)
+    if _now() - bum["fed_until"] >= STARVED_HOURS * 3600:     # голодает прямо сейчас — это тоже голодовка,
+        counters["bum:starved"] = counters.get("bum:starved", 0) + 1   # кормить ради «Доходяги» не нужно
     return {
         "level": bum["level"],
         "earned": db.get_achievements(chat_id, user_id),
-        "counters": db.get_counters(chat_id, user_id),
+        "counters": counters,
         "stats": {row["game"]: row for row in db.get_casino_stats(chat_id, user_id)},
         "arcade": lambda game: db.arcade_best(chat_id, game, user_id),
     }
