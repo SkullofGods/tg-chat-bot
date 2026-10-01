@@ -558,6 +558,10 @@ class Database:
                 (key, value),
             )
 
+    def delete_meta(self, key: str, important: bool = False):
+        with self._tx(important=important) as c:
+            c.execute("DELETE FROM meta WHERE key = ?", (key,))
+
     def summary(self) -> dict[str, int]:
         return summarize(self.conn)
 

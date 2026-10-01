@@ -13,6 +13,7 @@ from aiogram.types import (
 
 import backup
 import anniversaries
+import countdown
 import casino_arcade
 import casino_bank
 import casino_bum
@@ -106,6 +107,7 @@ async def on_startup():
     _background_tasks.append(asyncio.create_task(casino_bank.loop()))    # выплата вкладов, у которых вышел срок
     _background_tasks.append(asyncio.create_task(multiplayer.loop()))    # столы мультиплеера
     _background_tasks.append(asyncio.create_task(casino_shop.loop()))    # дожди из таджикоинов и закрепы из лавки
+    _background_tasks.append(asyncio.create_task(countdown.loop()))      # отсчёт до события и пост по его наступлении
 
 
 async def on_shutdown():

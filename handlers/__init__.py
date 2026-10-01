@@ -1,6 +1,6 @@
 from aiogram import Router
 
-from . import casino, chat, debug, donations, family, fun, profile, service, shop, stats, tajik_day
+from . import casino, chat, countdown, debug, donations, family, fun, profile, service, shop, stats, tajik_day
 
 
 def build_router() -> Router:
@@ -8,6 +8,7 @@ def build_router() -> Router:
     # Порядок важен: chat ловит все остальные сообщения, поэтому он последний
     router.include_routers(
         debug.router,
+        countdown.router,
         donations.router,
         service.router,
         profile.router,
